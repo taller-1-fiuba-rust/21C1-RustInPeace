@@ -28,7 +28,11 @@ impl ThreadPool {
         let job = Box::new(f);
         match self.sender.send(Message::NewJob(job)) {
             Ok(_) => {} //
-            Err(_) => {println!("failed sending message")} //
+            Err(_) => {
+                //si no hay ningun thread para agarrar el job, mandamos el
+                //job a una cola??
+                println!("Oops! Failed sending message")
+            }
         }
     }
 }
@@ -38,7 +42,12 @@ impl Drop for ThreadPool {
         println!("Sending terminate message to all workers.");
 
         for _ in &self.workers {
-            self.sender.send(Message::Terminate).unwrap();
+            match self.sender.send(Message::Terminate) {
+                Ok(_) => {} //
+                Err(_) => {
+                    println!("Oops! Failed sending terminate message");
+                }
+            }
         }
 
         println!("Shutting down all workers.");
