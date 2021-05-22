@@ -10,13 +10,13 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(quantity: usize, timeout: u64) -> Self {
+    pub fn new(quantity: usize) -> Self {
         assert!(quantity > 0);
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
         let mut workers = Vec::with_capacity(quantity);
         for id in 0..quantity {
-            workers.push(Worker::new(id, Arc::clone(&receiver), timeout));
+            workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
         ThreadPool { workers, sender }
     }
@@ -26,7 +26,10 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-        self.sender.send(Message::NewJob(job)).unwrap();
+        match self.sender.send(Message::NewJob(job)) {
+            Ok(_) => {} //
+            Err(_) => {println!("failed sending message")} //
+        }
     }
 }
 
