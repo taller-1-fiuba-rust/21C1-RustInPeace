@@ -3,6 +3,7 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use super::message::Message;
+use std::time::Duration;
 
 pub struct Worker {
     id: usize,
@@ -10,17 +11,23 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
+    pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>, timeout: u64) -> Self {
         let thread: thread::JoinHandle<()> = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap().recv().unwrap();
-
-            match message {
-                Message::NewJob(job) => {
-                    println!("Worker {} got a job; executing.", id);
-                    job();
-                }
-                Message::Terminate => {
-                    println!("Worker {} was told to terminate.", id);
+            match receiver.lock().unwrap().recv_timeout(Duration::from_millis(timeout)){
+                Ok(message) => {
+                    match message {
+                        Message::NewJob(job) => {
+                            println!("Worker {} got a job; executing.", id);
+                            job();
+                        }
+                        Message::Terminate => {
+                            println!("Worker {} was told to terminate.", id);
+                            break;
+                        }
+                    }
+                },
+                Err(_) => {
+                    println!("Timeout!");
                     break;
                 }
             }

@@ -11,13 +11,13 @@ fn main() {
     //hardcodeo configuracion
     let verbose = "1";
     let port: String = "8080".to_string();
-    let timeout: usize = "0".parse().unwrap(); //to handle
+    let timeout: u64 = "0".parse().unwrap(); //to handle
     let dbfilename = "custom.rbd";
     let logfile = "log.out";
     let now = Instant::now();
 
     let listener = TcpListener::bind(format!("{}:{}", dir, port)).unwrap();
-    let pool = ThreadPool::new(4);
+    let pool = ThreadPool::new(4, timeout);
     for stream in listener.incoming() {
         let stream = stream.unwrap();
 

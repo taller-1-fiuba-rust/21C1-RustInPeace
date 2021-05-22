@@ -10,13 +10,13 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(quantity: usize) -> Self {
+    pub fn new(quantity: usize, timeout: u64) -> Self {
         assert!(quantity > 0);
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
         let mut workers = Vec::with_capacity(quantity);
         for id in 0..quantity {
-            workers.push(Worker::new(id, Arc::clone(&receiver)));
+            workers.push(Worker::new(id, Arc::clone(&receiver), timeout));
         }
         ThreadPool { workers, sender }
     }
