@@ -12,33 +12,15 @@ pub struct Worker {
 impl Worker {
     pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let thread: thread::JoinHandle<()> = thread::spawn(move || loop {
-            //let message = receiver.lock().unwrap().recv();
-            match receiver.lock() {
-                Ok(inner) => {
-                    match inner.recv() {
-                        Ok(message) => {
-                            match message {
-                                Message::NewJob(job) => {
-                                    println!("Worker {} got a job: executing.", id);
-                                    job();
-                                }
-                                Message::Terminate => {
-                                    println!("Worker {} was told to terminate.", id);
-                                    break;
-                                }
-                            }
-                        }
-                        Err(_) => {
-                            println!("no more messages can ever be 
-                            received on this channel by Worker {}",id);
-                            break
-                        }
-                    }
+            let message = receiver.lock().unwrap_or_else(|_e| panic!("Lock error, worker {}", id)).recv().unwrap_or_else(|_e| Message::Terminate);
+            match message {
+                Message::NewJob(job) => {
+                    println!("Worker {} got a job: executing.", id);
+                    job();
                 }
-                Err(_) => {
-                    println!("Another user of this mutex panicked while holding the mutex,
-                    then Worker {} couldn't handle MutexGuard",id);
-                    break
+                Message::Terminate => {
+                    println!("Worker {} was told to terminate.", id);
+                    break;
                 }
             }
         }); 
@@ -47,7 +29,7 @@ impl Worker {
 
     pub fn drop(&mut self) {
         println!("Shutting down worker {}", self.id);
-        if let Some(thread) = self.thread.take() {
+        if let Some(thread) = self.thread.take() {            
             match thread.join(){
                 Ok(_)=> {
                     println!("Thread succesfuly joined")
