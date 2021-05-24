@@ -4,7 +4,7 @@ use super::config::Config;
 pub struct Server {
     dir: String,
     port: String,
-    threadpool_size: usize
+    threadpool_size: usize,
 }
 
 impl Server {
@@ -12,7 +12,11 @@ impl Server {
         let dir = "127.0.0.1".to_string();
         let threadpool_size = 4;
         let port = config.get_port();
-        Server { dir, port, threadpool_size }
+        Server {
+            dir,
+            port,
+            threadpool_size,
+        }
     }
 
     pub fn get_port(&self) -> &String {

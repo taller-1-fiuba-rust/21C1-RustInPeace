@@ -1,8 +1,8 @@
 //#[derive(Debug)]
 use super::worker_service::ThreadPool;
-use std::net::{TcpListener, TcpStream};
-use std::time::{Duration};
 use crate::entities::server::Server;
+use std::net::{TcpListener, TcpStream};
+use std::time::Duration;
 
 pub fn init(server: Server) {
     let port: &String = server.get_port();
@@ -23,11 +23,10 @@ pub fn init(server: Server) {
                             }
                         }
                         //if timeout != 0 {
-                            //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
+                        //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
                         //}
-                        pool.spawn(move|| {
+                        pool.spawn(move || {
                             handle_connection(stream);
-                            
                         });
                     }
                     Err(_) => {

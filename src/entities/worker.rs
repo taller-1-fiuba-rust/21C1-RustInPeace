@@ -1,8 +1,8 @@
-use std::thread;
+use super::message::Message;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use super::message::Message;
+use std::thread;
 
 pub struct Worker {
     id: usize,
@@ -12,7 +12,11 @@ pub struct Worker {
 impl Worker {
     pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let thread: thread::JoinHandle<()> = thread::spawn(move || loop {
-            let message = receiver.lock().unwrap_or_else(|_e| panic!("Lock error, worker {}", id)).recv().unwrap_or_else(|_e| Message::Terminate);
+            let message = receiver
+                .lock()
+                .unwrap_or_else(|_e| panic!("Lock error, worker {}", id))
+                .recv()
+                .unwrap_or(Message::Terminate);
             match message {
                 Message::NewJob(job) => {
                     println!("Worker {} got a job: executing.", id);
@@ -23,19 +27,25 @@ impl Worker {
                     break;
                 }
             }
-        }); 
-        Worker { id, thread: Some(thread) }
+        });
+        Worker {
+            id,
+            thread: Some(thread),
+        }
     }
 
     pub fn drop(&mut self) {
         println!("Shutting down worker {}", self.id);
-        if let Some(thread) = self.thread.take() {            
-            match thread.join(){
-                Ok(_)=> {
+        if let Some(thread) = self.thread.take() {
+            match thread.join() {
+                Ok(_) => {
                     println!("Thread succesfuly joined")
                 }
-                Err(_)=>{
-                    println!("Couldn't join on the thread associated to Worker {}",self.id)
+                Err(_) => {
+                    println!(
+                        "Couldn't join on the thread associated to Worker {}",
+                        self.id
+                    )
                 }
             }
         }

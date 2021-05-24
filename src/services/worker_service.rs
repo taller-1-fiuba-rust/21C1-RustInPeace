@@ -1,12 +1,12 @@
+use crate::entities::message::Message;
+use crate::entities::worker::Worker;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use crate::entities::worker::Worker;
-use crate::entities::message::Message;
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Message>
+    sender: mpsc::Sender<Message>,
 }
 
 impl ThreadPool {
@@ -22,7 +22,7 @@ impl ThreadPool {
     }
 
     pub fn spawn<F>(&self, f: F)
-    where 
+    where
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);

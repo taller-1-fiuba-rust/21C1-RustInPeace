@@ -1,4 +1,4 @@
-pub mod worker;
-pub mod message;
 pub mod config;
+pub mod message;
 pub mod server;
+pub mod worker;

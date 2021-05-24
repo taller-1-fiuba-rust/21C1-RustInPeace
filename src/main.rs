@@ -1,8 +1,8 @@
-mod services;
 mod entities;
+mod services;
 
-use entities::server::Server;
 use entities::config::Config;
+use entities::server::Server;
 
 fn main() {
     //por aca habria que crear un obj. config y pasarselo al server
