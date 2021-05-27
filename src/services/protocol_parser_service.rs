@@ -5,6 +5,15 @@ use crate::entities::error::ResponseError;
 use crate::entities::error::ParseError;
 use crate::entities::datatype_trait::DataType;
 
+#[derive(Debug)]
+pub enum RESPTypes {
+    RSimpleString(String),
+    RError(String),
+    RInteger(usize),
+    RBulkString(String),
+    RArray(Vec<RESPTypes>)
+}
+
 /// Error parsing
 impl Error for ParseError {
     fn description(&self) -> &str {
@@ -111,89 +120,79 @@ pub fn parse_request(request: &[u8]) -> Result<Vec<String>, ParseError> {
     Ok(parsed_command)
 }
 
-//esta bien si PARA EL RESPONSE considero todos los strings como simple strings? la unica diferencia
-//entiendo que es el tema de binary-safe
-impl DataType for String {
-    // en rust es un SIMPLE STRING
-    // ej: "+OK\r\n"
-    fn deserialize(self) -> Self {
-        format!("+{}\r\n", self)
-    }
-}
-
-impl DataType for usize {
-    // en rust es un INTEGER
-    // ej: ":10\r\n"
+impl DataType for RESPTypes {
     fn deserialize(self) -> String {
-        format!(":{}\r\n", self)
-    }
-}
-
-impl DataType for ResponseError {
-    // en rust es un ERROR
-    // ej: "-Error message\r\n"
-    fn deserialize(self) -> String {
-        format!("-Error {}\r\n", self.description().to_string())
-    }
-}
-
-impl<T: DataType> DataType for Vec<T> {
-    // en rust es un ARRAY
-    // ej: "*3\r\n:1\r\n:2\r\n:3\r\n"
-    fn deserialize(self) -> String {
-        let mut final_string = String::from("");
-        final_string += "*";
-        final_string += &self.len().to_string();
-        final_string += "\r\n";
-        for element in self {
-            final_string += &element.deserialize();
+        println!("aca {:?}", self);
+        match self {
+            RESPTypes::RBulkString(string) => {
+                format!("${:?}\r\n{}\r\n", string.len(), string)
+            }
+            RESPTypes::RInteger(integer) => {
+                format!(":{}\r\n", integer)
+            }
+            RESPTypes::RSimpleString(string) => {
+                println!("recibo: {}", string);
+                format!("+{}\r\n", string)
+            }
+            RESPTypes::RArray(array) => {
+                let mut final_string = String::from("");
+                final_string += "*";
+                final_string += &array.len().to_string();
+                final_string += "\r\n";
+                for element in array {
+                    final_string += &element.deserialize();
+                }
+                return final_string;
+            }
+            RESPTypes::RError(message) => {
+                format!("-Error {}\r\n", message)
+            }
         }
-       final_string
     }
 }
 
-pub fn parse_response<T: DataType>(response: T) -> String {
+pub fn parse_response(response: RESPTypes) -> String {
     return response.deserialize();
 }
 
 #[test]
 fn parse_response_string_ok() {
-    let result = parse_response("test".to_string());
-    let expected = "+test\r\n";
+    let result = parse_response(RESPTypes::RSimpleString(String::from("test")));
+    let expected = "+test\r\n".to_string();
     assert_eq!(result, expected);
 }
 
 #[test]
 fn parse_response_integer_ok() {
-    let result = parse_response(5);
+    let result = parse_response(RESPTypes::RInteger(5));
     let expected = ":5\r\n";
     assert_eq!(result, expected);
 }
 
 #[test]
 fn parse_response_generic_error_ok() {
-    let result = parse_response(ResponseError::GenericError("Some error".to_string()));
+    let result = parse_response(RESPTypes::RError("Some error".to_string()));
     let expected = "-Error Some error\r\n".to_string();
     assert_eq!(result, expected);
 }
 
 #[test]
 fn parse_response_vector_of_strings_ok() {
-    let result = parse_response(vec!["a".to_string(),"b".to_string()]);
+    let result = parse_response(RESPTypes::RArray(vec![RESPTypes::RSimpleString("a".to_string()), RESPTypes::RSimpleString("b".to_string())]));
     let expected = "*2\r\n+a\r\n+b\r\n".to_string();
     assert_eq!(result, expected);
 }
 
 #[test]
 fn parse_response_vector_of_integers_ok() {
-    let result = parse_response(vec![2,3,10,11]);
+    let result = parse_response(RESPTypes::RArray(vec![RESPTypes::RInteger(2),RESPTypes::RInteger(3),RESPTypes::RInteger(10),RESPTypes::RInteger(11)]));
     let expected = "*4\r\n:2\r\n:3\r\n:10\r\n:11\r\n".to_string();
     assert_eq!(result, expected);
 }
 
 #[test]
 fn parse_response_vector_of_errors_ok() {
-    let result = parse_response(vec![ResponseError::GenericError("message1".to_string()), ResponseError::GenericError("message2".to_string())]);
+    let result = parse_response(RESPTypes::RArray(vec![RESPTypes::RError("message1".to_string()), RESPTypes::RError("message2".to_string())]));
     let expected = "*2\r\n-Error message1\r\n-Error message2\r\n".to_string();
     assert_eq!(result, expected);
 }
