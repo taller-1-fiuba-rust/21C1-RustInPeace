@@ -1,13 +1,11 @@
 use std::error::Error;
 use std::fmt;
 use std::convert::TryInto;
+use crate::entities::error::ResponseError;
+use crate::entities::error::ParseError;
+use crate::entities::datatype_trait::DataType;
 
 /// Error parsing
-#[derive(Debug, PartialEq)]
-pub enum ParseError {
-    InvalidProtocol(String)
-}
-
 impl Error for ParseError {
     fn description(&self) -> &str {
         match *self {
@@ -19,6 +17,20 @@ impl Error for ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ParseError occurred")
+    }
+}
+
+impl Error for ResponseError {
+    fn description(&self) -> &str {
+        match &*self {
+            ResponseError::GenericError(message) => &message
+        }
+    }
+}
+
+impl fmt::Display for ResponseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ResponseError occurred")
     }
 }
 
@@ -72,46 +84,24 @@ pub fn parse_request(request: &[u8]) -> Result<Vec<String>, ParseError> {
         println!("Error 5");
         return Err(ParseError::InvalidProtocol("Invalid number of elements".to_string()));
     }
-    println!("{:?}", request);
-    println!("{:?}", request_vec);
     // recorro array para ir decodificando cada elemento
     while (pos+4) < request_vec.len() {
         //valido que haya crlf
-        println!("start: {}", request[pos+1]);
-        println!("v {}", request_vec[pos+1]);
         if request[pos+1] != b'\r' {
             println!("Error 6");
             return Err(ParseError::InvalidProtocol("CRLF missing".to_string()));
         }
         pos += 4; // /r/n
-        println!("pos: {}", pos);
-        println!("element pos {}", request_vec[pos]);
-        println!("element pos2 {}", request[pos]);
-        // lo siguiente no tendria sentido porque se valida implicitamente antes
-        /*let instruction_type = request[pos];
-        if instruction_type != b'$' {
-            println!("Request doesnt contain bulk strings");
-            return Err(ParseError::BadProtocol("expected $".to_string()));
-        }*/
-        println!("string len og: {}", request_vec[pos]);
-        println!("strin len 2: {}", request_vec[pos].to_digit(10).unwrap());
         let string_len: usize = request_vec[pos].to_digit(10).unwrap().try_into().unwrap();
         if request[pos+1] != b'\r' {
             println!("Error 6");
             return Err(ParseError::InvalidProtocol("CRLF missing".to_string()));
         }
         pos += 3; // /r/n
-        println!("pos al medio: {}", pos);
         let instruction = &request[pos..pos+string_len];
-        println!("instruction: {:?}", instruction);
         let command: String = String::from_utf8_lossy(instruction).to_string().to_lowercase();
-        //if command.contains('\r') || command.contains('\n') {
-
-        //}
-        println!("command: {}", command);
         parsed_command.push(command);
         pos += string_len-1;
-        println!("pos al final: {}", pos);
     }
     if request_vec[request_vec.len()-2] != '\r' {
         println!("Error 7");
@@ -119,34 +109,6 @@ pub fn parse_request(request: &[u8]) -> Result<Vec<String>, ParseError> {
     }
     println!("command final: {:?}", parsed_command);
     Ok(parsed_command)
-}
-
-pub enum ResponseError {
-    GenericError(String)
-}
-
-impl Error for ResponseError {
-    fn description(&self) -> &str {
-        match &*self {
-            ResponseError::GenericError(message) => &message
-        }
-    }
-}
-
-impl fmt::Display for ResponseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ResponseError occurred")
-    }
-}
-
-impl fmt::Debug for ResponseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ResponseError printer")
-    }
-}
-
-pub trait DataType {
-    fn deserialize(self) -> String;
 }
 
 //esta bien si PARA EL RESPONSE considero todos los strings como simple strings? la unica diferencia
