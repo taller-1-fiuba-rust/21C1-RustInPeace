@@ -4,3 +4,4 @@ pub mod server;
 pub mod worker;
 pub mod error;
 pub mod datatype_trait;
+pub mod resp_types;
