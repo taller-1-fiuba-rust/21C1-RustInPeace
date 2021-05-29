@@ -1,8 +1,8 @@
 #[derive(Debug, PartialEq)]
-pub enum RESPTypes {
+pub enum RespTypes {
     RSimpleString(String),
     RError(String),
     RInteger(usize),
     RBulkString(String),
-    RArray(Vec<RESPTypes>)
+    RArray(Vec<RespTypes>),
 }
