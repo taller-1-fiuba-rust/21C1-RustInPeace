@@ -5,4 +5,6 @@ pub enum RespTypes {
     RInteger(usize),
     RBulkString(String),
     RArray(Vec<RespTypes>),
+    RNullBulkString(),
+    RNullArray(),
 }
