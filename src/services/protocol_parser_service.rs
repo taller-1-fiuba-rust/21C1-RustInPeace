@@ -22,6 +22,8 @@ impl fmt::Display for ParseError {
     }
 }
 
+/// Recibe una response de tipo RespTypes y lo traduce a un String respetando el protocolo RESP
+/// -ejemplos-
 pub fn parse_response(response: RespTypes) -> String {
     match response {
         RespTypes::RBulkString(string) => {
@@ -55,6 +57,9 @@ pub fn parse_response(response: RespTypes) -> String {
     }
 }
 
+/// Recibe una request, la traduce segun el protocolo RESP a un tipo de dato RespTypes
+/// Verifica que sea un array de bulkstrings, si no lo es arroja error InvalidRequest
+/// -ejemplos-
 pub fn parse_request(request: &[u8]) -> Result<RespTypes, ParseError> {
     match parse(request) {
         Ok(parsed_request) => {
@@ -70,6 +75,8 @@ pub fn parse_request(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// A partir de una request ya traducida a un RespType, valida que sea un array de bulkstrings
+/// Devuelve true si lo es, false si no
 fn is_array_of_bulkstring(parsed_request: &RespTypes) -> bool {
     if let RespTypes::RArray(array) = parsed_request {
         for element in array {
@@ -86,7 +93,6 @@ fn is_array_of_bulkstring(parsed_request: &RespTypes) -> bool {
 
 /// Recibe un arreglo de bytes (req) y devuelve la posición del primer CRLF que encuentre
 /// Chequea que el CRLF esté bien formado, si no lo está devuelve Error
-/// -poner ejemplos-
 fn search_crlf(request: &[u8]) -> Result<usize, ParseError> {
     let mut pos = 0;
     for byte in request {
@@ -112,7 +118,6 @@ fn search_crlf(request: &[u8]) -> Result<usize, ParseError> {
 /// Recibe un arreglo de bytes (req) y dos numeros enteros, from y to, que indican las posiciones
 /// desde donde comenzar a leer y hasta donde leer del arreglo req.
 /// Devuelve los datos leidos en forma de String
-/// -ejemplos-
 fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseError> {
     if from > to {
         return Err(ParseError::UnexpectedError(
@@ -126,7 +131,6 @@ fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseErro
 /// Recibe un arreglo de bytes (req) y dos numeros enteros, from y to, que indican las posiciones
 /// desde donde comenzar a leer y hasta donde leer del arreglo req.
 /// Devuelve los datos leidos transformados a tipo de dato usize
-/// -ejemplos-
 fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseError> {
     match read_word(from, to, request) {
         Ok(string) => match string.parse() {
@@ -175,6 +179,8 @@ fn parse(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// Recibe un arreglo de bytes y lee el segundo byte como un numero entero
+/// Devuelve RespTypes::RInteger(numero)
 fn parse_integer(request: &[u8]) -> Result<RespTypes, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request);
@@ -187,6 +193,8 @@ fn parse_integer(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
+/// Devuelve RespTypes::RError(string)
 fn parse_error(request: &[u8]) -> Result<RespTypes, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request);
@@ -199,6 +207,8 @@ fn parse_error(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
+/// Devuelve RespTypes::RESimpleString(string)
 fn parse_simple_string(request: &[u8]) -> Result<RespTypes, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request);
@@ -211,6 +221,9 @@ fn parse_simple_string(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// Recibe un arreglo de bytes, en la segunda posicion lee un numero entero que indica el largo de la palabra
+/// luego lee la cadena de caracteres validando que sea del mismo largo indicado
+/// Devuelve RespTypes::RBulkString(string)
 fn parse_bulkstring(request: &[u8]) -> Result<RespTypes, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request);
@@ -260,6 +273,9 @@ fn parse_bulkstring(request: &[u8]) -> Result<RespTypes, ParseError> {
     }
 }
 
+/// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato nulo
+/// segun el procolo RESP
+/// Devuelve true si lo es, false si no
 fn check_if_resp_null_type(from: usize, to: usize, request: &[u8]) -> Result<bool, ParseError> {
     match read_word(from + 1, to, request) {
         Ok(word) => {
@@ -275,6 +291,7 @@ fn check_if_resp_null_type(from: usize, to: usize, request: &[u8]) -> Result<boo
     }
 }
 
+/// Recibe un arreglo de bytes y lo traduce a un dato de tipo RespTypes::RArray(Vec<RespTypes>) 
 fn parse_array(request: &[u8]) -> Result<RespTypes, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request);
