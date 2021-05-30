@@ -50,12 +50,8 @@ pub fn parse_response(response: RespType) -> String {
         RespType::RError(message) => {
             format!("-{}\r\n", message)
         }
-        RespType::RNullBulkString() => {
-            format!("$-1\r\n")
-        }
-        RespType::RNullArray() => {
-            format!("*-1\r\n")
-        }
+        RespType::RNullBulkString() => "$-1\r\n".to_string(),
+        RespType::RNullArray() => "*-1\r\n".to_string(),
     }
 }
 
@@ -66,11 +62,11 @@ pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
     match parse(request) {
         Ok(parsed_request) => {
             if is_array_of_bulkstring(&parsed_request) {
-                return Ok(parsed_request);
+                Ok(parsed_request)
             } else {
-                return Err(ParseError::InvalidRequest(
+                Err(ParseError::InvalidRequest(
                     "Request must be an array of bulkstrings".to_string(),
-                ));
+                ))
             }
         }
         Err(e) => Err(e),
@@ -273,16 +269,14 @@ fn check_if_bulkstring_null_type(
     match read_word(from + 1, to, request) {
         Ok(word) => {
             if word == "-1" {
-                return Ok(RespType::RNullBulkString());
+                Ok(RespType::RNullBulkString())
             } else {
-                return Err(ParseError::UnexpectedError(
+                Err(ParseError::UnexpectedError(
                     "String size must be followed by CRFL".to_string(),
-                ));
+                ))
             }
         }
-        Err(e) => {
-            return Err(e);
-        }
+        Err(e) => Err(e),
     }
 }
 
@@ -297,37 +291,25 @@ fn check_if_array_null_type(
     match read_word(from + 1, to, request) {
         Ok(word) => {
             if word == "-1" {
-                return Ok(RespType::RNullArray());
+                Ok(RespType::RNullArray())
             } else {
-                return Err(ParseError::UnexpectedError(
+                Err(ParseError::UnexpectedError(
                     "String size must be followed by CRFL".to_string(),
-                ));
+                ))
             }
         }
-        Err(e) => {
-            return Err(e);
-        }
+        Err(e) => Err(e),
     }
 }
 
 /// Returns length of the given request
 fn get_request_len(request: &[u8]) -> usize {
     match request[0] {
-        b'*' => {
-            return get_array_len(request);
-        }
-        b'$' => {
-            return get_bulkstring_len(request);
-        }
-        b':' => {
-            return get_integer_len(request);
-        }
-        b'+' => {
-            return get_string_len(request);
-        }
-        b'-' => {
-            return get_string_len(request);
-        }
+        b'*' => get_array_len(request),
+        b'$' => get_bulkstring_len(request),
+        b':' => get_integer_len(request),
+        b'+' => get_string_len(request),
+        b'-' => get_string_len(request),
         _ => 0,
     }
 }
