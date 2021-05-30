@@ -1,7 +1,7 @@
 //#[derive(Debug)]
-use super::protocol_parser_service::{parse_request, parse_response};
+use super::parser_service::{parse_request, parse_response};
+use super::utils::resp_type::RespType;
 use super::worker_service::ThreadPool;
-use crate::entities::resp_types::RespTypes;
 use crate::entities::server::Server;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -42,11 +42,9 @@ pub fn init(server: Server) {
             println!("Listener couldn't be created");
         }
     }
-
     println!("Shutting down.");
 }
 
-//lo pongo como _stream porque todavia no implementamos esto
 fn handle_connection(stream: TcpStream) {
     std::thread::sleep(Duration::from_secs(2));
     println!("handle_connection says Hi!");
@@ -66,7 +64,7 @@ fn handle_connection(stream: TcpStream) {
                 // de aca pasa a un servicio que delegue segun la request que sea
                 // ese servicio va a devolver una response
                 // simulo una response:
-                let response = parse_response(RespTypes::RInteger(5));
+                let response = parse_response(RespType::RInteger(5));
                 println!("Parsed response: {}", response);
             }
             Err(e) => {

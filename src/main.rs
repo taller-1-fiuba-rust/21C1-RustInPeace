@@ -12,5 +12,3 @@ fn main() {
     let server = Server::new(config);
     services::server_service::init(server);
 }
-
-//#[test]

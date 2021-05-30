@@ -1,10 +1,10 @@
 #[derive(Debug, PartialEq)]
-pub enum RespTypes {
+pub enum RespType {
     RSimpleString(String),
     RError(String),
     RInteger(usize),
     RBulkString(String),
-    RArray(Vec<RespTypes>),
+    RArray(Vec<RespType>),
     RNullBulkString(),
     RNullArray(),
 }
