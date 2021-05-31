@@ -7,8 +7,8 @@ pub struct OperationRegister {
 }
 
 impl OperationRegister {
-    pub fn new() -> Self {
-        let max_operations = 2;
+    pub fn new(max_operations: usize) -> Self {
+        let max_operations = max_operations;
         let operations = Vec::with_capacity(max_operations);
         OperationRegister {
             operations,
@@ -16,7 +16,11 @@ impl OperationRegister {
         }
     }
 
-    pub fn store_operation(&mut self, operation: RespType) {
+    //pub fn set_max_operations(mut self, max:usize){
+    //    self.max_operations = max
+    //}
+
+    pub fn store_operation(&mut self, operation: &RespType) {
         if let RespType::RArray(command_vector) = operation {
             let mut vec_aux = Vec::<String>::new();
             for element in command_vector {
@@ -24,15 +28,15 @@ impl OperationRegister {
                     if self.operations.len() >= self.max_operations {
                         self.operations.swap_remove(0);
                     }
-                    vec_aux.push(string)
+                    vec_aux.push(string.to_string())
                 }
             }
             self.operations.push(vec_aux)
         }
     }
 
-    pub fn monitor(self) -> Vec<Vec<String>> {
-        self.operations
+    pub fn get_operations(&self) -> &Vec<Vec<String>> {
+        &self.operations
     }
 }
 
@@ -50,10 +54,10 @@ fn test_01_se_guardan_vectores_de_tipo_resptype_en_field_operations() {
     let vector_aux_b = vec![elemento_1b, elemento_2b, elemento_3b];
     let vec_resp_type_b = RespType::RArray(vector_aux_b);
 
-    let mut register = OperationRegister::new();
-    register.store_operation(vec_resp_type_a);
-    register.store_operation(vec_resp_type_b);
-    let vector_of_operations = register.monitor();
+    let mut register = OperationRegister::new(2);
+    register.store_operation(&vec_resp_type_a);
+    register.store_operation(&vec_resp_type_b);
+    let vector_of_operations = register.get_operations();
     for elemento in vector_of_operations {
         println!("{:?}", elemento)
     }
@@ -79,11 +83,11 @@ fn test_02_se_elimina_el_primer_elemento_y_se_guarda_el_nuevo_cuando_esta_lleno(
     let vector_aux_c = vec![elemento_1c, elemento_2c, elemento_3c];
     let vec_resp_type_c = RespType::RArray(vector_aux_c);
 
-    let mut register = OperationRegister::new();
-    register.store_operation(vec_resp_type_a);
-    register.store_operation(vec_resp_type_b);
-    register.store_operation(vec_resp_type_c);
-    let vector_of_operations = register.monitor();
+    let mut register = OperationRegister::new(2);
+    register.store_operation(&vec_resp_type_a);
+    register.store_operation(&vec_resp_type_b);
+    register.store_operation(&vec_resp_type_c);
+    let vector_of_operations = register.get_operations();
     for elemento in vector_of_operations {
         println!("{:?}", elemento)
     }
