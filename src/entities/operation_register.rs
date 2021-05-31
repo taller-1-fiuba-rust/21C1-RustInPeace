@@ -1,4 +1,4 @@
-use crate::entities::resp_types::RespType;
+use crate::services::utils::resp_type::RespType;
 
 #[derive(Debug)]
 pub struct OperationRegister {
