@@ -1,32 +1,58 @@
 use crate::Config;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Error;
 
 pub fn load_config(file_path: String) -> Result<Config, Error> {
-    let mut config_values: Vec<String> = [].to_vec();
+    let config_values: Vec<String>;
     let configuration_values = lines_from_file(file_path);
     match configuration_values {
         Ok(strings) => config_values = strings,
-        Err(_) => {
-            println!("error")
+        Err(e) => {
+            return Err(e);
         }
     };
-    let mut map: HashMap<String, String> = HashMap::new();
     let mut vec_aux: Vec<String>;
+    let mut verbose = 0;
+    let mut timeout = 0;
+    let mut port = "8080".to_string();
+    let mut dbfilename = "".to_string();
+    let mut logfile = "".to_string();
+
     for line in config_values {
         vec_aux = line.split_whitespace().map(|s| s.to_string()).collect();
-        let key = vec_aux[0].to_string();
-        let value = vec_aux[1].to_string();
-        map.entry(key).or_insert(value);
+        match vec_aux[0].as_str() {
+            "verbose" => {
+                if vec_aux.len() == 2 {
+                    verbose = parse_verbose(vec_aux[1].to_string());
+                }
+            }
+            "timeout" => {
+                if vec_aux.len() == 2 {
+                    timeout = parse_timeout(vec_aux[1].to_string())
+                }
+            }
+            "port" => {
+                if vec_aux.len() == 2 {
+                    port = vec_aux[1].to_string();
+                }
+            }
+            "dbfilename" => {
+                if vec_aux.len() == 2 {
+                    dbfilename = vec_aux[1].to_string()
+                }
+            }
+            "logfile" => {
+                if vec_aux.len() == 2 {
+                    logfile = vec_aux[1].to_string()
+                }
+            }
+            _ => {
+                println!("no field")
+            }
+        }
     }
-    let verbose = get_verbose_ready(&map);
-    let port = get_port_ready(&map);
-    let timeout = get_timeout_ready(&map);
-    let dbfilename = get_dbfilename_ready(&map);
-    let logfile = get_logfile_ready(&map);
     let configuracion = Config::new(verbose, port, timeout, dbfilename, logfile);
     //pongo estos prints para que no tire warning de funciones sin usar (las uso en los tests)
     println!("{}", configuracion.get_dbfilename());
@@ -45,74 +71,41 @@ fn lines_from_file(file_path: String) -> Result<Vec<String>, Error> {
     Ok(lines)
 }
 
-fn get_verbose_ready(map: &HashMap<String, String>) -> usize {
-    let mut verbose: usize = 0;
-    let verbose_aux = map.get("verbose");
-    if let Some(my_string) = verbose_aux {
-        let verb_aux = my_string.parse::<usize>();
-        match verb_aux {
-            Ok(verb) => verbose = verb,
-            Err(_) => println!("parsing error"),
-        }
+fn parse_verbose(string: String) -> usize {
+    let mut verbose: usize = 1;
+    let verb_aux = string.parse::<usize>();
+    match verb_aux {
+        Ok(verb) => verbose = verb,
+        Err(_) => println!("parsing error"),
     }
     verbose
 }
 
-fn get_timeout_ready(map: &HashMap<String, String>) -> u64 {
+fn parse_timeout(string: String) -> u64 {
     let mut timeout: u64 = 200;
-    let timeout_aux = map.get("timeout");
-    if let Some(my_string) = timeout_aux {
-        let tmt_aux = my_string.parse::<u64>();
-        match tmt_aux {
-            Ok(tmt) => timeout = tmt,
-            Err(_) => println!("parsing error"),
-        }
+    let timeout_aux = string.parse::<u64>();
+    match timeout_aux {
+        Ok(tmt) => timeout = tmt,
+        Err(_) => println!("parsing error"),
     }
     timeout
 }
 
-fn get_port_ready(map: &HashMap<String, String>) -> String {
-    let mut port: String = "8080".to_string();
-    let port_aux = map.get("port");
-    if let Some(my_string) = port_aux {
-        port = my_string.to_string()
-    }
-    port
-}
-
-fn get_dbfilename_ready(map: &HashMap<String, String>) -> String {
-    let mut dbfilename: String = "dump.rdb".to_string();
-    let dbfilename_aux = map.get("dbfilename");
-    if let Some(my_string) = dbfilename_aux {
-        dbfilename = my_string.to_string()
-    }
-    dbfilename
-}
-
-fn get_logfile_ready(map: &HashMap<String, String>) -> String {
-    let mut logfile: String = "/var/log/redis/redis-server.log".to_string();
-    let logfile_aux = map.get("logfile");
-    if let Some(my_string) = logfile_aux {
-        logfile = my_string.to_string()
-    }
-    logfile
-}
-
 #[test]
 fn test_01_se_lee_un_archivo_de_5_lineas_y_se_devuelve_un_vector_de_5_elementos() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config_values = lines_from_file(path.to_string());
     assert_eq!(config_values.unwrap().len(), 5)
 }
 #[test]
 fn test_02_se_lee_un_archivo_y_se_obtiene_primer_elemento_correctamente() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config_values = lines_from_file(path.to_string());
     assert_eq!(config_values.unwrap()[0], "verbose 1".to_string())
 }
 #[test]
 fn text_03_se_genera_el_config_y_se_obtiene_el_valor_del_port_en_fmt_string() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config = load_config(path.to_string());
     let conf = config.unwrap();
     let port = conf.get_port();
@@ -120,7 +113,7 @@ fn text_03_se_genera_el_config_y_se_obtiene_el_valor_del_port_en_fmt_string() {
 }
 #[test]
 fn text_04_se_genera_el_config_y_se_obtiene_el_valor_del_verbose_en_fmt_usize() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config = load_config(path.to_string());
     let conf = config.unwrap();
     let verbose = conf.get_verbose();
@@ -128,7 +121,7 @@ fn text_04_se_genera_el_config_y_se_obtiene_el_valor_del_verbose_en_fmt_usize() 
 }
 #[test]
 fn text_05_se_genera_el_config_y_se_obtiene_el_valor_del_timeout_en_fmt_u64() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config = load_config(path.to_string());
     let conf = config.unwrap();
     let timeout = conf.get_timeout();
@@ -136,7 +129,7 @@ fn text_05_se_genera_el_config_y_se_obtiene_el_valor_del_timeout_en_fmt_u64() {
 }
 #[test]
 fn text_06_se_genera_el_config_y_se_obtiene_el_valor_del_dbfilename_en_fmt_string() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config = load_config(path.to_string());
     let conf = config.unwrap();
     let dbfilename = conf.get_dbfilename();
@@ -144,7 +137,7 @@ fn text_06_se_genera_el_config_y_se_obtiene_el_valor_del_dbfilename_en_fmt_strin
 }
 #[test]
 fn text_07_se_genera_el_config_y_se_obtiene_el_valor_del_logfile_en_fmt_string() {
-    let path = "./src/redis.txt";
+    let path = "./src/redis.conf";
     let config = load_config(path.to_string());
     let conf = config.unwrap();
     let logfile = conf.get_logfile();

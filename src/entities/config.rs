@@ -15,7 +15,6 @@ impl Config {
         dbfilename: String,
         logfile: String,
     ) -> Self {
-        //hardcodeo configuracion
         let verbose = verbose;
         let port = port;
         let timeout = timeout;
