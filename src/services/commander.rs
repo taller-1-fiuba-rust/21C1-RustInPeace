@@ -30,6 +30,7 @@ impl Commander {
                         }
                         None => println!("Client doesnt exist"),
                     },
+                    "info" => println!("completar.."),
                     _ => {}
                 }
             }
