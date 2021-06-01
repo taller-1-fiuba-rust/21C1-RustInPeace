@@ -22,7 +22,7 @@ impl Database {
         self.items.len().to_string()
     }
 
-    pub fn get_all_by_key(&self,key: String) -> Vec<KeyValueItem>{
+    pub fn get_all_by_key(&self, key: String) -> Vec<KeyValueItem> {
         unimplemented!()
     }
 

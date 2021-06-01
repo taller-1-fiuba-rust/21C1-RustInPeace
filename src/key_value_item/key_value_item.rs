@@ -1,22 +1,21 @@
 pub enum ValueType {
     List,
     Set,
-    String
+    String,
 }
 
-pub struct KeyValueItem{
+pub struct KeyValueItem {
     key: String,
-    value: String,// Extender a los tipos permitidos.
-    last_access_time: String //Cambiar por timestamp
+    value: String,            // Extender a los tipos permitidos.
+    last_access_time: String, //Cambiar por timestamp
 }
 
-impl KeyValueItem{
-    fn new(value :String) -> KeyValueItem {
-       KeyValueItem {
-           key: "123".to_string(),
-           value,
-           last_access_time: "now".to_string()
-       }
+impl KeyValueItem {
+    fn new(value: String) -> KeyValueItem {
+        KeyValueItem {
+            key: "123".to_string(),
+            value,
+            last_access_time: "now".to_string(),
+        }
     }
 }
-
