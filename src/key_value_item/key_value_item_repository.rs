@@ -7,8 +7,9 @@ pub fn create() -> Result<(),()> {
 pub fn update() -> Result<(),()> {
     unimplemented!()
 }
-pub fn delete() -> Result<(),()> {
-    unimplemented!()
+pub fn delete_key(key: String) -> Result<(),()> {
+    database.
+    database.delete()
 }
 pub fn get_all() -> Result< KeyValueItem,()> {
     unimplemented!()

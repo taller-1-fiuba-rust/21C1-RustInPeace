@@ -4,17 +4,33 @@ pub struct Database {
 }
 
 pub fn get_config(){
-    !unimplemented!()
+    unimplemented!()
 }
 /* Si el servidor se reinicia se deben cargar los items del file */
 pub fn load_items(){
     unimplemented!()
 }
 
-pub fn get_keys(){
-    return items.len();
+pub fn save_items_to_file(){
+    unimplemented!()
+}
+
+pub fn get_size(){
+    items.len()
 }
 
 pub fn get_all_by_key(key: String){
-    items.
+    unimplemented!()
+}
+
+pub fn delete(){
+    unimplemented!()
+}
+
+pub fn update(){
+    unimplemented!()
+}
+
+pub fn create(){
+    unimplemented!()
 }
