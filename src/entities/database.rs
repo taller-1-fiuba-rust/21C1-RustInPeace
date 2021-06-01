@@ -6,15 +6,15 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn get_config() {
+    pub fn get_config(&self) {
         unimplemented!()
     }
     /* Si el servidor se reinicia se deben cargar los items del file */
-    pub fn load_items() {
+    pub fn load_items(&self) {
         unimplemented!()
     }
 
-    pub fn save_items_to_file() {
+    pub fn save_items_to_file(&self) {
         unimplemented!()
     }
 
@@ -22,19 +22,19 @@ impl Database {
         self.items.len().to_string()
     }
 
-    pub fn get_all_by_key(key: String) {
+    pub fn get_all_by_key(&self,key: String) -> Vec<KeyValueItem>{
         unimplemented!()
     }
 
-    pub fn delete() {
+    pub fn delete(&self) {
         unimplemented!()
     }
 
-    pub fn update() {
+    pub fn update(&self) {
         unimplemented!()
     }
 
-    pub fn create() {
+    pub fn create(&self) {
         unimplemented!()
     }
 }
