@@ -6,15 +6,15 @@ pub enum ValueType {
 
 pub struct KeyValueItem{
     key: String,
-    value: T ,// Limitar solo a los tipos permitidos.
+    value: String,// Extender a los tipos permitidos.
     last_access_time: String //Cambiar por timestamp
 }
 
 impl KeyValueItem{
-    fn new(value :T) -> KeyValueItem {
+    fn new(value :String) -> KeyValueItem {
        KeyValueItem {
            key: "123".to_string(),
-           value: T,
+           value,
            last_access_time: "now".to_string()
        }
     }

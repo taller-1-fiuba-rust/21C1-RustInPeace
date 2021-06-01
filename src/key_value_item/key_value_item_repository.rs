@@ -12,16 +12,20 @@ impl KeyValueItemRepository {
         }
     }
     pub fn delete_key(&self, key: String) -> Result<(), ()> {
-        self.db.delete()
+        Ok(
+            self.db.delete()
+        )
     }
     pub fn get_all() -> Result<KeyValueItem, ()> {
         unimplemented!()
     }
 
-    pub fn get_by_key_and_type(&self, key: String, value_type: KeyValueType) {
-        self.db
+    pub fn get_by_key_and_type(&self, key: String, value_type: String) {
+        unimplemented!()
+        /* self.db
             .get_all_by_key(key)
-            .filter(value_type)
+           //Filtrar por type
+           */
     }
 }
 

@@ -2,7 +2,7 @@ use crate::key_value_item::key_value_item::KeyValueItem;
 
 pub struct Database {
     config: String,
-    items: Vec<KeyValueItem>, // Es probable que este vector almacene structs.
+    items: Vec<KeyValueItem>,
 }
 
 impl Database {
