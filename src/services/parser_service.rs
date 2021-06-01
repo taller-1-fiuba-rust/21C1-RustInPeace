@@ -2,31 +2,11 @@
 
 use super::utils::error::ParseError;
 use super::utils::resp_type::RespType;
-use std::error::Error;
-use std::fmt;
-
-/// Error parsing
-impl Error for ParseError {
-    fn description(&self) -> &str {
-        match *self {
-            ParseError::InvalidProtocol(_) => "RESP Protocol error",
-            ParseError::IntParseError(_) => "Error occured while parsing int",
-            ParseError::InvalidSize(_) => "Size mismatch",
-            ParseError::UnexpectedError(_) => "Unexpected error while parsing",
-            ParseError::InvalidRequest(_) => "Invalid request error",
-        }
-    }
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error occurred while parsing")
-    }
-}
 
 /// Recibe una response de tipo RespType y lo traduce a un String respetando el protocolo RESP
 /// -ejemplos-
 pub fn parse_response(response: RespType) -> String {
+    // trait display -> en resp_type.rs
     match response {
         RespType::RBulkString(string) => {
             format!("${}\r\n{}\r\n", string.len(), string)
@@ -130,14 +110,12 @@ fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseErro
 /// desde donde comenzar a leer y hasta donde leer del arreglo request.
 /// Devuelve los datos leidos transformados a tipo de dato usize
 fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseError> {
-    match read_word(from, to, request) {
-        Ok(string) => match string.parse() {
-            Ok(int) => Ok(int),
-            Err(_) => Err(ParseError::IntParseError(
-                "Error while parsing string to int".to_string(),
-            )),
-        },
-        Err(e) => Err(e),
+    let word = read_word(from, to, request)?;
+    match word.parse() {
+        Ok(int) => Ok(int),
+        Err(_) => Err(ParseError::IntParseError(
+            "Error while parsing string to int".to_string(),
+        )),
     }
 }
 
@@ -151,26 +129,11 @@ fn parse(request: &[u8]) -> Result<RespType, ParseError> {
         ));
     }
     match request[0] {
-        b'*' => match parse_array(request) {
-            Ok(array) => Ok(array),
-            Err(e) => Err(e),
-        },
-        b'+' => match parse_simple_string(request) {
-            Ok(simple_string) => Ok(simple_string),
-            Err(e) => Err(e),
-        },
-        b'-' => match parse_error(request) {
-            Ok(error) => Ok(error),
-            Err(e) => Err(e),
-        },
-        b':' => match parse_integer(request) {
-            Ok(integer) => Ok(integer),
-            Err(e) => Err(e),
-        },
-        b'$' => match parse_bulkstring(request) {
-            Ok(bulkstring) => Ok(bulkstring),
-            Err(e) => Err(e),
-        },
+        b'*' => Ok(parse_array(request)?),
+        b'+' => Ok(parse_simple_string(request)?),
+        b'-' => Ok(parse_error(request)?),
+        b':' => Ok(parse_integer(request)?),
+        b'$' => Ok(parse_bulkstring(request)?),
         _ => Err(ParseError::InvalidProtocol(
             "First byte must be one of the following: $, +, :, *, -".to_string(),
         )),
@@ -181,42 +144,27 @@ fn parse(request: &[u8]) -> Result<RespType, ParseError> {
 /// Devuelve RespType::RInteger(numero)
 fn parse_integer(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
-    let crlf_pos = search_crlf(request);
-    match crlf_pos {
-        Ok(final_pos) => match read_int(pos + 1, final_pos, request) {
-            Ok(int) => Ok(RespType::RInteger(int)),
-            Err(e) => Err(e),
-        },
-        Err(e) => Err(e),
-    }
+    let crlf_pos = search_crlf(request)?;
+    let int = read_int(pos + 1, crlf_pos, request)?;
+    Ok(RespType::RInteger(int))
 }
 
 /// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
 /// Devuelve RespType::RError(string)
 fn parse_error(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
-    let crlf_pos = search_crlf(request);
-    match crlf_pos {
-        Ok(final_pos) => match read_word(pos + 1, final_pos, request) {
-            Ok(word) => Ok(RespType::RError(word)),
-            Err(e) => Err(e),
-        },
-        Err(e) => Err(e),
-    }
+    let crlf_pos = search_crlf(request)?;
+    let word = read_word(pos + 1, crlf_pos, request)?;
+    Ok(RespType::RError(word))
 }
 
 /// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
 /// Devuelve RespType::RESimpleString(string)
 fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
-    let crlf_pos = search_crlf(request);
-    match crlf_pos {
-        Ok(final_pos) => match read_word(pos + 1, final_pos, request) {
-            Ok(word) => Ok(RespType::RSimpleString(word)),
-            Err(e) => Err(e),
-        },
-        Err(e) => Err(e),
-    }
+    let crlf_pos = search_crlf(request)?;
+    let word = read_word(pos + 1, crlf_pos, request)?;
+    Ok(RespType::RSimpleString(word))
 }
 
 /// Recibe un arreglo de bytes, en la segunda posicion lee un numero entero que indica el largo de la palabra
@@ -224,38 +172,24 @@ fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
 /// Devuelve RespType::RBulkString(string)
 fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
-    let crlf = search_crlf(request);
-    match crlf {
-        Ok(crlf_pos) => {
-            if crlf_pos == 3 {
-                return check_if_bulkstring_null_type(pos, crlf_pos, request);
-            }
-            if crlf_pos != 2 {
-                return Err(ParseError::UnexpectedError(
-                    "String size must be followed by CRFL".to_string(),
-                ));
-            }
-            let size = read_int(pos + 1, crlf_pos, request).unwrap_or(0);
-            pos = crlf_pos + 1;
-            let slice = &request[pos + 1..];
-            let next_crlf = search_crlf(slice);
-            match next_crlf {
-                Ok(next_crlf_pos) => match read_word(0, next_crlf_pos, slice) {
-                    Ok(word) => {
-                        if word.len() != size {
-                            return Err(ParseError::InvalidSize(
-                                "String size mismatch".to_string(),
-                            ));
-                        }
-                        Ok(RespType::RBulkString(word))
-                    }
-                    Err(e) => Err(e),
-                },
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => Err(e),
+    let crlf = search_crlf(request)?;
+    if crlf == 3 {
+        return check_if_bulkstring_null_type(pos, crlf, request);
     }
+    if crlf != 2 {
+        return Err(ParseError::UnexpectedError(
+            "String size must be followed by CRFL".to_string(),
+        ));
+    }
+    let size = read_int(pos + 1, crlf, request).unwrap_or(0);
+    pos = crlf + 1;
+    let slice = &request[pos + 1..];
+    let next_crlf = search_crlf(slice)?;
+    let word = read_word(0, next_crlf, slice)?;
+    if word.len() != size {
+        return Err(ParseError::InvalidSize("String size mismatch".to_string()));
+    }
+    Ok(RespType::RBulkString(word))
 }
 
 /// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato bulkstring
@@ -266,17 +200,13 @@ fn check_if_bulkstring_null_type(
     to: usize,
     request: &[u8],
 ) -> Result<RespType, ParseError> {
-    match read_word(from + 1, to, request) {
-        Ok(word) => {
-            if word == "-1" {
-                Ok(RespType::RNullBulkString())
-            } else {
-                Err(ParseError::UnexpectedError(
-                    "String size must be followed by CRFL".to_string(),
-                ))
-            }
-        }
-        Err(e) => Err(e),
+    let word = read_word(from + 1, to, request)?;
+    if word == "-1" {
+        Ok(RespType::RNullBulkString())
+    } else {
+        Err(ParseError::UnexpectedError(
+            "String size must be followed by CRFL".to_string(),
+        ))
     }
 }
 
@@ -288,17 +218,13 @@ fn check_if_array_null_type(
     to: usize,
     request: &[u8],
 ) -> Result<RespType, ParseError> {
-    match read_word(from + 1, to, request) {
-        Ok(word) => {
-            if word == "-1" {
-                Ok(RespType::RNullArray())
-            } else {
-                Err(ParseError::UnexpectedError(
-                    "String size must be followed by CRFL".to_string(),
-                ))
-            }
-        }
-        Err(e) => Err(e),
+    let word = read_word(from + 1, to, request)?;
+    if word == "-1" {
+        Ok(RespType::RNullArray())
+    } else {
+        Err(ParseError::UnexpectedError(
+            "String size must be followed by CRFL".to_string(),
+        ))
     }
 }
 
@@ -317,29 +243,24 @@ fn get_request_len(request: &[u8]) -> usize {
 /// Recibe un arreglo de bytes y lo traduce a un dato de tipo RespType::RArray(Vec<RespType>)
 fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
-    let crlf = search_crlf(request);
-    match crlf {
-        Ok(crlf_pos) => {
-            if crlf_pos == 3 {
-                return check_if_array_null_type(pos, crlf_pos, request);
-            }
-            let size = read_int(pos + 1, crlf_pos, request).unwrap_or(0);
-            pos += crlf_pos + 2; //salto el \r\n
-            let mut vec: Vec<RespType> = Vec::new();
-            let mut contents = &request[pos..];
-            while !contents.is_empty() {
-                let request_len = get_request_len(contents);
-                let parsed_request = parse(&contents[..request_len]).unwrap();
-                vec.push(parsed_request);
-                contents = &contents[request_len..];
-            }
-            if vec.len() != size {
-                return Err(ParseError::InvalidSize(String::from("Array size mismatch")));
-            }
-            Ok(RespType::RArray(vec))
-        }
-        Err(e) => Err(e),
+    let crlf = search_crlf(request)?;
+    if crlf == 3 {
+        return check_if_array_null_type(pos, crlf, request);
     }
+    let size = read_int(pos + 1, crlf, request).unwrap_or(0);
+    pos += crlf + 2; //salto el \r\n
+    let mut vec: Vec<RespType> = Vec::new();
+    let mut contents = &request[pos..];
+    while !contents.is_empty() {
+        let request_len = get_request_len(contents);
+        let parsed_request = parse(&contents[..request_len]).unwrap();
+        vec.push(parsed_request);
+        contents = &contents[request_len..];
+    }
+    if vec.len() != size {
+        return Err(ParseError::InvalidSize(String::from("Array size mismatch")));
+    }
+    Ok(RespType::RArray(vec))
 }
 
 /// Returns length of array request
