@@ -11,8 +11,12 @@ pub struct KeyValueItem{
 }
 
 impl KeyValueItem{
-    fn new(value :T){
-       KeyValueItem {key: "123", value: T, last_access_time: "now"}
+    fn new(value :T) -> KeyValueItem {
+       KeyValueItem {
+           key: "123".to_string(),
+           value: T,
+           last_access_time: "now".to_string()
+       }
     }
 }
 

@@ -1,5 +1,6 @@
 mod entities;
 mod services;
+mod key_value_item;
 
 use entities::config::Config;
 use entities::server::Server;
