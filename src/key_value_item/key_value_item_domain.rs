@@ -10,27 +10,26 @@ pub enum ValueType {
 
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let printable =
-        match self {
-            ValueType::ListType(value)=> {
-                    let mut printable_v = "".to_owned();
-                    for v in value {
-                        printable_v.push_str(v);
-                        printable_v.push_str(",")
-                    }
-                printable_v.pop();
-                printable_v
-                }
-            ValueType::SetType(value) => {
+        let printable = match self {
+            ValueType::ListType(value) => {
                 let mut printable_v = "".to_owned();
-                    for v in value {
-                        printable_v.push_str(v);
-                        printable_v.push_str(",")
-                    }
+                for v in value {
+                    printable_v.push_str(v);
+                    printable_v.push_str(",")
+                }
                 printable_v.pop();
                 printable_v
             }
-            ValueType::StringType(value) => value.to_string()
+            ValueType::SetType(value) => {
+                let mut printable_v = "".to_owned();
+                for v in value {
+                    printable_v.push_str(v);
+                    printable_v.push_str(",")
+                }
+                printable_v.pop();
+                printable_v
+            }
+            ValueType::StringType(value) => value.to_string(),
         };
         write!(f, "{}", printable)
     }
@@ -40,18 +39,17 @@ impl fmt::Display for ValueType {
 pub struct KeyValueItem {
     key: String,
     value: ValueType,
-    last_access_time: u64
+    last_access_time: u64,
 }
 
 impl KeyValueItem {
-
-pub fn new(key: String, value: ValueType) -> KeyValueItem {
-    KeyValueItem {
-        key,
-        value,
-        last_access_time: 1622657604, //TODO Esto debería calcularse
-    }
-} //TODO chequear si es necesario este constructor
+    pub fn new(key: String, value: ValueType) -> KeyValueItem {
+        KeyValueItem {
+            key,
+            value,
+            last_access_time: 1622657604, //TODO Esto debería calcularse
+        }
+    } //TODO chequear si es necesario este constructor
 }
 
 #[cfg(test)]
@@ -64,7 +62,7 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::StringType("un_string".to_string()),
-            last_access_time: 0
+            last_access_time: 0,
         };
 
         assert_eq!(kv_item.value.to_string(), "un_string");
@@ -80,7 +78,7 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::SetType(un_set),
-            last_access_time: 0
+            last_access_time: 0,
         };
 
         assert_eq!(kv_item.value.to_string(), "un_set_string");
@@ -97,7 +95,7 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::ListType(un_set),
-            last_access_time: 0
+            last_access_time: 0,
         };
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");

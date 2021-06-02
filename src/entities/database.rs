@@ -7,7 +7,7 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn get_filename(&self) -> String{
+    pub fn get_filename(&self) -> String {
         self.dbfilename.clone()
     }
 
@@ -32,7 +32,7 @@ impl Database {
         //chequeo si existe la key
         // si no existe salgo con error
         // si  existe elimino el item de la lista
-         unimplemented!()
+        unimplemented!()
     }
 
     pub fn update(&self) {
@@ -46,7 +46,6 @@ impl Database {
         //chequeo si existe la key
         // si no existe agrego el item a la lista
         // si existe salgo con error
-
     }
 }
 
@@ -59,7 +58,7 @@ mod tests {
     fn empty_database_returns_cero() {
         let db = Database {
             dbfilename: "file".to_string(),
-            items: vec![]
+            items: vec![],
         };
 
         assert_eq!(db.get_size(), 0);
@@ -67,12 +66,18 @@ mod tests {
 
     #[test]
     fn size_in_memory_is_correct() {
-        let kv_item = KeyValueItem::new(String::from("123"), ValueType::StringType(String::from("222")));
-        let kv_item2 = KeyValueItem::new(String::from("123"), ValueType::StringType(String::from("222")));
+        let kv_item = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
+        let kv_item2 = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
 
         let db = Database {
             dbfilename: "file".to_string(),
-            items: vec![kv_item,kv_item2]
+            items: vec![kv_item, kv_item2],
         };
 
         assert_eq!(db.get_size(), 2);

@@ -27,7 +27,4 @@ impl KeyValueItemRepository {
 }
 
 #[cfg(test)]
-mod tests {
-
-
-}
+mod tests {}
