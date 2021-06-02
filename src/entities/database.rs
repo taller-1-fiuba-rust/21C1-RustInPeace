@@ -53,6 +53,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::key_value_item::key_value_item_domain::ValueType;
 
     #[test]
     fn empty_database_returns_cero() {
@@ -66,8 +67,8 @@ mod tests {
 
     #[test]
     fn size_in_memory_is_correct() {
-        let kv_item = KeyValueItem::new(String::from("123"), String::from("222"));
-        let kv_item2 = KeyValueItem::new(String::from("123"), String::from("222"));
+        let kv_item = KeyValueItem::new(String::from("123"), ValueType::StringType(String::from("222")));
+        let kv_item2 = KeyValueItem::new(String::from("123"), ValueType::StringType(String::from("222")));
 
         let db = Database {
             dbfilename: "file".to_string(),
