@@ -1,12 +1,12 @@
-mod entities;
+mod domain;
 mod services;
+mod shared_errors;
 
-use entities::config::Config;
-use entities::server::Server;
+use domain::entities::server::Server;
 use services::config_service::load_config;
 
 fn main() {
-    let path = "./src/redis.txt".to_string();
+    let path = "./src/redis.conf".to_string();
     let config = load_config(path);
 
     match config {

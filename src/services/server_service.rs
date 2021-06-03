@@ -2,7 +2,7 @@
 use super::parser_service::{parse_request, parse_response};
 use super::utils::resp_type::RespType;
 use super::worker_service::ThreadPool;
-use crate::entities::server::Server;
+use crate::domain::entities::server::Server;
 use crate::services::commander::Commander;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};

@@ -1,5 +1,5 @@
-use crate::entities::message::Message;
-use crate::entities::worker::Worker;
+use crate::domain::entities::message::Message;
+use crate::domain::entities::worker::Worker;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;

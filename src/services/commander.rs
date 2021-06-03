@@ -1,5 +1,5 @@
 use super::utils::resp_type::RespType;
-use crate::entities::operation_register::OperationRegister;
+use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::commands::command_server;
 use std::collections::HashMap;
 use std::net::SocketAddr;
