@@ -7,6 +7,12 @@ pub struct Database {
 }
 
 impl Database {
+    pub fn new(filename: String) -> Database {
+        Database {
+            dbfilename: filename,
+            items: vec![], //TODO al crear este objeto debería cargar los items del file.
+        }
+    }
     pub fn get_filename(&self) -> String {
         self.dbfilename.clone()
     }

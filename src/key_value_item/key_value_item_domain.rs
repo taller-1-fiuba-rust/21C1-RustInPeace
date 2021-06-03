@@ -15,7 +15,7 @@ impl fmt::Display for ValueType {
                 let mut printable_v = "".to_owned();
                 for v in value {
                     printable_v.push_str(v);
-                    printable_v.push_str(",")
+                    printable_v.push(',')
                 }
                 printable_v.pop();
                 printable_v
@@ -24,7 +24,7 @@ impl fmt::Display for ValueType {
                 let mut printable_v = "".to_owned();
                 for v in value {
                     printable_v.push_str(v);
-                    printable_v.push_str(",")
+                    printable_v.push(',')
                 }
                 printable_v.pop();
                 printable_v
@@ -39,7 +39,7 @@ impl fmt::Display for ValueType {
 pub struct KeyValueItem {
     pub(crate) key: String, //TODO tuve que hacer publicos estos atributos porque los necesito para testear
     pub(crate) value: ValueType,
-    last_access_time: u64,
+    pub(crate) last_access_time: u64,
 }
 
 impl KeyValueItem {
@@ -88,13 +88,13 @@ mod tests {
 
     #[test]
     fn key_value_item_list_created() {
-        let mut un_set = LinkedList::new();
-        un_set.push_back("un_list_string".to_string());
-        un_set.push_back("otro_list_string".to_string());
+        let mut un_list = LinkedList::new();
+        un_list.push_back("un_list_string".to_string());
+        un_list.push_back("otro_list_string".to_string());
 
         let kv_item = KeyValueItem {
             key: "123".to_string(),
-            value: ValueType::ListType(un_set),
+            value: ValueType::ListType(un_list),
             last_access_time: 0,
         };
 
