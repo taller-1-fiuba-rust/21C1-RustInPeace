@@ -37,8 +37,8 @@ impl fmt::Display for ValueType {
 
 #[derive(Debug)]
 pub struct KeyValueItem {
-    key: String,
-    value: ValueType,
+    pub(crate) key: String, //TODO tuve que hacer publicos estos atributos porque los necesito para testear
+    pub(crate) value: ValueType,
     last_access_time: u64,
 }
 

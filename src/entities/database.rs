@@ -12,6 +12,7 @@ impl Database {
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
+    /* TODO los comento para que clippy no se queje hasta q los implementemos
     pub fn load_items(&self) {
         unimplemented!()
     }
@@ -19,33 +20,17 @@ impl Database {
     pub fn save_items_to_file(&self) {
         unimplemented!()
     }
-
+    */
     pub fn get_size(&self) -> usize {
         self.items.len()
     }
 
-    pub fn get_all_by_key(&self, _key: String) -> Vec<KeyValueItem> {
-        unimplemented!()
+    pub fn delete_by_index(&mut self, index: usize) {
+        self.items.remove(index);
     }
 
-    pub fn delete(&self) {
-        //chequeo si existe la key
-        // si no existe salgo con error
-        // si  existe elimino el item de la lista
-        unimplemented!()
-    }
-
-    pub fn update(&self) {
-        //chequeo si existe la key
-        // si no existe agrego el item a la lista
-        // si existe salgo con error
-        unimplemented!()
-    }
-
-    pub fn add(&self) {
-        //chequeo si existe la key
-        // si no existe agrego el item a la lista
-        // si existe salgo con error
+    pub fn add(&mut self, kv_item: KeyValueItem) {
+        self.items.push(kv_item);
     }
 }
 
@@ -81,5 +66,48 @@ mod tests {
         };
 
         assert_eq!(db.get_size(), 2);
+    }
+    #[test]
+    fn add_item() {
+        let added_item = KeyValueItem::new(
+            String::from("nueva_key"),
+            ValueType::StringType(String::from("222")),
+        );
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![],
+        };
+        db.add(added_item);
+
+        assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
+        assert_eq!(
+            db.items.first().unwrap().value.to_string(),
+            String::from("222")
+        );
+        assert_eq!(db.items.len(), 1)
+    }
+
+    #[test]
+    fn delete_item() {
+        let added_item = KeyValueItem::new(
+            String::from("nueva_key"),
+            ValueType::StringType(String::from("222")),
+        );
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![added_item],
+        };
+        assert_eq!(db.items.len(), 1);
+        db.delete_by_index(0);
+        assert_eq!(db.items.len(), 0);
+    }
+
+    #[test]
+    fn filename_is_correct() {
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![],
+        };
+        assert_eq!(db.get_filename(), "file".to_string());
     }
 }
