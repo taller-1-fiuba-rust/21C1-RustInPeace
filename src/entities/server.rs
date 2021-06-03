@@ -11,7 +11,7 @@ impl Server {
     pub fn new(config: Config) -> Self {
         let dir = "127.0.0.1".to_string();
         let threadpool_size = 4;
-        let port = config.get_port();
+        let port = config.get_port().to_string();
         Server {
             dir,
             port,
