@@ -14,7 +14,7 @@ use std::time::Duration;
 
 pub fn init(server: &mut Server) {
     let (sender_server, receiver_server) = mpsc::channel();
-    let commander = Arc::new(Mutex::new(Commander::new()));
+    //let commander = Arc::new(Mutex::new(Commander::new()));
     let port: &String = server.get_port();
     let dir: &String = server.get_dir();
     let threadpool_size: &usize = server.get_threadpool_size();
@@ -35,10 +35,10 @@ pub fn init(server: &mut Server) {
                         //if timeout != 0 {
                         //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
                         //}
-                        let shared_commander = Arc::clone(&commander);
+                        //let shared_commander = Arc::clone(&commander);
                         let tx = sender_server.clone();
                         pool.spawn(move || {
-                            handle_connection(stream, tx, shared_commander);
+                            handle_connection(stream, tx);//, shared_commander);
                         });
 
                         for msg in &receiver_server {
@@ -68,8 +68,8 @@ pub fn init(server: &mut Server) {
 
 fn handle_connection(
     stream: TcpStream,
-    tx: Sender<WorkerMessage>,
-    shared_commander: Arc<Mutex<Commander>>,
+    tx: Sender<WorkerMessage>
+//     shared_commander: Arc<Mutex<Commander>>,
 ) {
     std::thread::sleep(Duration::from_secs(2));
     let client_addrs = stream.peer_addr().unwrap();
@@ -103,8 +103,8 @@ fn handle_connection(
                 let operation = RespType::RArray(vector_aux);
 
                 // le pasamos el request al command_service
-                let commander = &mut shared_commander.lock().unwrap(); //handle error
-                commander.handle_command(&operation, client_addrs);
+                let mut commander = Commander::new(); //&mut shared_commander.lock().unwrap(); //handle error
+                commander.handle_command(&operation, client_addrs, &tx);
 
                 // ese servicio va a devolver una response
                 // simulo una response:

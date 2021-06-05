@@ -3,6 +3,8 @@ use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::commands::command_server;
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::mpsc::Sender;
+use crate::domain::entities::message::WorkerMessage;
 
 pub struct Commander {
     operations: HashMap<String, OperationRegister>,
@@ -14,7 +16,7 @@ impl Commander {
         Commander { operations }
     }
 
-    pub fn handle_command(&mut self, operation: &RespType, addrs: SocketAddr) {
+    pub fn handle_command(&mut self, operation: &RespType, addrs: SocketAddr, tx: &Sender<WorkerMessage>) {
         let last_operations = self
             .operations
             .entry(addrs.to_string())
