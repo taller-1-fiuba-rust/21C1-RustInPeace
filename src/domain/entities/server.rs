@@ -1,11 +1,10 @@
 use super::config::Config;
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
+use crate::repositories::key_value_item_repository::KeyValueItemRepository;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::{io::Error, net::SocketAddr};
-use crate::repositories::key_value_item_repository::KeyValueItemRepository;
-use mockall::Key;
 
 #[derive(Debug)]
 pub struct Server {
@@ -14,7 +13,7 @@ pub struct Server {
     threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    repository: KeyValueItemRepository
+    repository: KeyValueItemRepository,
 }
 
 impl Server {
@@ -34,7 +33,7 @@ impl Server {
             threadpool_size,
             logger,
             clients_operations,
-            repository
+            repository,
         })
     }
 
@@ -50,10 +49,9 @@ impl Server {
         &self.threadpool_size
     }
 
-    pub fn get_repository(&self) -> &KeyValueItemRepository {
+    pub fn _get_repository(&self) -> &KeyValueItemRepository {
         &self.repository
     }
-
 
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
         self.logger.log(msg.as_bytes())?;
