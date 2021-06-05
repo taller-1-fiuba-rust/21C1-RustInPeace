@@ -24,14 +24,14 @@ pub fn init(server: &mut Server) {
             for stream in listener.incoming() {
                 match stream {
                     Ok(stream) => {
-                        match stream.peer_addr() {
-                            Ok(addrs) => {
-                                println!("New stream: {}", addrs);
-                            }
-                            Err(_) => {
-                                println!("Could't get client's address");
-                            }
-                        }
+                        // match stream.peer_addr() {
+                        //     Ok(addrs) => {
+                        //         println!("New stream: {}", addrs);
+                        //     }
+                        //     Err(_) => {
+                        //         println!("Could't get client's address");
+                        //     }
+                        // }
                         //if timeout != 0 {
                         //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
                         //}
@@ -40,6 +40,17 @@ pub fn init(server: &mut Server) {
                         pool.spawn(move || {
                             handle_connection(stream, tx, shared_commander);
                         });
+
+                        for msg in &receiver_server {
+                            match msg {
+                                WorkerMessage::Log(log_msg) => match server.log(log_msg) {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        println!("Logging error: {}", e);
+                                    }
+                                },
+                            }
+                        }
                     }
                     Err(_) => {
                         println!("Couldn't get stream");
@@ -49,17 +60,6 @@ pub fn init(server: &mut Server) {
         }
         Err(_) => {
             println!("Listener couldn't be created");
-        }
-    }
-
-    for msg in receiver_server {
-        match msg {
-            WorkerMessage::Log(log_msg) => match server.log(log_msg) {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Logging error: {}", e);
-                }
-            },
         }
     }
 
