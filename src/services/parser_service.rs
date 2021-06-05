@@ -1,7 +1,7 @@
 //! Servicio para transformar un mensaje que llega por stream a un tipo de dato RESP y viceversa !
 
-use super::utils::error::ParseError;
 use super::utils::resp_type::RespType;
+use crate::errors::parse_error::ParseError;
 
 /// Recibe una response de tipo RespType y lo traduce a un String respetando el protocolo RESP
 /// -ejemplos-
