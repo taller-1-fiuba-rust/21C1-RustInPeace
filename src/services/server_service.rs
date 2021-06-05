@@ -4,17 +4,14 @@ use super::utils::resp_type::RespType;
 use super::worker_service::ThreadPool;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::entities::server::Server;
-use crate::services::commander::Commander;
+use crate::services::commander::handle_command;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{self, Sender};
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::time::Duration;
 
 pub fn init(server: &mut Server) {
     let (sender_server, receiver_server) = mpsc::channel();
-    let commander = Arc::new(Mutex::new(Commander::new()));
     let port: &String = server.get_port();
     let dir: &String = server.get_dir();
     let threadpool_size: &usize = server.get_threadpool_size();
@@ -35,10 +32,10 @@ pub fn init(server: &mut Server) {
                         //if timeout != 0 {
                         //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
                         //}
-                        let shared_commander = Arc::clone(&commander);
+                        //let shared_commander = Arc::clone(&commander);
                         let tx = sender_server.clone();
                         pool.spawn(move || {
-                            handle_connection(stream, tx, shared_commander);
+                            handle_connection(stream, tx); //, shared_commander);
                         });
 
                         for msg in &receiver_server {
@@ -49,6 +46,12 @@ pub fn init(server: &mut Server) {
                                         println!("Logging error: {}", e);
                                     }
                                 },
+                                WorkerMessage::NewOperation(operation, addrs) => {
+                                    server.update_clients_operations(operation, addrs);
+                                }
+                                WorkerMessage::MonitorOp(addrs) => {
+                                    server.print_last_operations_by_client(addrs);
+                                }
                             }
                         }
                     }
@@ -66,11 +69,7 @@ pub fn init(server: &mut Server) {
     println!("Shutting down.");
 }
 
-fn handle_connection(
-    stream: TcpStream,
-    tx: Sender<WorkerMessage>,
-    shared_commander: Arc<Mutex<Commander>>,
-) {
+fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>) {
     std::thread::sleep(Duration::from_secs(2));
     let client_addrs = stream.peer_addr().unwrap();
     tx.send(WorkerMessage::Log(format!(
@@ -101,10 +100,11 @@ fn handle_connection(
                 let elemento_1 = RespType::RBulkString("monitor".to_string());
                 let vector_aux = vec![elemento_1];
                 let operation = RespType::RArray(vector_aux);
-
+                tx.send(WorkerMessage::NewOperation(operation.clone(), client_addrs))
+                    .unwrap();
                 // le pasamos el request al command_service
-                let commander = &mut shared_commander.lock().unwrap(); //handle error
-                commander.handle_command(&operation, client_addrs);
+                // let mut commander = Commander::new(); //&mut shared_commander.lock().unwrap(); //handle error
+                handle_command(operation, &tx, client_addrs);
 
                 // ese servicio va a devolver una response
                 // simulo una response:
