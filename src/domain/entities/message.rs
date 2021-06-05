@@ -4,3 +4,7 @@ pub enum Message {
 }
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
+
+pub enum WorkerMessage {
+    Log(String),
+}

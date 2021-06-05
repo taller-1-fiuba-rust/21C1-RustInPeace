@@ -1,4 +1,4 @@
-use crate::entities::database::Database;
+use crate::domain::implementations::database::Database;
 
 #[derive(Debug)]
 pub struct KeyValueItemRepository {

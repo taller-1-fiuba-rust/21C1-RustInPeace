@@ -1,4 +1,5 @@
-use crate::key_value_item::key_value_item_domain::KeyValueItem;
+// use crate::key_value_item::key_value_item_domain::KeyValueItem;
+use crate::domain::entities::key_value_item::KeyValueItem;
 
 #[derive(Debug)]
 pub struct Database {
@@ -43,7 +44,7 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::key_value_item::key_value_item_domain::ValueType;
+    use crate::domain::entities::key_value_item::ValueType;
 
     #[test]
     fn empty_database_returns_cero() {

@@ -54,7 +54,7 @@ impl KeyValueItem {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_value_item::key_value_item_domain::{KeyValueItem, ValueType};
+    use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
     use std::collections::{HashSet, LinkedList};
 
     #[test]

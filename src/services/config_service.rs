@@ -1,4 +1,4 @@
-use crate::Config;
+use crate::domain::entities::config::Config;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
