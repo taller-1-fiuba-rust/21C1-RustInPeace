@@ -8,7 +8,7 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn new(path: &String) -> Result<Self, Error> {
+    pub fn new(path: &str) -> Result<Self, Error> {
         let file = File::create(path)?;
         Ok(Logger { file })
     }
