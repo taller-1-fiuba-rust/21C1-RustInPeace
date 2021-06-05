@@ -13,7 +13,7 @@ impl Database {
             items: vec![], //TODO al crear este objeto debería cargar los items del file.
         }
     }
-    pub fn get_filename(&self) -> String {
+    pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
 
@@ -27,15 +27,15 @@ impl Database {
         unimplemented!()
     }
     */
-    pub fn get_size(&self) -> usize {
+    pub fn _get_size(&self) -> usize {
         self.items.len()
     }
 
-    pub fn delete_by_index(&mut self, index: usize) {
+    pub fn _delete_by_index(&mut self, index: usize) {
         self.items.remove(index);
     }
 
-    pub fn add(&mut self, kv_item: KeyValueItem) {
+    pub fn _add(&mut self, kv_item: KeyValueItem) {
         self.items.push(kv_item);
     }
 }
