@@ -59,9 +59,10 @@ impl Server {
     }
 
     pub fn print_last_operations_by_client(&self, addrs: String) {
-        let operations = self.clients_operations.get(&addrs);
-        for operation in operations {
-            println!("{:?}", operation)
+        if let Some(operations) = self.clients_operations.get(&addrs) {
+            for operation in operations.get_operations() {
+                println!("{:?}", operation)
+            }
         }
     }
 }
@@ -87,8 +88,8 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
     server.update_clients_operations(dummy_operation, dir);
     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
     assert_eq!(
-        saved_operations._get_operations(),
-        operation_register._get_operations()
+        saved_operations.get_operations(),
+        operation_register.get_operations()
     );
 
     std::fs::remove_file("./src/dummy.log").unwrap();
@@ -124,8 +125,8 @@ fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
 
     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
     assert_eq!(
-        saved_operations._get_operations(),
-        operation_register._get_operations()
+        saved_operations.get_operations(),
+        operation_register.get_operations()
     );
 
     std::fs::remove_file("./src/dummy.log").unwrap();
