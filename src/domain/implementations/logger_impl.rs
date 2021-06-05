@@ -1,5 +1,4 @@
 use std::fs::File;
-// use std::io::BufRead;
 use std::io::Error;
 use std::io::Write;
 
@@ -15,7 +14,7 @@ impl Logger {
     }
 
     pub fn log(&mut self, message: &[u8]) -> std::io::Result<()> {
-        self.file.write(message)?;
+        self.file.write_all(message)?;
         Ok(())
     }
 }
