@@ -13,7 +13,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 pub fn init(server: &mut Server) {
-    // server.listen();
     let (sender_server, receiver_server) = mpsc::channel();
     let commander = Arc::new(Mutex::new(Commander::new()));
     let port: &String = server.get_port();

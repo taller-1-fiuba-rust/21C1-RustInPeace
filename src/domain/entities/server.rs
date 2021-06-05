@@ -27,26 +27,6 @@ impl Server {
         })
     }
 
-    /*     pub fn listen(self) {
-        let _ = thread::Builder::new().spawn(move || loop {
-            let message = self.receiver
-                .lock()
-                .unwrap_or_else(|_e| panic!("Poison Error while receiving messages from workers"))
-                .recv()
-                .unwrap_or(WorkerMessage::Quit);
-
-            match message {
-                WorkerMessage::Log(msg) => {
-                    self.log(msg);
-                }
-                WorkerMessage::Quit => {
-                    println!("Server was told to terminate.");
-                    break;
-                }
-            }
-        });
-    } */
-
     pub fn get_port(&self) -> &String {
         &self.port
     }
@@ -60,7 +40,6 @@ impl Server {
     }
 
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
-        // unimplemented
         self.logger.log(msg.as_bytes())?;
         Ok(())
     }
