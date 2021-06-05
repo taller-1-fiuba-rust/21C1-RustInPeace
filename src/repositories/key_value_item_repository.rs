@@ -6,6 +6,7 @@ pub struct KeyValueItemRepository {
 }
 
 impl KeyValueItemRepository {
+<<<<<<< HEAD:src/repositories/key_value_item_repository.rs
     pub fn new(connection: String) -> KeyValueItemRepository {
         KeyValueItemRepository {
             db: Database::new(connection),
@@ -14,6 +15,17 @@ impl KeyValueItemRepository {
     /* TODO DEJO COMENTADO HASTA Q LO IMPLEMENTEMOS
 
 
+=======
+
+    pub fn new(connection: String) -> KeyValueItemRepository {
+    KeyValueItemRepository {
+        db: Database::new(connection)
+    }
+    }
+}
+        /*
+    }
+>>>>>>> a0e7de9 (Agrego database al server):src/key_value_item/key_value_item_repository.rs
     pub fn delete_key(&self, _key: String) -> Result<(), ()> {
     Ok(self.db.delete())
     }
@@ -51,7 +63,7 @@ impl KeyValueItemRepository {
     // si no existe agrego el item a la lista
     // si existe salgo con error
     }*/
-}
+
 
 #[cfg(test)]
 mod tests {}
