@@ -1,6 +1,7 @@
 use std::collections::{HashSet, LinkedList};
 use std::fmt;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ValueType {
     ListType(LinkedList<String>),

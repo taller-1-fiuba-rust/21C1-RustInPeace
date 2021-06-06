@@ -6,11 +6,14 @@ pub struct KeyValueItemRepository {
 }
 
 impl KeyValueItemRepository {
+    pub fn _new(connection: String) -> KeyValueItemRepository {
+        KeyValueItemRepository {
+            db: Database::new(connection),
+        }
+    }
     /* TODO DEJO COMENTADO HASTA Q LO IMPLEMENTEMOS
 
-    pub fn new(connection: Database) -> KeyValueItemRepository {
-    KeyValueItemRepository { db: connection }
-    }
+
     pub fn delete_key(&self, _key: String) -> Result<(), ()> {
     Ok(self.db.delete())
     }
