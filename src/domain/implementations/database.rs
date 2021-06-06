@@ -21,6 +21,10 @@ impl Database {
     pub fn get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
+    pub fn clean_items(&mut self) -> &Vec<KeyValueItem> {
+        self.items = Vec::new();
+        &self.items
+    }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
     /* TODO los comento para que clippy no se queje hasta q los implementemos
@@ -45,6 +49,12 @@ impl Database {
     }
 }
 
+#[test]
+fn test_01_clean_items_deletes_all_items() {
+    let mut db = Database::new(String::from("./src/database.txt"));
+    db.clean_items();
+    assert_eq!(db.get_size(), 0);
+}
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
