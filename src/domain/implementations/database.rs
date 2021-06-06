@@ -1,10 +1,10 @@
 use crate::domain::entities::key_value_item::KeyValueItem;
-use std::fs::File;
-use std::io::BufRead;
-use std::io;
-use std::path::Path;
 use crate::domain::entities::key_value_item::ValueType::StringType;
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
+use std::fs::File;
+use std::io;
+use std::io::BufRead;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Database {
@@ -39,10 +39,12 @@ impl Database {
 
     //TODO sacar esto de acá
     pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-        where P: AsRef<Path>, {
-            let file = File::open(filename)?;
-            Ok(io::BufReader::new(file).lines())
-        }
+    where
+        P: AsRef<Path>,
+    {
+        let file = File::open(filename)?;
+        Ok(io::BufReader::new(file).lines())
+    }
 
     pub fn _save_items_to_file(&self) {
         unimplemented!()
@@ -134,9 +136,13 @@ mod tests {
         assert_eq!(db._get_filename(), "file".to_string());
     }
     #[test]
-    fn load_items_from_file() { //TODO me falta mockear el archivo para que pueda correr el test.
+    fn load_items_from_file() {
+        //TODO me falta mockear el archivo para que pueda correr el test.
         let db = Database::new("file".to_string());
         assert_eq!(db.items.len(), 3);
-        assert_eq!(db.items.get(0).unwrap().value.to_string(),ValueType::StringType(String::from("222")).to_string());
+        assert_eq!(
+            db.items.get(0).unwrap().value.to_string(),
+            ValueType::StringType(String::from("222")).to_string()
+        );
     }
 }
