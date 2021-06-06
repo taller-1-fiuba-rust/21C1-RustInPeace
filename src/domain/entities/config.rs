@@ -27,10 +27,22 @@ impl Config {
     }
 
     pub fn set_attribute(&mut self, attribute: String, value: String) -> Result<(), Error> {
-        let mut file = File::open(&self.path)?;
-        let contents = format!("{} {}", &attribute, &value);
+        if self.config.contains_key(&attribute) {
+            self.config.insert(attribute, value);
+        } else {
+            self.config.entry(attribute).or_insert(value);
+        }
+        self.update_file()?;
+        Ok(())
+    }
+
+    pub fn update_file(&mut self) -> Result<(), Error> {
+        let mut file = File::create(&self.path)?;
+        let mut contents: String = String::from("");
+        for (k, value) in &self.config {
+            contents += &format!("{} {}\n", k, value);
+        }
         file.write_all(contents.as_bytes())?;
-        self.config.entry(attribute).or_insert(value);
         Ok(())
     }
 }
@@ -47,4 +59,53 @@ pub fn lines_from_file(path: &String) -> Result<HashMap<String, String>, Error> 
         }
     }
     Ok(map)
+}
+
+#[test]
+fn test_01_config_sets_one_new_attribute_value() {
+    std::fs::File::create("./src/dummy_redis.txt").unwrap();
+    let mut config = Config::new(String::from("./src/dummy_redis.txt"));
+    config
+        .set_attribute(String::from("maxmemory"), String::from("2mb"))
+        .unwrap();
+    assert!(config.config.contains_key("maxmemory"));
+    assert_eq!(
+        config.config.get("maxmemory").unwrap(),
+        &String::from("2mb")
+    );
+    std::fs::remove_file("./src/dummy_redis.txt").unwrap();
+}
+
+#[test]
+fn test_02_config_sets_multiple_new_attribute_value() {
+    std::fs::File::create("./src/dummy_redis.txt").unwrap();
+    let mut config = Config::new(String::from("./src/dummy_redis.txt"));
+    config
+        .set_attribute(String::from("maxmemory"), String::from("2mb"))
+        .unwrap();
+    assert!(config.config.contains_key("maxmemory"));
+    assert_eq!(
+        config.config.get("maxmemory").unwrap(),
+        &String::from("2mb")
+    );
+    config
+        .set_attribute(
+            String::from("maxmemory-policy"),
+            String::from("allkeys-lru"),
+        )
+        .unwrap();
+    config
+        .set_attribute(String::from("maxmemory"), String::from("3mb"))
+        .unwrap();
+    assert!(config.config.contains_key("maxmemory-policy"));
+    assert_eq!(
+        config.config.get("maxmemory-policy").unwrap(),
+        &String::from("allkeys-lru")
+    );
+    assert!(config.config.contains_key("maxmemory"));
+    assert_eq!(
+        config.config.get("maxmemory").unwrap(),
+        &String::from("3mb")
+    );
+    std::fs::remove_file("./src/dummy_redis.txt").unwrap();
 }

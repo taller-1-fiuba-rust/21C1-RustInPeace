@@ -154,5 +154,5 @@ fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
         operation_register.get_operations()
     );
 
-    std::fs::remove_file("./src/dummy.log").unwrap();
+    // std::fs::remove_file("./src/dummy.log").unwrap();
 }
