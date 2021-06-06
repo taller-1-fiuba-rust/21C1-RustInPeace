@@ -65,7 +65,6 @@ impl Database {
 mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::ValueType;
-
     #[test]
     fn empty_database_returns_cero() {
         let db = Database {
@@ -75,7 +74,6 @@ mod tests {
 
         assert_eq!(db._get_size(), 0);
     }
-
     #[test]
     fn size_in_memory_is_correct() {
         let kv_item = KeyValueItem::_new(
@@ -113,7 +111,6 @@ mod tests {
         );
         assert_eq!(db.items.len(), 1)
     }
-
     #[test]
     fn delete_item() {
         let added_item = KeyValueItem::_new(
@@ -128,7 +125,6 @@ mod tests {
         db._delete_by_index(0);
         assert_eq!(db.items.len(), 0);
     }
-
     #[test]
     fn filename_is_correct() {
         let db = Database {
@@ -137,9 +133,8 @@ mod tests {
         };
         assert_eq!(db._get_filename(), "file".to_string());
     }
-
     #[test]
-    fn load_items_from_file() {
+    fn load_items_from_file() { //TODO me falta mockear el archivo para que pueda correr el test.
         let db = Database::new("file".to_string());
         assert_eq!(db.items.len(), 3);
         assert_eq!(db.items.get(0).unwrap().value.to_string(),ValueType::StringType(String::from("222")).to_string());
