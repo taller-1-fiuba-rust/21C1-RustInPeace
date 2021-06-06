@@ -1,9 +1,9 @@
+use std::collections::HashMap;
 use std::fs::File;
+use std::io::Error;
 use std::io::ErrorKind;
 use std::io::Write;
-use std::io::{BufReader, BufRead};
-use std::io::Error;
-use std::collections::HashMap;
+use std::io::{BufRead, BufReader};
 
 #[derive(Debug)]
 pub struct Config {
@@ -13,19 +13,14 @@ pub struct Config {
     // dbfilename: String,
     // logfile: String,
     config: HashMap<String, String>,
-    path: String
+    path: String,
 }
 
 impl Config {
-    pub fn new(
-        path: String
-    ) -> Self {
+    pub fn new(path: String) -> Self {
         let config = lines_from_file(&path).unwrap();
 
-        Config {
-            path,
-            config
-        }
+        Config { path, config }
     }
 
     pub fn get_attribute(&self, attribute: String) -> Result<&String, Error> {
@@ -35,7 +30,7 @@ impl Config {
             return Err(Error::from(ErrorKind::NotFound));
         }
     }
-    
+
     pub fn set_attribute(&mut self, attribute: String, value: String) -> Result<(), Error> {
         //write to file
         let mut file = File::open(&self.path)?;

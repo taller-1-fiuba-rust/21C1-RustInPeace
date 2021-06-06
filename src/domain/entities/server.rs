@@ -9,16 +9,18 @@ use std::{io::Error, net::SocketAddr};
 pub struct Server {
     dir: String,
     port: String,
+    verbose: String,
     threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
 }
 
 impl Server {
-    pub fn new(port: String, logfile: String) -> Result<Self, Error> {
+    pub fn new(port: String, logfile: String, verb: String) -> Result<Self, Error> {
         let dir = "127.0.0.1".to_string();
         let threadpool_size = 4;
         let port = port;
+        let verbose = verb;
         // let receiver = receiver;
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
@@ -27,6 +29,7 @@ impl Server {
         Ok(Server {
             dir,
             port,
+            verbose,
             threadpool_size,
             logger,
             clients_operations,
@@ -41,6 +44,10 @@ impl Server {
         &self.dir
     }
 
+    pub fn get_verbose(&self) -> &String {
+        &self.verbose
+    }
+
     pub fn get_threadpool_size(&self) -> &usize {
         &self.threadpool_size
     }
@@ -48,6 +55,22 @@ impl Server {
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
         self.logger.log(msg.as_bytes())?;
         Ok(())
+    }
+
+    pub fn verbose(&self, msg: String) {
+        if self.parse_verbose(self.get_verbose()) == 1 {
+            println!("{}", msg);
+        }
+    }
+
+    fn parse_verbose(&self, string: &String) -> usize {
+        let mut verbose: usize = 1;
+        let verb_aux = string.parse::<usize>();
+        match verb_aux {
+            Ok(verb) => verbose = verb,
+            Err(_) => println!("parsing error"),
+        }
+        verbose
     }
 
     pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
@@ -76,10 +99,11 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
     // let verbose = 0;
     // let timeout = 0;
     let port = "8080".to_string();
+    let verbose = "1".to_string();
     // let dbfilename = "./src/redis.conf".to_string();
     let logfile = "./src/dummy.log".to_string();
 
-    let mut server = Server::new(port, logfile).unwrap();
+    let mut server = Server::new(port, logfile, verbose).unwrap();
     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
     let mut operation_register = OperationRegister::new(100);
     operation_register.store_operation(dummy_operation.clone());
@@ -104,10 +128,11 @@ fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
     // let verbose = 0;
     // let timeout = 0;
     let port = "8080".to_string();
+    let verbose = "1".to_string();
     // let dbfilename = "./src/redis.conf".to_string();
     let logfile = "./src/dummy.log".to_string();
 
-    let mut server = Server::new(port, logfile).unwrap();
+    let mut server = Server::new(port, logfile, verbose).unwrap();
     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
     let dummy_operation_2 = RespType::RArray(vec![
         RespType::RBulkString(String::from("set")),

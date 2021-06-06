@@ -1,5 +1,5 @@
-use std::sync::{Arc, RwLock};
 use std::io::{Error, ErrorKind};
+use std::sync::{Arc, RwLock};
 
 use crate::domain::entities::config::Config;
 use crate::services::utils::resp_type::RespType;
@@ -10,7 +10,7 @@ pub fn _monitor(operations: &[Vec<String>]) {
     }
 }
 
-pub fn config_get(config: &Arc<RwLock<Config>> ,field: &RespType) -> Result<String, Error> {
+pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> Result<String, Error> {
     if let RespType::RBulkString(field_name) = field {
         if let Ok(read_guard) = config.read() {
             let conf = read_guard;
@@ -23,7 +23,11 @@ pub fn config_get(config: &Arc<RwLock<Config>> ,field: &RespType) -> Result<Stri
     }
 }
 
-pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespType) -> Result<String, Error> {
+pub fn config_set(
+    config: &Arc<RwLock<Config>>,
+    field: &RespType,
+    value: &RespType,
+) -> Result<String, Error> {
     if let RespType::RBulkString(field_name) = field {
         if let RespType::RBulkString(value) = value {
             if let Ok(write_guard) = config.write() {
@@ -38,9 +42,7 @@ pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespTy
     }
 }
 
-
 #[test]
 fn test_config_get_verbose() {
     let _parsed_command = RespType::RBulkString(String::from("verbose"));
-
 }

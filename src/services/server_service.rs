@@ -2,15 +2,15 @@
 use super::parser_service::{parse_request, parse_response};
 use super::utils::resp_type::RespType;
 use super::worker_service::ThreadPool;
+use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::entities::server::Server;
-use crate::domain::entities::config::Config;
 use crate::services::commander::handle_command;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{self, Sender};
-use std::time::Duration;
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 pub fn init(server: &mut Server, config: Config) {
     let conf = Arc::new(RwLock::new(config));
@@ -42,6 +42,9 @@ pub fn init(server: &mut Server, config: Config) {
                                         println!("Logging error: {}", e);
                                     }
                                 },
+                                WorkerMessage::Verb(verbose_txt) => {
+                                    server.verbose(verbose_txt);
+                                }
                                 WorkerMessage::NewOperation(operation, addrs) => {
                                     server.update_clients_operations(operation, addrs);
                                 }
