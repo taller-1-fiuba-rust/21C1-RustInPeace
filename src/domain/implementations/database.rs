@@ -1,4 +1,10 @@
 use crate::domain::entities::key_value_item::KeyValueItem;
+use std::fs::File;
+use std::io::BufRead;
+use std::io;
+use std::path::Path;
+use crate::domain::entities::key_value_item::ValueType::StringType;
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 
 #[derive(Debug)]
 pub struct Database {
@@ -8,25 +14,40 @@ pub struct Database {
 
 impl Database {
     pub fn new(filename: String) -> Database {
-        Database {
+        let mut db = Database {
             dbfilename: filename,
-            items: vec![], //TODO al crear este objeto debería cargar los items del file.
-        }
+            items: vec![],
+        };
+        db._load_items();
+        db
     }
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
-    /* TODO los comento para que clippy no se queje hasta q los implementemos
-    pub fn load_items(&self) {
+    pub fn _load_items(&mut self) {
+        if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
+            for line in lines {
+                if let Ok(kvi_serialized) = line {
+                    let kvis = KeyValueItemSerialized::_new(kvi_serialized);
+                    self.add(kvis.transform_to_item())
+                }
+            }
+        }
+    }
+
+    //TODO sacar esto de acá
+    pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+        where P: AsRef<Path>, {
+            let file = File::open(filename)?;
+            Ok(io::BufReader::new(file).lines())
+        }
+
+    pub fn _save_items_to_file(&self) {
         unimplemented!()
     }
 
-    pub fn save_items_to_file(&self) {
-        unimplemented!()
-    }
-    */
     pub fn _get_size(&self) -> usize {
         self.items.len()
     }
@@ -35,7 +56,7 @@ impl Database {
         self.items.remove(index);
     }
 
-    pub fn _add(&mut self, kv_item: KeyValueItem) {
+    pub fn add(&mut self, kv_item: KeyValueItem) {
         self.items.push(kv_item);
     }
 }
@@ -52,16 +73,16 @@ mod tests {
             items: vec![],
         };
 
-        assert_eq!(db.get_size(), 0);
+        assert_eq!(db._get_size(), 0);
     }
 
     #[test]
     fn size_in_memory_is_correct() {
-        let kv_item = KeyValueItem::new(
+        let kv_item = KeyValueItem::_new(
             String::from("123"),
             ValueType::StringType(String::from("222")),
         );
-        let kv_item2 = KeyValueItem::new(
+        let kv_item2 = KeyValueItem::_new(
             String::from("123"),
             ValueType::StringType(String::from("222")),
         );
@@ -71,11 +92,11 @@ mod tests {
             items: vec![kv_item, kv_item2],
         };
 
-        assert_eq!(db.get_size(), 2);
+        assert_eq!(db._get_size(), 2);
     }
     #[test]
     fn add_item() {
-        let added_item = KeyValueItem::new(
+        let added_item = KeyValueItem::_new(
             String::from("nueva_key"),
             ValueType::StringType(String::from("222")),
         );
@@ -95,7 +116,7 @@ mod tests {
 
     #[test]
     fn delete_item() {
-        let added_item = KeyValueItem::new(
+        let added_item = KeyValueItem::_new(
             String::from("nueva_key"),
             ValueType::StringType(String::from("222")),
         );
@@ -104,7 +125,7 @@ mod tests {
             items: vec![added_item],
         };
         assert_eq!(db.items.len(), 1);
-        db.delete_by_index(0);
+        db._delete_by_index(0);
         assert_eq!(db.items.len(), 0);
     }
 
@@ -114,6 +135,13 @@ mod tests {
             dbfilename: "file".to_string(),
             items: vec![],
         };
-        assert_eq!(db.get_filename(), "file".to_string());
+        assert_eq!(db._get_filename(), "file".to_string());
+    }
+
+    #[test]
+    fn load_items_from_file() {
+        let db = Database::new("file".to_string());
+        assert_eq!(db.items.len(), 3);
+        assert_eq!(db.items.get(0).unwrap().value.to_string(),ValueType::StringType(String::from("222")).to_string());
     }
 }

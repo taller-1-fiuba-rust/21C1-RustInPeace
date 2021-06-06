@@ -1,4 +1,6 @@
 use crate::domain::implementations::database::Database;
+use crate::domain::entities::key_value_item::KeyValueItem;
+use std::fmt::Error;
 
 #[derive(Debug)]
 pub struct KeyValueItemRepository {
@@ -44,12 +46,14 @@ impl KeyValueItemRepository {
     unimplemented!()
     }
 
-
-    pub fn create(){
+*/
+    pub fn _create(kvi: KeyValueItem) -> Result<KeyValueItem,Error>{
     //chequeo si existe la key
+        //db.get
     // si no existe agrego el item a la lista
     // si existe salgo con error
-    }*/
+        unimplemented!()
+    }
 }
 
 #[cfg(test)]

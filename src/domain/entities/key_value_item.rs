@@ -1,5 +1,6 @@
 use std::collections::{HashSet, LinkedList};
 use std::fmt;
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -44,15 +45,18 @@ pub struct KeyValueItem {
 }
 
 impl KeyValueItem {
+    //TODO chequear si es necesario este constructor
     pub fn _new(key: String, value: ValueType) -> KeyValueItem {
         KeyValueItem {
             key,
             value,
-            last_access_time: 1622657604, //TODO Esto debería calcularse
+            last_access_time: 1622657604, //TODO Esto debería calcularse?
         }
-    } //TODO chequear si es necesario este constructor
+    }
+    pub fn _from_file(kvis: KeyValueItemSerialized) -> KeyValueItem {
+        kvis.transform_to_item()
+    }
 }
-
 #[cfg(test)]
 mod tests {
     use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
