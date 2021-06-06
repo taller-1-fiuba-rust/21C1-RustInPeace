@@ -1,5 +1,4 @@
 use crate::domain::entities::key_value_item::KeyValueItem;
-use crate::domain::entities::key_value_item::ValueType::StringType;
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;
 use std::io;

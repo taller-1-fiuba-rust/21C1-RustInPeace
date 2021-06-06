@@ -47,7 +47,7 @@ impl KeyValueItemRepository {
         }
 
     */
-    pub fn _create(kvi: KeyValueItem) -> Result<KeyValueItem, Error> {
+    pub fn _create(_kvi: KeyValueItem) -> Result<KeyValueItem, Error> {
         //chequeo si existe la key
         //db.get
         // si no existe agrego el item a la lista

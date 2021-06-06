@@ -16,22 +16,22 @@ impl KeyValueItemSerialized {
         let value = match line[2] {
             "string" => ValueType::StringType(line[3].to_string()),
             "set" => {
-                let mut hashSet = HashSet::new();
-                hashSet.insert(line[3].to_string());
-                ValueType::SetType(hashSet)
+                let mut hash_set = HashSet::new();
+                hash_set.insert(line[3].to_string());
+                ValueType::SetType(hash_set)
             }
             "list" => {
                 let mut list = LinkedList::new();
                 list.push_back(line[3].to_string());
-                ValueType::ListType(hashSet)
+                ValueType::ListType(list)
             }
-            _ => Err("Archivo corrupto. No pertenece a ningún tipo de dato soportado."),
+            _ => panic!("Archivo corrupto. No pertenece a ningún tipo de dato soportado."),
         };
 
         KeyValueItem {
             key: line[0].to_string(),
             value,
-            last_access_time: line[1].parse::<u64>()?,
+            last_access_time: line[1].parse::<u64>().unwrap(),
         }
     }
 }

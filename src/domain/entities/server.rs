@@ -84,7 +84,7 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
     let verbose = 0;
     let timeout = 0;
     let port = "8080".to_string();
-    let dbfilename = "./src/redis.conf".to_string();
+    let dbfilename = ".dump2.rdb".to_string();
     let logfile = "./src/dummy.log".to_string();
 
     let mut server = Server::new(Config::new(verbose, port, timeout, dbfilename, logfile)).unwrap();
@@ -112,7 +112,7 @@ fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
     let verbose = 0;
     let timeout = 0;
     let port = "8080".to_string();
-    let dbfilename = "./src/redis.conf".to_string();
+    let dbfilename = ".dump.rdb".to_string();
     let logfile = "./src/dummy.log".to_string();
 
     let mut server = Server::new(Config::new(verbose, port, timeout, dbfilename, logfile)).unwrap();
