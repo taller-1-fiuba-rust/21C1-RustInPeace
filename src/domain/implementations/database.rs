@@ -28,7 +28,7 @@ impl Database {
     pub fn _load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
             for line in lines {
-                if let Ok(kvi_serialized) = line {
+                if Ok(kvi_serialized) = line {
                     let kvis = KeyValueItemSerialized::_new(kvi_serialized);
                     self.add(kvis.transform_to_item())
                 }
