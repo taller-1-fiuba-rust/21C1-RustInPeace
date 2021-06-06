@@ -26,7 +26,7 @@ impl KeyValueItemSerialized {
             "list" => {
                 let mut list = LinkedList::new();
                 let values: Vec<&str> = line[3].split(',').collect();
-                for value in values{
+                for value in values {
                     list.push_back(value.to_string());
                 }
                 ValueType::ListType(list)
