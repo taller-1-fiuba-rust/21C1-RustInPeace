@@ -1,4 +1,4 @@
-use super::config::Config;
+// use super::config::Config;
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::utils::resp_type::RespType;
@@ -15,12 +15,12 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(config: Config) -> Result<Self, Error> {
+    pub fn new(port: String, logfile: String) -> Result<Self, Error> {
         let dir = "127.0.0.1".to_string();
         let threadpool_size = 4;
-        let port = config.get_port().to_string();
+        let port = port;
         // let receiver = receiver;
-        let logger_path = config.get_logfile();
+        let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
 
@@ -69,17 +69,17 @@ impl Server {
 
 #[test]
 fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
-    use super::config::Config;
+    // use super::config::Config;
     use super::server::Server;
     use std::net::{IpAddr, Ipv4Addr};
 
-    let verbose = 0;
-    let timeout = 0;
+    // let verbose = 0;
+    // let timeout = 0;
     let port = "8080".to_string();
-    let dbfilename = "./src/redis.conf".to_string();
+    // let dbfilename = "./src/redis.conf".to_string();
     let logfile = "./src/dummy.log".to_string();
 
-    let mut server = Server::new(Config::new(verbose, port, timeout, dbfilename, logfile)).unwrap();
+    let mut server = Server::new(port, logfile).unwrap();
     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
     let mut operation_register = OperationRegister::new(100);
     operation_register.store_operation(dummy_operation.clone());
@@ -97,17 +97,17 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
 
 #[test]
 fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
-    use super::config::Config;
+    // use super::config::Config;
     use super::server::Server;
     use std::net::{IpAddr, Ipv4Addr};
 
-    let verbose = 0;
-    let timeout = 0;
+    // let verbose = 0;
+    // let timeout = 0;
     let port = "8080".to_string();
-    let dbfilename = "./src/redis.conf".to_string();
+    // let dbfilename = "./src/redis.conf".to_string();
     let logfile = "./src/dummy.log".to_string();
 
-    let mut server = Server::new(Config::new(verbose, port, timeout, dbfilename, logfile)).unwrap();
+    let mut server = Server::new(port, logfile).unwrap();
     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
     let dummy_operation_2 = RespType::RArray(vec![
         RespType::RBulkString(String::from("set")),
