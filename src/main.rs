@@ -25,8 +25,8 @@ fn main() {
     let port = config.get_attribute(String::from("port")).unwrap();
     let logfile = config.get_attribute(String::from("logfile")).unwrap();
     let verbose = config.get_attribute(String::from("verbose")).unwrap();
-    let db = Database::new(dbfilename.to_string());
-    match &mut Server::new(port.to_string(), logfile.to_string(), verbose.to_string()) {
+    let db = Database::new(dbfilename);
+    match &mut Server::new(port, logfile, verbose) {
         Ok(server) => {
             services::server_service::init(server, db, config);
             //pongo estos prints para que no tire warning de funciones sin usar (las uso en los tests)

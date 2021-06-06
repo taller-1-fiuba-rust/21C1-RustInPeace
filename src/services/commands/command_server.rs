@@ -51,7 +51,7 @@ pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> Result<Stri
         if let Ok(read_guard) = config.read() {
             let conf = read_guard;
             let value = conf.get_attribute(String::from(field_name))?;
-            return Ok(String::from(value));
+            return Ok(value);
         }
         Err(Error::new(ErrorKind::InvalidInput, "Field name missing"))
     } else {
