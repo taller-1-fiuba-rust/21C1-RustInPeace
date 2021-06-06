@@ -15,14 +15,14 @@ impl Config {
     pub fn new(path: String) -> Self {
         let config = lines_from_file(&path).unwrap();
 
-        Config { path, config }
+        Config { config, path }
     }
 
     pub fn get_attribute(&self, attribute: String) -> Result<&String, Error> {
         if let Some(value) = self.config.get(&attribute) {
-            return Ok(value);
+            Ok(value)
         } else {
-            return Err(Error::from(ErrorKind::NotFound));
+            Err(Error::from(ErrorKind::NotFound))
         }
     }
 
@@ -47,7 +47,7 @@ impl Config {
     }
 }
 
-pub fn lines_from_file(path: &String) -> Result<HashMap<String, String>, Error> {
+pub fn lines_from_file(path: &str) -> Result<HashMap<String, String>, Error> {
     let file = File::open(path)?;
     let f = BufReader::new(file);
     let lines: Vec<String> = f.lines().collect::<Result<_, _>>()?;
@@ -55,7 +55,8 @@ pub fn lines_from_file(path: &String) -> Result<HashMap<String, String>, Error> 
     for line in lines {
         let vec_aux: Vec<String> = line.split_whitespace().map(|s| s.to_string()).collect();
         if vec_aux.len() == 2 {
-            map.entry(vec_aux[0].clone()).or_insert(vec_aux[1].clone());
+            map.entry(vec_aux[0].clone())
+                .or_insert_with(|| vec_aux[1].clone());
         }
     }
     Ok(map)

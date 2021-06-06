@@ -63,7 +63,7 @@ impl Server {
         }
     }
 
-    fn parse_verbose(&self, string: &String) -> usize {
+    fn parse_verbose(&self, string: &str) -> usize {
         let mut verbose: usize = 1;
         let verb_aux = string.parse::<usize>();
         match verb_aux {
