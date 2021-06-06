@@ -12,17 +12,23 @@ impl KeyValueItemSerialized {
     }
     pub fn transform_to_item(&self) -> KeyValueItem {
         // Format: key, access_time, type, value
-        let line: Vec<&str> = self.line.split(",").collect();
+        let line: Vec<&str> = self.line.split(';').collect();
         let value = match line[2] {
             "string" => ValueType::StringType(line[3].to_string()),
             "set" => {
                 let mut hash_set = HashSet::new();
-                hash_set.insert(line[3].to_string());
+                let values: Vec<&str> = line[3].split(',').collect();
+                for value in values {
+                    hash_set.insert(value.to_string());
+                }
                 ValueType::SetType(hash_set)
             }
             "list" => {
                 let mut list = LinkedList::new();
-                list.push_back(line[3].to_string());
+                let values: Vec<&str> = line[3].split(',').collect();
+                for value in values{
+                    list.push_back(value.to_string());
+                }
                 ValueType::ListType(list)
             }
             _ => panic!("Archivo corrupto. No pertenece a ningún tipo de dato soportado."),
