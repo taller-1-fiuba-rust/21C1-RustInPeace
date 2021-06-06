@@ -1,8 +1,9 @@
 use std::collections::{HashSet, LinkedList};
 use std::fmt;
 
-#[derive(Debug)]
+
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum ValueType {
     ListType(LinkedList<String>),
     SetType(HashSet<String>),
@@ -44,7 +45,7 @@ pub struct KeyValueItem {
 }
 
 impl KeyValueItem {
-    pub fn _new(key: String, value: ValueType) -> KeyValueItem {
+    pub fn new(key: String, value: ValueType) -> KeyValueItem {
         KeyValueItem {
             key,
             value,

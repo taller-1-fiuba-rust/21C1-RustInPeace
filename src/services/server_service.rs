@@ -7,10 +7,16 @@ use crate::domain::entities::server::Server;
 use crate::services::commander::handle_command;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Sender};
 use std::time::Duration;
+use crate::domain::implementations::database::Database;
 
-pub fn init(server: &mut Server) {
+pub fn init(server: &mut Server, db: Database) {
+    // let db=server.get_database();
+    let mut database = Arc::new(RwLock::new(db));
+    //let probando = *database;
+    //let storage = Arc::new(storage);
     let (sender_server, receiver_server) = mpsc::channel();
     let port: &String = server.get_port();
     let dir: &String = server.get_dir();
@@ -34,9 +40,13 @@ pub fn init(server: &mut Server) {
                         //}
                         //let shared_commander = Arc::clone(&commander);
                         let tx = sender_server.clone();
+                        //let cloned_database = database.clone();
+                        // let server_cloned = server.clone();
+                        let cloned_database = database.clone();
                         pool.spawn(move || {
-                            handle_connection(stream, tx); //, shared_commander);
+                            handle_connection(stream, tx, cloned_database); //, shared_commander);
                         });
+                        println!("llegamosssssssssssss");
 
                         for msg in &receiver_server {
                             match msg {
@@ -69,7 +79,7 @@ pub fn init(server: &mut Server) {
     println!("Shutting down.");
 }
 
-fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>) {
+fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>, database: Arc<RwLock<Database>>) {
     std::thread::sleep(Duration::from_secs(2));
     let client_addrs = stream.peer_addr().unwrap();
     tx.send(WorkerMessage::Log(format!(
@@ -104,7 +114,7 @@ fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>) {
                     .unwrap();
                 // le pasamos el request al command_service
                 // let mut commander = Commander::new(); //&mut shared_commander.lock().unwrap(); //handle error
-                handle_command(operation, &tx, client_addrs);
+                handle_command(operation, &tx, client_addrs,&database);
 
                 // ese servicio va a devolver una response
                 // simulo una response:

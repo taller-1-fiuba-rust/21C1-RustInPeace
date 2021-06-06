@@ -5,6 +5,7 @@ use crate::repositories::key_value_item_repository::KeyValueItemRepository;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::{io::Error, net::SocketAddr};
+use crate::domain::implementations::database::Database;
 
 #[derive(Debug)]
 pub struct Server {
@@ -13,7 +14,7 @@ pub struct Server {
     threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    repository: KeyValueItemRepository,
+    database: Database,
 }
 
 impl Server {
@@ -25,7 +26,8 @@ impl Server {
         let logger_path = config.get_logfile();
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
-        let repository = KeyValueItemRepository::new(config.get_dbfilename().to_string());
+        //let repository = KeyValueItemRepository::new(config.get_dbfilename().to_string());
+        let database = Database::new(config.get_dbfilename().to_string());
 
         Ok(Server {
             dir,
@@ -33,7 +35,8 @@ impl Server {
             threadpool_size,
             logger,
             clients_operations,
-            repository,
+            database,
+            //repository,
         })
     }
 
@@ -49,8 +52,8 @@ impl Server {
         &self.threadpool_size
     }
 
-    pub fn _get_repository(&self) -> &KeyValueItemRepository {
-        &self.repository
+    pub fn get_database(&self) -> &Database {
+        &self.database
     }
 
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
