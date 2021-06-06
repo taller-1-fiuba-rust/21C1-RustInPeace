@@ -9,7 +9,8 @@ use services::config_service::load_config;
 fn main() {
     let path = "./src/redis.conf".to_string();
     let config = load_config(path);
-    let db = Database::new(String::from("path"));
+    // let otra_cosa = &config.unwrap().get_dbfilename();
+    let db = Database::new(String::from("paht".to_string()));
     match config {
         Ok(conf) => match &mut Server::new(conf) {
             Ok(server) => {
