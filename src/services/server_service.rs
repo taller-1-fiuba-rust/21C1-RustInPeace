@@ -5,6 +5,7 @@ use super::worker_service::ThreadPool;
 use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::entities::server::Server;
+use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -12,8 +13,10 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-pub fn init(server: &mut Server, config: Config) {
+pub fn init(server: &mut Server, db: Database, config: Config) {
+    let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
+
     let (sender_server, receiver_server) = mpsc::channel();
     let port: &String = server.get_port();
     let dir: &String = server.get_dir();
@@ -27,12 +30,13 @@ pub fn init(server: &mut Server, config: Config) {
                         //if timeout != 0 {
                         //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
                         //}
-                        //let shared_commander = Arc::clone(&commander);
                         let tx = sender_server.clone();
                         let conf_lock = conf.clone();
+                        let cloned_database = database.clone();
                         pool.spawn(move || {
-                            handle_connection(stream, tx, conf_lock); //, shared_commander);
+                            handle_connection(stream, tx, cloned_database, conf_lock);
                         });
+                        println!("llegamosssssssssssss");
 
                         for msg in &receiver_server {
                             match msg {
@@ -68,7 +72,12 @@ pub fn init(server: &mut Server, config: Config) {
     println!("Shutting down.");
 }
 
-fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>, config: Arc<RwLock<Config>>) {
+fn handle_connection(
+    stream: TcpStream,
+    tx: Sender<WorkerMessage>,
+    database: Arc<RwLock<Database>>,
+    config: Arc<RwLock<Config>>,
+) {
     std::thread::sleep(Duration::from_secs(2));
     let client_addrs = stream.peer_addr().unwrap();
     tx.send(WorkerMessage::Log(format!(
@@ -107,8 +116,7 @@ fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>, config: Arc<R
                 tx.send(WorkerMessage::NewOperation(operation.clone(), client_addrs))
                     .unwrap();
                 // le pasamos el request al command_service
-                // let mut commander = Commander::new(); //&mut shared_commander.lock().unwrap(); //handle error
-                handle_command(operation, &tx, client_addrs, &config);
+                handle_command(operation, &tx, client_addrs, &database, &config);
 
                 // ese servicio va a devolver una response
                 // simulo una response:

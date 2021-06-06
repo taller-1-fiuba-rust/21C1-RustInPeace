@@ -1,6 +1,8 @@
 // use super::config::Config;
+// use crate::domain::implementations::database::Database;
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
+// use crate::repositories::key_value_item_repository::KeyValueItemRepository;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::{io::Error, net::SocketAddr};
@@ -13,6 +15,7 @@ pub struct Server {
     threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
+    // database: Database,
 }
 
 impl Server {
@@ -25,6 +28,8 @@ impl Server {
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
+        //let repository = KeyValueItemRepository::new(config.get_dbfilename().to_string());
+        // let database = Database::new(config.get_dbfilename().to_string());
 
         Ok(Server {
             dir,
@@ -33,6 +38,8 @@ impl Server {
             threadpool_size,
             logger,
             clients_operations,
+            // database,
+            //repository,
         })
     }
 
@@ -51,6 +58,10 @@ impl Server {
     pub fn get_threadpool_size(&self) -> &usize {
         &self.threadpool_size
     }
+
+    // pub fn get_database(&self) -> &Database {
+    //     &self.database
+    // }
 
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
         self.logger.log(msg.as_bytes())?;
