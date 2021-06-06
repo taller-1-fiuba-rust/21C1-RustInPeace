@@ -11,6 +11,7 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub enum WorkerMessage {
     Log(String),
+    Verb(String),
     NewOperation(RespType, SocketAddr),
     MonitorOp(String),
 }

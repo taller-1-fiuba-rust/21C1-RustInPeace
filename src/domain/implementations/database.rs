@@ -4,7 +4,7 @@ use crate::domain::entities::key_value_item::ValueType;
 #[derive(Debug)]
 pub struct Database {
     dbfilename: String,
-    items: Vec<KeyValueItem>
+    items: Vec<KeyValueItem>,
 }
 
 impl Database {
@@ -12,13 +12,22 @@ impl Database {
         Database {
             dbfilename: filename,
             //try_1 = KeyValueItem::new("clave_1".to_string(), StringType("valor_1".to_string()));
-            items: vec![KeyValueItem::new("clave_1".to_string(), ValueType::StringType("valor_1".to_string())), KeyValueItem::new("clave_2".to_string(), ValueType::StringType("valor_2".to_string()))], //TODO al crear este objeto debería cargar los items del file.
+            items: vec![
+                KeyValueItem::new(
+                    "clave_1".to_string(),
+                    ValueType::StringType("valor_1".to_string()),
+                ),
+                KeyValueItem::new(
+                    "clave_2".to_string(),
+                    ValueType::StringType("valor_2".to_string()),
+                ),
+            ], //TODO al crear este objeto debería cargar los items del file.
         }
     }
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
-    pub fn get_items(&self) -> &Vec<KeyValueItem> {
+    pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
 
