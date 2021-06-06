@@ -89,6 +89,11 @@ fn handle_connection(stream: TcpStream, tx: Sender<WorkerMessage>, config: Arc<R
             client_addrs, &bytes
         )))
         .unwrap();
+        tx.send(WorkerMessage::Verb(format!(
+            "Reading new message from {}. Message: {:?}",
+            client_addrs, &bytes
+        )))
+        .unwrap();
         let message = bytes.as_bytes();
         println!("recibido as bytes: {:?}", message);
         match parse_request(message) {

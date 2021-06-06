@@ -7,11 +7,6 @@ use std::io::{BufRead, BufReader};
 
 #[derive(Debug)]
 pub struct Config {
-    // verbose: usize,
-    // port: String,
-    // timeout: u64,
-    // dbfilename: String,
-    // logfile: String,
     config: HashMap<String, String>,
     path: String,
 }
@@ -32,7 +27,6 @@ impl Config {
     }
 
     pub fn set_attribute(&mut self, attribute: String, value: String) -> Result<(), Error> {
-        //write to file
         let mut file = File::open(&self.path)?;
         let contents = format!("{} {}", &attribute, &value);
         file.write_all(contents.as_bytes())?;
