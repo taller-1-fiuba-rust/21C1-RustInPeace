@@ -18,9 +18,17 @@ impl Config {
         Config { config, path }
     }
 
-    pub fn get_attribute(&self, attribute: String) -> Result<&String, Error> {
+    pub fn get_attribute(&self, attribute: String) -> Result<String, Error> {
         if let Some(value) = self.config.get(&attribute) {
-            Ok(value)
+            if attribute == "*" {
+                let mut all_config = String::from("");
+                for (key, value) in &self.config {
+                    all_config += &format!("{} {}\n", key, value);
+                }
+                Ok(all_config)
+            } else {
+                Ok(value.to_string())
+            }
         } else {
             Err(Error::from(ErrorKind::NotFound))
         }
