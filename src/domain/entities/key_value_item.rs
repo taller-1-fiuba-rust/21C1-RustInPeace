@@ -3,7 +3,7 @@ use std::collections::{HashSet, LinkedList};
 use std::fmt;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ValueType {
     ListType(LinkedList<String>),
     SetType(HashSet<String>),
@@ -55,6 +55,22 @@ impl KeyValueItem {
     }
     pub fn _from_file(kvis: KeyValueItemSerialized) -> KeyValueItem {
         kvis.transform_to_item()
+    }
+
+    pub fn get_key(&self) -> &String {
+        &self.key
+    }
+
+    pub fn _get_value(&self) -> &ValueType {
+        &self.value
+    }
+
+    pub fn get_copy_of_value(&self) -> ValueType {
+        self.value.clone()
+    }
+
+    pub fn set_value(&mut self, new_value: ValueType) {
+        self.value = new_value;
     }
 }
 #[cfg(test)]
