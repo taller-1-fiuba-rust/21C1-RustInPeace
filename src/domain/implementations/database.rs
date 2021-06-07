@@ -80,6 +80,29 @@ impl Database {
         None
     }
 
+    pub fn persist(&mut self, key: String) -> bool {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == &key {
+                return item.make_persistent();
+            }
+        }
+        false
+    }
+
+    pub fn rename_key(&mut self, actual_key: String, new_key: String) {
+        if let Some(pos) = self
+            .items
+            .iter()
+            .position(|x| *x.get_key().to_string() == actual_key)
+        {
+            let saved_value = self.items.get(pos).unwrap().get_copy_of_value();
+            self.items.remove(pos);
+            let updated_key = KeyValueItem::new(new_key, saved_value);
+            self.items.push(updated_key);
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     /* TODO los comento para que clippy no se queje hasta q los implementemos
     pub fn load_items(&self) {
@@ -165,6 +188,21 @@ fn test_02_deletes_an_item_succesfully() {
     println!("{:?}", db._get_items());
     assert_eq!(db.get_size(), 1)
 }
+
+#[test]
+fn persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.persist("clave_1".to_string());
+
+    let item = db.search_item_by_key("clave_1").unwrap();
+    match *item._get_last_access_time() {
+        KeyAccessTime::Persistent => assert!(true),
+        KeyAccessTime::Volatile(_tmt) => assert!(false),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
