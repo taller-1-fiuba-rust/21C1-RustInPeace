@@ -111,6 +111,9 @@ pub fn handle_command(
                     let key_found = command_key::exists(&array, database);
                     println!("{:?}", key_found);
                 }
+                "rename" => {
+                    command_key::rename(&array, database);
+                }
                 _ => {}
             }
         }

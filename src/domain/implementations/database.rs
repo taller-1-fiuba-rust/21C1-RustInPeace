@@ -80,6 +80,19 @@ impl Database {
         None
     }
 
+    pub fn rename_key(&mut self, actual_key: String, new_key: String) {
+        if let Some(pos) = self
+            .items
+            .iter()
+            .position(|x| *x.get_key().to_string() == actual_key)
+        {
+            let saved_value = self.items.get(pos).unwrap().get_copy_of_value();
+            self.items.remove(pos);
+            let updated_key = KeyValueItem::new(new_key, saved_value);
+            self.items.push(updated_key);
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     /* TODO los comento para que clippy no se queje hasta q los implementemos
     pub fn load_items(&self) {
@@ -113,19 +126,19 @@ impl Database {
     }
 }
 
-#[test]
-fn test_01_database_copies_value_to_new_key() {
-    let mut db = Database::new(String::from("./src/dummy.txt"));
+// #[test]
+// fn test_01_database_copies_value_to_new_key() {
+//     let mut db = Database::new(String::from("./src/dummy.txt"));
 
-    let source = String::from("clave_1");
-    let destination = String::from("clone");
-    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+//     let source = String::from("clave_1");
+//     let destination = String::from("clone");
+//     assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
-    }
-}
+//     let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+//     if let ValueType::StringType(str) = new_item._get_value() {
+//         assert_eq!(str, &String::from("valor_1"));
+//     }
+// }
 
 #[test]
 fn test_02_database_copy_replaces_key_with_new_value() {
