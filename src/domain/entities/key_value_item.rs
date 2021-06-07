@@ -37,10 +37,16 @@ impl fmt::Display for ValueType {
 }
 
 #[derive(Debug)]
+pub enum KeyAccessTime {
+    Volatile(u64),
+    Persistent,
+}
+
+#[derive(Debug)]
 pub struct KeyValueItem {
     pub(crate) key: String, //TODO tuve que hacer publicos estos atributos porque los necesito para testear
     pub(crate) value: ValueType,
-    pub(crate) last_access_time: u64,
+    pub(crate) last_access_time: KeyAccessTime,
 }
 
 impl KeyValueItem {
@@ -48,12 +54,27 @@ impl KeyValueItem {
         KeyValueItem {
             key,
             value,
-            last_access_time: 1622657604, //TODO Esto debería calcularse
+            last_access_time: KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
         }
     }
 
     pub fn get_key(&self) -> &String {
         &self.key
+    }
+
+    pub fn _get_last_access_time(&self) -> &KeyAccessTime {
+        &self.last_access_time
+    }
+
+    pub fn make_persistent(&mut self) -> bool {
+        match self.last_access_time {
+            KeyAccessTime::Persistent => false,
+            KeyAccessTime::Volatile(_timeout) => {
+                println!("entro a volatile..");
+                self.last_access_time = KeyAccessTime::Persistent;
+                true
+            }
+        }
     }
 
     pub fn _get_value(&self) -> &ValueType {
@@ -71,7 +92,7 @@ impl KeyValueItem {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
+    use crate::domain::entities::key_value_item::{KeyAccessTime, KeyValueItem, ValueType};
     use std::collections::{HashSet, LinkedList};
 
     #[test]
@@ -79,12 +100,15 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::StringType("un_string".to_string()),
-            last_access_time: 0,
+            last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_string");
         assert_eq!(kv_item.key.to_string(), "123".to_string());
-        assert_eq!(kv_item.last_access_time, 0);
+        match kv_item.last_access_time {
+            KeyAccessTime::Persistent => assert!(false),
+            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
+        }
     }
 
     #[test]
@@ -95,12 +119,15 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::SetType(un_set),
-            last_access_time: 0,
+            last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_set_string");
         assert_eq!(kv_item.key.to_string(), "123".to_string());
-        assert_eq!(kv_item.last_access_time, 0);
+        match kv_item.last_access_time {
+            KeyAccessTime::Persistent => assert!(false),
+            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
+        }
     }
 
     #[test]
@@ -112,11 +139,30 @@ mod tests {
         let kv_item = KeyValueItem {
             key: "123".to_string(),
             value: ValueType::ListType(un_list),
-            last_access_time: 0,
+            last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
         assert_eq!(kv_item.key.to_string(), "123".to_string());
-        assert_eq!(kv_item.last_access_time, 0);
+        match kv_item.last_access_time {
+            KeyAccessTime::Persistent => assert!(false),
+            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
+        }
+    }
+
+    #[test]
+    fn key_value_item_changes_to_persist() {
+        let mut kv_item = KeyValueItem {
+            key: "123".to_string(),
+            value: ValueType::StringType("un_string".to_string()),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+
+        let res = kv_item.make_persistent();
+        assert_eq!(res, true);
+        match kv_item.last_access_time {
+            KeyAccessTime::Volatile(_t) => assert!(false),
+            KeyAccessTime::Persistent => assert!(true),
+        }
     }
 }

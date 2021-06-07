@@ -48,7 +48,6 @@ pub fn handle_command(
                         }
                     }
                     //implementar respuesta
-                    return None;
                 }
                 "dbsize" => {
                     let db_size = command_server::dbsize(&database);
@@ -58,7 +57,6 @@ pub fn handle_command(
                 "flushdb" => {
                     let erased = command_server::flushdb(database);
                     println!("{:?}", erased);
-                    return None;
                 }
                 "copy" => {
                     if array.len() > 2 {
@@ -110,6 +108,9 @@ pub fn handle_command(
                 "exists" => {
                     let key_found = command_key::exists(&array, database);
                     println!("{:?}", key_found);
+                }
+                "persist" => {
+                    command_key::persist(&array, database);
                 }
                 "rename" => {
                     command_key::rename(&array, database);
