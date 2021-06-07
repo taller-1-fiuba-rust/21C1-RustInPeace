@@ -34,3 +34,18 @@ pub fn copy(
     }
     None
 }
+
+pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut key_found = 0;
+    if cmd.len() > 1 {
+        for n in cmd.iter().skip(1) {
+            //            key_in_db = database.search_by_key()
+            if let RespType::RBulkString(actual_key) = n {
+                if let Some(_key) = database.read().unwrap().search_item_by_key(actual_key) {
+                    key_found = 1;
+                }
+            }
+        }
+    }
+    RespType::RInteger(key_found)
+}
