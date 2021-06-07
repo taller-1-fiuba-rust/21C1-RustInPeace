@@ -8,7 +8,7 @@ pub struct KeyValueItemRepository {
 }
 
 impl KeyValueItemRepository {
-    pub fn new(connection: String) -> KeyValueItemRepository {
+    pub fn _new(connection: String) -> KeyValueItemRepository {
         KeyValueItemRepository {
             db: Database::new(connection),
         }
