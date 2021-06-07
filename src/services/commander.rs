@@ -107,6 +107,10 @@ pub fn handle_command(
                 "del" => {
                     command_key::del(&array, database);
                 }
+                "exists" => {
+                    let key_found = command_key::exists(&array, database);
+                    println!("{:?}", key_found);
+                }
                 _ => {}
             }
         }
@@ -181,4 +185,38 @@ fn test_004_deletes_a_key_from_db() {
     let operation_check_dbsize =
         RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
     handle_command(operation_check_dbsize, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_005_check_if_key_exists_throws_zero() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let db = Database::new("filename".to_string());
+    let database = Arc::new(RwLock::new(db));
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("exists".to_string()),
+        RespType::RBulkString("clave_3".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_006_check_if_key_exists_throws_one() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let db = Database::new("filename".to_string());
+    let database = Arc::new(RwLock::new(db));
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("exists".to_string()),
+        RespType::RBulkString("clave_1".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
 }
