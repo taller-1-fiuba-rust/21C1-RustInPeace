@@ -140,7 +140,6 @@ fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
     // let timeout = 0;
     let port = "8080".to_string();
     let verbose = "1".to_string();
-    // let dbfilename = "./src/redis.conf".to_string();
     let logfile = "./src/dummy.log".to_string();
 
     let mut server = Server::new(port, logfile, verbose).unwrap();
