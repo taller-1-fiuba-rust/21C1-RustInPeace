@@ -154,92 +154,86 @@ mod tests {
     }*/
 }
 
-#[test]
-fn test_01_clean_items_deletes_all_items() {
-    let mut db = Database::new(String::from("./src/database.txt"));
-    db.clean_items();
-    assert_eq!(db.get_size(), 0);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::key_value_item::ValueType;
+
+    #[test]
+    fn empty_database_returns_cero() {
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![],
+        };
+
+        assert_eq!(db.get_size(), 0);
+    }
+
+    #[test]
+    fn database_with_two_elements_returns_2() {
+        let db = Database::new("filename".to_string());
+        assert_eq!(db.get_size(), 2);
+    }
+
+    #[test]
+    fn size_in_memory_is_correct() {
+        let kv_item = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
+        let kv_item2 = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
+
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![kv_item, kv_item2],
+        };
+
+        assert_eq!(db.get_size(), 2);
+    }
+    #[test]
+    fn add_item() {
+        let added_item = KeyValueItem::new(
+            String::from("nueva_key"),
+            ValueType::StringType(String::from("222")),
+        );
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![],
+        };
+        db.add(added_item);
+
+        assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
+        assert_eq!(
+            db.items.first().unwrap().value.to_string(),
+            String::from("222")
+        );
+        assert_eq!(db.items.len(), 1)
+    }
+
+    #[test]
+    fn delete_item() {
+        let added_item = KeyValueItem::new(
+            String::from("nueva_key"),
+            ValueType::StringType(String::from("222")),
+        );
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![added_item],
+        };
+        assert_eq!(db.items.len(), 1);
+        db.delete_by_index(0);
+        assert_eq!(db.items.len(), 0);
+    }
+
+    #[test]
+    fn filename_is_correct() {
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![],
+        };
+        assert_eq!(db.get_filename(), "file".to_string());
+    }
 }
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::domain::entities::key_value_item::ValueType;
-
-//     // #[test]
-//     // fn empty_database_returns_cero() {
-//     //     let db = Database {
-//     //         dbfilename: "file".to_string(),
-//     //         items: vec![],
-//     //     };
-
-//     //     assert_eq!(db.get_size(), 0);
-//     // }
-
-//     #[test]
-//     fn database_with_two_elements_returns_2() {
-//         let db = Database::new("filename".to_string());
-//         assert_eq!(db.get_size(), 2);
-//     }
-
-//     #[test]
-//     fn size_in_memory_is_correct() {
-//         let kv_item = KeyValueItem::new(
-//             String::from("123"),
-//             ValueType::StringType(String::from("222")),
-//         );
-//         let kv_item2 = KeyValueItem::new(
-//             String::from("123"),
-//             ValueType::StringType(String::from("222")),
-//         );
-
-//         let db = Database {
-//             dbfilename: "file".to_string(),
-//             items: vec![kv_item, kv_item2],
-//         };
-
-//         assert_eq!(db.get_size(), 2);
-//     }
-//     #[test]
-//     fn add_item() {
-//         let added_item = KeyValueItem::new(
-//             String::from("nueva_key"),
-//             ValueType::StringType(String::from("222")),
-//         );
-//         let mut db = Database {
-//             dbfilename: "file".to_string(),
-//             items: vec![],
-//         };
-//         db.add(added_item);
-
-//         assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
-//         assert_eq!(
-//             db.items.first().unwrap().value.to_string(),
-//             String::from("222")
-//         );
-//         assert_eq!(db.items.len(), 1)
-//     }
-
-//     #[test]
-//     fn delete_item() {
-//         let added_item = KeyValueItem::new(
-//             String::from("nueva_key"),
-//             ValueType::StringType(String::from("222")),
-//         );
-//         let mut db = Database {
-//             dbfilename: "file".to_string(),
-//             items: vec![added_item],
-//         };
-//         assert_eq!(db.items.len(), 1);
-//         db.delete_by_index(0);
-//         assert_eq!(db.items.len(), 0);
-//     }
-
-//     #[test]
-//     fn filename_is_correct() {
-//         let db = Database {
-//             dbfilename: "file".to_string(),
-//             items: vec![],
-//         };
-//         assert_eq!(db.get_filename(), "file".to_string());
-//     }
-// }
