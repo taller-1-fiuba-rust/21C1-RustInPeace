@@ -112,6 +112,9 @@ pub fn handle_command(
                 "persist" => {
                     command_key::persist(&array, database);
                 }
+                "rename" => {
+                    command_key::rename(&array, database);
+                }
                 _ => {}
             }
         }
