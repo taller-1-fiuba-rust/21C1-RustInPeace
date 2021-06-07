@@ -42,21 +42,21 @@ impl Database {
             let new_value = source_item.get_copy_of_value();
             if replace {
                 if let Some(()) = self.replace_value_on_key(destination, new_value) {
-                    return Some(());
+                    Some(())
                 } else {
-                    return None;
+                    None
                 }
             } else {
                 let new_item = KeyValueItem::new(destination, new_value);
                 self.items.push(new_item);
-                return Some(());
+                Some(())
             }
         } else {
-            return None;
+            None
         }
     }
 
-    pub fn search_item_by_key(&self, key: &String) -> Option<&KeyValueItem> {
+    pub fn search_item_by_key(&self, key: &str) -> Option<&KeyValueItem> {
         for item in &self.items {
             let k = item.get_key();
             if k == key {
