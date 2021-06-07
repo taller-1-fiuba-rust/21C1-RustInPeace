@@ -46,6 +46,12 @@ pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(database.read().unwrap().get_size())
 }
 
+pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    new_database.clean_items();
+    RespType::RBulkString("Erased database".to_string())
+}
+
 pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> Result<String, Error> {
     if let RespType::RBulkString(field_name) = field {
         if let Ok(read_guard) = config.read() {

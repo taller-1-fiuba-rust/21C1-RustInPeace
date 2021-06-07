@@ -31,6 +31,10 @@ impl Database {
     pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
+    pub fn clean_items(&mut self) -> &Vec<KeyValueItem> {
+        self.items = Vec::new();
+        &self.items
+    }
 
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         let source_item = self.search_item_by_key(&source);
@@ -96,7 +100,6 @@ impl Database {
     }
 }
 
-
 #[test]
 fn test_01_database_copies_value_to_new_key() {
     let mut db = Database::new(String::from("./src/dummy.txt"));
@@ -134,6 +137,12 @@ fn test_02_database_copy_replaces_key_with_new_value() {
     }
 }
 
+#[test]
+fn test_03_clean_items_deletes_all_items() {
+    let mut db = Database::new(String::from("./src/database.txt"));
+    db.clean_items();
+    assert_eq!(db.get_size(), 0);
+}
 // #[cfg(test)]
 // mod tests {
 //     use super::*;

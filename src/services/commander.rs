@@ -2,8 +2,8 @@ use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
+    services::commands::command_key,
     services::commands::command_server,
-    services::commands::command_key
 };
 use std::{
     net::SocketAddr,
@@ -51,19 +51,26 @@ pub fn handle_command(
                     return None;
                 }
                 "dbsize" => {
-                    // let db_size = database.read().unwrap().get_size(); //database.read().unwrap().get_size();
-                    // println!("database size: {:?}" , db_size);
                     let db_size = command_server::dbsize(&database);
                     println!("database size: {:?}", db_size);
                     return Some(db_size);
                 }
-                "flushdb" => {return None;}
+                "flushdb" => {
+                    let erased = command_server::flushdb(database);
+                    println!("{:?}", erased);
+                    return None;
+                }
                 "copy" => {
                     if array.len() > 2 {
                         if let RespType::RBulkString(source) = &array[1] {
                             if let RespType::RBulkString(destination) = &array[2] {
                                 if array.len() == 3 {
-                                    let res = command_key::copy(database, String::from(source), String::from(destination), false);
+                                    let res = command_key::copy(
+                                        database,
+                                        String::from(source),
+                                        String::from(destination),
+                                        false,
+                                    );
                                     if let Some(()) = res {
                                         return Some(RespType::RInteger(1));
                                     } else {
@@ -72,7 +79,12 @@ pub fn handle_command(
                                 } else if array.len() == 4 {
                                     if let RespType::RBulkString(replace) = &array[3] {
                                         if replace == "replace" {
-                                            let res = command_key::copy(database, String::from(source), String::from(destination), true);
+                                            let res = command_key::copy(
+                                                database,
+                                                String::from(source),
+                                                String::from(destination),
+                                                true,
+                                            );
                                             if let Some(()) = res {
                                                 return Some(RespType::RInteger(1));
                                             } else {
@@ -92,7 +104,9 @@ pub fn handle_command(
                     }
                     return None;
                 }
-                _ => {return None;}
+                _ => {
+                    return None;
+                }
             }
         }
     }
@@ -100,7 +114,7 @@ pub fn handle_command(
 }
 
 #[test]
-fn test_001() {
+fn test_001_returns_dbsize() {
     use std::net::{IpAddr, Ipv4Addr};
 
     let config = Config::new(String::from("./src/redis.conf"));
@@ -114,12 +128,12 @@ fn test_001() {
 }
 
 #[test]
-fn test_002() {
+fn test_002_shows_server_info() {
     use std::net::{IpAddr, Ipv4Addr};
 
-    let config = Config::new(String::from("./src/redis.conf"));
     let db = Database::new("filename".to_string());
     let database = Arc::new(RwLock::new(db));
+    let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     let operation = RespType::RArray(vec![
         RespType::RBulkString("info".to_string()),
@@ -127,5 +141,23 @@ fn test_002() {
     ]);
     let (tx, _sx) = std::sync::mpsc::channel();
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+
     handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_003_cleans_db_items() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let db = Database::new("filename".to_string());
+    let database = Arc::new(RwLock::new(db));
+    let operation = RespType::RArray(vec![RespType::RBulkString("flushdb".to_string())]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+    let operation_check_dbsize =
+        RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
+    handle_command(operation_check_dbsize, &tx, addrs, &database, &conf);
 }
