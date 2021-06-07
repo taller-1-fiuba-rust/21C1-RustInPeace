@@ -49,3 +49,14 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RInteger(key_found)
 }
+
+pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if database.write().unwrap().persist(key.to_string()) {
+            return RespType::RInteger(1);
+        } else {
+            return RespType::RInteger(0);
+        }
+    }
+    RespType::RInteger(0)
+}

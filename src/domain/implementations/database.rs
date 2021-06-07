@@ -80,6 +80,16 @@ impl Database {
         None
     }
 
+    pub fn persist(&mut self, key: String) -> bool {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == &key {
+                return item.make_persistent();
+            }
+        }
+        false
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     /* TODO los comento para que clippy no se queje hasta q los implementemos
     pub fn load_items(&self) {
