@@ -104,9 +104,10 @@ pub fn handle_command(
                     }
                     return None;
                 }
-                _ => {
-                    return None;
+                "del" => {
+                    command_key::del(&array, database);
                 }
+                _ => {}
             }
         }
     }
@@ -152,6 +153,26 @@ fn test_003_cleans_db_items() {
     let db = Database::new("filename".to_string());
     let database = Arc::new(RwLock::new(db));
     let operation = RespType::RArray(vec![RespType::RBulkString("flushdb".to_string())]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+    let operation_check_dbsize =
+        RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
+    handle_command(operation_check_dbsize, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_004_deletes_a_key_from_db() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let db = Database::new("filename".to_string());
+    let database = Arc::new(RwLock::new(db));
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("del".to_string()),
+        RespType::RBulkString("clave_1".to_string()),
+    ]);
     let (tx, _sx) = std::sync::mpsc::channel();
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
     let config = Config::new(String::from("./src/redis.conf"));
