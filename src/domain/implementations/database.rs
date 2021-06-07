@@ -80,6 +80,19 @@ impl Database {
         None
     }
 
+    pub fn rename_key(&mut self, actual_key: String, new_key: String) {
+        if let Some(pos) = self
+            .items
+            .iter()
+            .position(|x| *x.get_key().to_string() == actual_key)
+        {
+            let saved_value = self.items.get(pos).unwrap().get_copy_of_value();
+            self.items.remove(pos);
+            let updated_key = KeyValueItem::new(new_key, saved_value);
+            self.items.push(updated_key);
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     /* TODO los comento para que clippy no se queje hasta q los implementemos
     pub fn load_items(&self) {
