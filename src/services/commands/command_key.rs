@@ -11,8 +11,8 @@ pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 1 {
         RespType::RInteger(n_key_deleted)
     } else {
-        for n in 1..cmd.len() {
-            if let RespType::RBulkString(actual_key) = &cmd[n] {
+        for n in cmd.iter().skip(1) {
+            if let RespType::RBulkString(actual_key) = n {
                 let mut new_database = database.write().unwrap();
                 new_database.delete_key(actual_key.to_string());
                 n_key_deleted += 1;

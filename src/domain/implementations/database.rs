@@ -39,7 +39,7 @@ impl Database {
         &self.items
     }
 
-    pub fn search_item_by_key(&self, key: &String) -> Option<&KeyValueItem> {
+    pub fn search_item_by_key(&self, key: &str) -> Option<&KeyValueItem> {
         for item in &self.items {
             let k = item.get_key();
             if k == key {
@@ -98,7 +98,7 @@ impl Database {
         if let Some(pos) = self
             .items
             .iter()
-            .position(|x| x.get_key().to_string() == key)
+            .position(|x| *x.get_key().to_string() == key)
         {
             self.items.remove(pos);
         }
