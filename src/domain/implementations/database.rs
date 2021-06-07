@@ -1,3 +1,4 @@
+#[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;

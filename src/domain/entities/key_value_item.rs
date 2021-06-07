@@ -44,6 +44,7 @@ pub struct KeyValueItem {
     pub(crate) last_access_time: u64,
 }
 
+#[allow(dead_code)]
 impl KeyValueItem {
     pub fn new(key: String, value: ValueType) -> KeyValueItem {
         KeyValueItem {
