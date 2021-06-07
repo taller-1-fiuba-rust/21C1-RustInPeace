@@ -2,8 +2,8 @@
 // use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
-// use std::io::{Error, ErrorKind};
 use std::sync::{Arc, RwLock};
+// use std::io::{Error, ErrorKind};
 // use std::{net::SocketAddr, sync::mpsc::Sender};
 
 pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -20,4 +20,17 @@ pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         }
         RespType::RInteger(n_key_deleted)
     }
+}
+
+pub fn copy(
+    database: &Arc<RwLock<Database>>,
+    source: String,
+    destination: String,
+    replace: bool,
+) -> Option<()> {
+    if let Ok(write_guard) = database.write() {
+        let mut db = write_guard;
+        return db.copy(source, destination, replace);
+    }
+    None
 }

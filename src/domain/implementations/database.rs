@@ -30,6 +30,7 @@ impl Database {
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
+
     pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
@@ -38,11 +39,42 @@ impl Database {
         &self.items
     }
 
-    pub fn _search_item_by_key(&self, key: String) -> Option<&KeyValueItem> {
+    pub fn search_item_by_key(&self, key: &String) -> Option<&KeyValueItem> {
         for item in &self.items {
             let k = item.get_key();
-            if k == &key {
+            if k == key {
                 return Some(item);
+            }
+        }
+        None
+    }
+
+    pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
+        let source_item = self.search_item_by_key(&source);
+        if let Some(source_item) = source_item {
+            let new_value = source_item.get_copy_of_value();
+            if replace {
+                if let Some(()) = self.replace_value_on_key(destination, new_value) {
+                    Some(())
+                } else {
+                    None
+                }
+            } else {
+                let new_item = KeyValueItem::new(destination, new_value);
+                self.items.push(new_item);
+                Some(())
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn replace_value_on_key(&mut self, key: String, value: ValueType) -> Option<()> {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == &key {
+                item.set_value(value);
+                return Some(());
             }
         }
         None
@@ -82,7 +114,44 @@ impl Database {
 }
 
 #[test]
-fn test_01_clean_items_deletes_all_items() {
+fn test_01_database_copies_value_to_new_key() {
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+
+    let source = String::from("clave_1");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    if let ValueType::StringType(str) = new_item._get_value() {
+        assert_eq!(str, &String::from("valor_1"));
+    }
+}
+
+#[test]
+fn test_02_database_copy_replaces_key_with_new_value() {
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+
+    let source = String::from("clave_1");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    if let ValueType::StringType(str) = new_item._get_value() {
+        assert_eq!(str, &String::from("valor_1"));
+    }
+
+    let source = String::from("clave_2");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, true).unwrap(), ());
+
+    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    if let ValueType::StringType(str) = new_item._get_value() {
+        assert_eq!(str, &String::from("valor_2"));
+    }
+}
+
+#[test]
+fn test_03_clean_items_deletes_all_items() {
     let mut db = Database::new(String::from("./src/database.txt"));
     db.clean_items();
     assert_eq!(db.get_size(), 0);

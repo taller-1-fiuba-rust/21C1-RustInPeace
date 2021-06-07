@@ -16,7 +16,7 @@ pub fn handle_command(
     addrs: SocketAddr,
     database: &Arc<RwLock<Database>>,
     config: &Arc<RwLock<Config>>,
-) {
+) -> Option<RespType> {
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
             match actual_command.as_str() {
@@ -28,10 +28,12 @@ pub fn handle_command(
                     //     command_server::monitor(last_ops);
                     // }
                     // None => println!("Client doesnt exist"),
+                    return None;
                 }
                 "info" => {
                     let infor_requiered = command_server::info(&array);
                     println!("{:?}", infor_requiered);
+                    return None;
                 }
                 "config" => {
                     if let RespType::RBulkString(instruction) = &array[1] {
@@ -45,17 +47,63 @@ pub fn handle_command(
                             _ => {}
                         }
                     }
+                    //implementar respuesta
+                    return None;
                 }
                 "dbsize" => {
                     let db_size = command_server::dbsize(&database);
-                    println!("database size: {:?}", db_size)
+                    println!("database size: {:?}", db_size);
+                    return Some(db_size);
                 }
-
                 "flushdb" => {
                     let erased = command_server::flushdb(database);
-                    println!("{:?}", erased)
+                    println!("{:?}", erased);
+                    return None;
                 }
-
+                "copy" => {
+                    if array.len() > 2 {
+                        if let RespType::RBulkString(source) = &array[1] {
+                            if let RespType::RBulkString(destination) = &array[2] {
+                                if array.len() == 3 {
+                                    let res = command_key::copy(
+                                        database,
+                                        String::from(source),
+                                        String::from(destination),
+                                        false,
+                                    );
+                                    if let Some(()) = res {
+                                        return Some(RespType::RInteger(1));
+                                    } else {
+                                        return Some(RespType::RInteger(0));
+                                    }
+                                } else if array.len() == 4 {
+                                    if let RespType::RBulkString(replace) = &array[3] {
+                                        if replace == "replace" {
+                                            let res = command_key::copy(
+                                                database,
+                                                String::from(source),
+                                                String::from(destination),
+                                                true,
+                                            );
+                                            if let Some(()) = res {
+                                                return Some(RespType::RInteger(1));
+                                            } else {
+                                                return Some(RespType::RInteger(0));
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                //
+                            }
+                        } else {
+                            //
+                        }
+                    } else {
+                        //
+                    }
+                    return None;
+                }
                 "del" => {
                     command_key::del(&array, database);
                 }
@@ -63,6 +111,7 @@ pub fn handle_command(
             }
         }
     }
+    None
 }
 
 #[test]
@@ -76,7 +125,7 @@ fn test_001_returns_dbsize() {
     let operation = RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
     let (tx, _sx) = std::sync::mpsc::channel();
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    handle_command(operation, &tx, addrs, &database, &conf)
+    handle_command(operation, &tx, addrs, &database, &conf);
 }
 
 #[test]
@@ -93,9 +142,8 @@ fn test_002_shows_server_info() {
     ]);
     let (tx, _sx) = std::sync::mpsc::channel();
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    // let config = Config::new(String::from("path"));
-    // let conf = Arc::new(RwLock::new(config));
-    handle_command(operation, &tx, addrs, &database, &conf)
+
+    handle_command(operation, &tx, addrs, &database, &conf);
 }
 
 #[test]
