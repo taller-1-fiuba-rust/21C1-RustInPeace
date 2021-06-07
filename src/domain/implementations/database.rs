@@ -218,7 +218,7 @@ fn empty_database_returns_cero() {
         dbfilename: "file".to_string(),
         items: vec![],
     };
-    assert_eq!(db.get_size(),0);
+    assert_eq!(db.get_size(), 0);
 }
 
 #[test]
@@ -326,4 +326,3 @@ fn filename_is_correct() {
     };
     assert_eq!(db._get_filename(), "file".to_string());
 }
-
