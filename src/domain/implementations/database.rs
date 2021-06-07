@@ -218,8 +218,10 @@ fn empty_database_returns_cero() {
         dbfilename: "file".to_string(),
         items: vec![],
     };
+    assert_eq!(db.get_size(),0);
+}
 
-
+#[test]
 fn test_01_database_copies_value_to_new_key() {
     let mut db = Database::new(String::from("./src/dummy.txt"));
 
@@ -323,12 +325,5 @@ fn filename_is_correct() {
         items: vec![],
     };
     assert_eq!(db._get_filename(), "file".to_string());
-
-fn test_02_deletes_an_item_succesfully() {
-    let mut db = Database::new(String::from("./src/database.txt"));
-    println!("{:?}", db._get_items());
-    db.delete_key("clave_1".to_string());
-    println!("{:?}", db._get_items());
-    assert_eq!(db.get_size(), 1)
 }
 
