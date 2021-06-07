@@ -45,7 +45,6 @@ pub struct KeyValueItem {
 }
 
 impl KeyValueItem {
-
     pub fn new(key: String, value: ValueType) -> KeyValueItem {
         KeyValueItem {
             key,

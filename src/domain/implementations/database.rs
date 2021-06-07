@@ -55,7 +55,7 @@ impl Database {
     pub fn _save_items_to_file(&self) {
         unimplemented!()
     }
-  
+
     pub fn get_size(&self) -> usize {
         self.items.len()
     }
