@@ -41,6 +41,8 @@ impl Database {
                     self.add(kvis.transform_to_item())
                 }
             }
+        }else{
+            panic!("Error al leer el archivo dump");
         }
     }
 
@@ -142,16 +144,18 @@ mod tests {
         };
         assert_eq!(db._get_filename(), "file".to_string());
     }
-    // #[test]
-    /* fn load_items_from_file() {
-        //TODO me falta mockear el archivo para que pueda correr el test.
-        let db = Database::new("file".to_string());
-        assert_eq!(db.items.len(), 3);
-        assert_eq!(
-            db.items.get(0).unwrap().value.to_string(),
-            ValueType::StringType(String::from("222")).to_string()
-        );
-    }*/
+    /*
+    #[test]
+
+    fn load_items_from_file() {
+       //TODO me falta mockear el archivo para que pueda correr el test.
+       let db = Database::new("file".to_string());
+       assert_eq!(db.items.len(), 4);
+       assert_eq!(
+           db.items.get(0).unwrap().value.to_string(),
+           ValueType::StringType(String::from("222")).to_string()
+       );
+   }*/
 }
 
 #[test]
