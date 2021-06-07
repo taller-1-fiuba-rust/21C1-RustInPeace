@@ -50,7 +50,16 @@ impl KeyValueItem {
             value,
             last_access_time: 1622657604, //TODO Esto debería calcularse
         }
-    } //TODO chequear si es necesario este constructor
+    }
+    //TODO chequear si es necesario este constructor
+
+    pub fn get_key(&self) -> &String {
+        &self.key
+    }
+
+    pub fn _get_value(&self) -> &ValueType {
+        &self.value
+    }
 }
 
 #[cfg(test)]
