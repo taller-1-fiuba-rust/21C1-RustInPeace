@@ -126,19 +126,19 @@ impl Database {
     }
 }
 
-// #[test]
-// fn test_01_database_copies_value_to_new_key() {
-//     let mut db = Database::new(String::from("./src/dummy.txt"));
+#[test]
+fn test_01_database_copies_value_to_new_key() {
+    let mut db = Database::new(String::from("./src/dummy.txt"));
 
-//     let source = String::from("clave_1");
-//     let destination = String::from("clone");
-//     assert_eq!(db.copy(source, destination, false).unwrap(), ());
+    let source = String::from("clave_1");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-//     let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-//     if let ValueType::StringType(str) = new_item._get_value() {
-//         assert_eq!(str, &String::from("valor_1"));
-//     }
-// }
+    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    if let ValueType::StringType(str) = new_item._get_value() {
+        assert_eq!(str, &String::from("valor_1"));
+    }
+}
 
 #[test]
 fn test_02_database_copy_replaces_key_with_new_value() {
