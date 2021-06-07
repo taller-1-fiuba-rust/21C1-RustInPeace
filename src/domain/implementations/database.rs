@@ -175,6 +175,21 @@ fn test_02_deletes_an_item_succesfully() {
     println!("{:?}", db._get_items());
     assert_eq!(db.get_size(), 1)
 }
+
+#[test]
+fn persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.persist("clave_1".to_string());
+
+    let item = db.search_item_by_key("clave_1").unwrap();
+    match *item._get_last_access_time() {
+        KeyAccessTime::Persistent => assert!(true),
+        KeyAccessTime::Volatile(_tmt) => assert!(false),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
