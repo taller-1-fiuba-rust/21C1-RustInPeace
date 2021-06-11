@@ -56,8 +56,7 @@ pub fn handle_command(
                     return Some(db_size);
                 }
                 "flushdb" => {
-                    let erased = command_server::flushdb(database);
-                    println!("{:?}", erased);
+                    return Some(command_server::flushdb(database));
                 }
                 "copy" => {
                     if array.len() > 2 {

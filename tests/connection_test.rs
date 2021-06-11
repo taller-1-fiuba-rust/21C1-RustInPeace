@@ -128,6 +128,10 @@ const TESTS: &[Test] = &[
         name: "server command: dbsize",
         func: test_dbsize,
     },
+    Test {
+        name: "server command: flushdb",
+        func: test_flushdb,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -188,6 +192,21 @@ fn test_dbsize() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("2"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_flushdb() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("FLUSHDB")
+        .query(&mut con)?;
+
+    if ret == String::from("Erased database") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Erased database"),
+            got: ret,
         }));
     }
 }
