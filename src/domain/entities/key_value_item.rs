@@ -97,7 +97,6 @@ impl KeyValueItem {
         match self.last_access_time {
             KeyAccessTime::Persistent => false,
             KeyAccessTime::Volatile(_timeout) => {
-                println!("entro a volatile..");
                 self.last_access_time = KeyAccessTime::Persistent;
                 true
             }
@@ -135,6 +134,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -154,6 +154,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -174,6 +175,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -190,5 +192,6 @@ mod tests {
             KeyAccessTime::Volatile(_t) => assert!(false),
             KeyAccessTime::Persistent => assert!(true),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "".to_string());
     }
 }
