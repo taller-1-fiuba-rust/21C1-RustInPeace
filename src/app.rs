@@ -1,14 +1,8 @@
-// mod domain;
-// mod errors;
-// mod repositories;
-// mod services;
-
 use crate::domain::entities::config::Config;
-// use domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services;
-// use std::collections::{HashSet, LinkedList};
+
 use std::env::args;
 
 static SERVER_ARGS: usize = 2;

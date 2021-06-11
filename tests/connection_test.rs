@@ -124,6 +124,10 @@ const TESTS: &[Test] = &[
         name: "server command: config set maxmemory",
         func: test_config_set_maxmemory,
     },
+    Test {
+        name: "server command: dbsize",
+        func: test_dbsize,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -168,6 +172,22 @@ fn test_config_set_maxmemory() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("ok"),
             got: ret,
+        }));
+    }
+}
+
+fn test_dbsize() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DBSIZE")
+        .query(&mut con)?;
+
+    // OJO QUE AHORA ES 2 PORQUE ESTA HARCODEADO EL CONSTRUCTOR DE DATABASE
+    if ret == 2 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
         }));
     }
 }
