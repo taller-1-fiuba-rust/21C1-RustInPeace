@@ -9,7 +9,6 @@ use std::{
     net::SocketAddr,
     sync::{mpsc::Sender, Arc, RwLock},
 };
-use std::fs::File;
 
 pub fn handle_command(
     operation: RespType,
