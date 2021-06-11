@@ -12,7 +12,7 @@ use std::{
     error::Error,
     fmt,
     sync::mpsc,
-    thread::{self},
+    thread::{self, sleep},
     time::Duration,
 };
 
@@ -80,9 +80,12 @@ fn test_main() {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
         }
-        //eliminar dummy files
+        std::fs::remove_file("./src/dummy_config.txt").unwrap();
+        std::fs::remove_file("./src/dummy_log.txt").unwrap();
+        std::fs::remove_file("./src/dummy_database.txt").unwrap();
     });
 
+    sleep(Duration::from_secs(5));
     let (sender, receiver) = mpsc::channel::<String>();
 
     for test in TESTS.iter().cloned() {
