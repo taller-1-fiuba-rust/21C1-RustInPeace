@@ -1,7 +1,7 @@
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::{File, OpenOptions};
+use std::fs::{File};
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
@@ -292,13 +292,15 @@ fn test_02_deletes_an_item_succesfully() {
     println!("{:?}", db._get_items());
     db.delete_key("clave_1".to_string());
     println!("{:?}", db._get_items());
-    assert_eq!(db.get_size(), 0)
+    assert_eq!(db.get_size(), 0);
+    std::fs::remove_file("./src/database.txt".to_string()).unwrap();
+
 }
 
 #[test]
 fn persist_changes_type_of_access_time() {
     use crate::domain::entities::key_value_item::KeyAccessTime;
-    let file = File::create("./src/dummy.txt");
+    let _file = File::create("./src/dummy.txt");
     let mut db = Database::new(String::from("./src/dummy.txt"));
     let _res = db.add(KeyValueItem{
         key:"clave_1".to_string(),
