@@ -1,7 +1,7 @@
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::{File};
+use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
@@ -284,16 +284,17 @@ fn test_03_clean_items_deletes_all_items() {
 fn test_02_deletes_an_item_succesfully() {
     let _file = File::create("./src/database.txt");
     let mut db = Database::new(String::from("./src/database.txt"));
-    db.add(KeyValueItem{key: "clave_1".to_string(),
+    db.add(KeyValueItem {
+        key: "clave_1".to_string(),
         value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent });
+        last_access_time: KeyAccessTime::Persistent,
+    });
 
     println!("{:?}", db._get_items());
     db.delete_key("clave_1".to_string());
     println!("{:?}", db._get_items());
     assert_eq!(db.get_size(), 0);
     std::fs::remove_file("./src/database.txt".to_string()).unwrap();
-
 }
 
 #[test]
@@ -301,10 +302,10 @@ fn persist_changes_type_of_access_time() {
     use crate::domain::entities::key_value_item::KeyAccessTime;
     let _file = File::create("./src/dummy.txt");
     let mut db = Database::new(String::from("./src/dummy.txt"));
-    let _res = db.add(KeyValueItem{
-        key:"clave_1".to_string(),
+    let _res = db.add(KeyValueItem {
+        key: "clave_1".to_string(),
         value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent
+        last_access_time: KeyAccessTime::Persistent,
     });
 
     let item = db.search_item_by_key("clave_1").unwrap();

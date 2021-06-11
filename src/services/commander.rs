@@ -135,7 +135,6 @@ fn test_001_returns_dbsize() {
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
     handle_command(operation, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_dbsize".to_string()).unwrap();
-
 }
 
 #[test]
@@ -156,7 +155,6 @@ fn test_002_shows_server_info() {
 
     handle_command(operation, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename".to_string()).unwrap();
-
 }
 
 #[test]
@@ -175,7 +173,6 @@ fn test_003_cleans_db_items() {
         RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
     handle_command(operation_check_dbsize, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_3".to_string()).unwrap();
-
 }
 
 #[test]
@@ -197,7 +194,6 @@ fn test_004_deletes_a_key_from_db() {
         RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
     handle_command(operation_check_dbsize, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_4".to_string()).unwrap();
-
 }
 
 #[test]
@@ -216,7 +212,6 @@ fn test_005_check_if_key_exists_throws_zero() {
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_5".to_string()).unwrap();
-
 }
 
 #[test]
@@ -235,5 +230,4 @@ fn test_006_check_if_key_exists_throws_one() {
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_6".to_string()).unwrap();
-
 }
