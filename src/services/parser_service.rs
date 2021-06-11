@@ -40,6 +40,10 @@ pub fn parse_response(response: RespType) -> String {
 /// -ejemplos-
 //Agregar str_to_lower a lo que llega
 pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
+    println!("request: {:?}", request);
+    if request.is_empty() {
+        return Err(ParseError::InvalidSize(String::from("Empty request")));
+    }
     match parse(request) {
         Ok(parsed_request) => {
             if is_array_of_bulkstring(&parsed_request) {
@@ -104,7 +108,7 @@ fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseErro
         ));
     }
     let slice = &request[from..to];
-    Ok(String::from_utf8_lossy(slice).to_string())
+    Ok(String::from_utf8_lossy(slice).to_string().to_lowercase())
 }
 
 /// Recibe un arreglo de bytes (request) y dos numeros enteros, from y to, que indican las posiciones
@@ -346,7 +350,7 @@ fn parse_returns_ok_when_given_valid_simple_string() {
     assert!(result.is_ok());
     match result.unwrap() {
         RespType::RSimpleString(s) => {
-            assert_eq!(s, "Ok".to_string())
+            assert_eq!(s, "ok".to_string())
         }
         _ => assert!(false),
     }
@@ -359,7 +363,7 @@ fn parse_returns_ok_when_given_valid_resp_error() {
     assert!(result.is_ok());
     match result.unwrap() {
         RespType::RError(s) => {
-            assert_eq!(s, "Error message".to_string())
+            assert_eq!(s, "error message".to_string())
         }
         _ => assert!(false),
     }
@@ -525,8 +529,8 @@ fn parse_returns_ok_when_given_array_of_errors() {
             assert_eq!(
                 v,
                 vec![
-                    RespType::RError(String::from("ErrorMessage1")),
-                    RespType::RError(String::from(" SomeError Message2"))
+                    RespType::RError(String::from("errormessage1")),
+                    RespType::RError(String::from(" someerror message2"))
                 ]
             )
         }
@@ -551,8 +555,8 @@ fn parse_returns_ok_when_given_array_of_arrays() {
                         RespType::RInteger(3)
                     ]),
                     RespType::RArray(vec![
-                        RespType::RSimpleString(String::from("Foo")),
-                        RespType::RError(String::from("Bar"))
+                        RespType::RSimpleString(String::from("foo")),
+                        RespType::RError(String::from("bar"))
                     ])
                 ]
             )
@@ -706,8 +710,8 @@ fn parse_response_returns_ok_when_given_integer() {
 
 #[test]
 fn parse_response_returns_ok_when_given_error() {
-    let result = parse_response(RespType::RError("Error Some error".to_string()));
-    let expected = "-Error Some error\r\n".to_string();
+    let result = parse_response(RespType::RError("error some error".to_string()));
+    let expected = "-error some error\r\n".to_string();
     assert_eq!(result, expected);
 }
 
