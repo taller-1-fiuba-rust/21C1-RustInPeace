@@ -1,6 +1,8 @@
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::collections::{HashSet, LinkedList};
 use std::fmt;
+use std::str::FromStr;
+use std::num::ParseIntError;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -41,6 +43,30 @@ impl fmt::Display for ValueType {
 pub enum KeyAccessTime {
     Volatile(u64),
     Persistent,
+}
+impl fmt::Display for KeyAccessTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let printable = match self {
+            KeyAccessTime::Volatile(value) => {value.to_string()}
+            KeyAccessTime::Persistent{} => { "".to_string()}
+        };
+        write!(f, "{}", printable)
+    }
+}
+impl FromStr for KeyAccessTime {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let kat = match s{
+            "" => {
+                KeyAccessTime::Persistent
+            }
+            _ => {
+                KeyAccessTime::Volatile(s.parse::<u64>().unwrap())
+            }
+        };
+        Ok(kat)
+    }
 }
 
 #[derive(Debug)]

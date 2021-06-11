@@ -37,7 +37,7 @@ impl KeyValueItemSerialized {
         KeyValueItem {
             key: line[0].to_string(),
             value,
-            last_access_time: line[1].parse::<KeyAccessTime>().unwrap(),
+            last_access_time:  line[1].parse::<KeyAccessTime>().unwrap(),
         }
     }
 }
