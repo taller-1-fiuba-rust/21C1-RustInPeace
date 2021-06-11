@@ -108,6 +108,8 @@ impl Database {
                 if let Ok(kvi_serialized) = line {
                     let kvis = KeyValueItemSerialized::_new(kvi_serialized);
                     self.add(kvis.transform_to_item())
+                } else {
+                    panic!("Error al leer línea del archivo:");
                 }
             }
         } else {
