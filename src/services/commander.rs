@@ -39,7 +39,8 @@ pub fn handle_command(
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
                             "get" => {
-                                command_server::config_get(config, &array[2]).unwrap();
+                                let res = command_server::config_get(config, &array[2]).unwrap();
+                                return Some(RespType::RSimpleString(res));
                             }
                             "set" => {
                                 command_server::config_set(config, &array[2], &array[3]).unwrap();
@@ -114,6 +115,9 @@ pub fn handle_command(
                 }
                 "rename" => {
                     command_key::rename(&array, database);
+                }
+                "shutdown" => {
+                    tx.send(WorkerMessage::Shutdown).unwrap();
                 }
                 _ => {}
             }

@@ -14,4 +14,6 @@ pub enum WorkerMessage {
     Verb(String),
     NewOperation(RespType, SocketAddr),
     MonitorOp(String),
+    HandleNextMessage,
+    Shutdown,
 }
