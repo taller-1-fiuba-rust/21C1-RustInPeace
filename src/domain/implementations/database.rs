@@ -232,78 +232,79 @@ mod tests {
         assert_eq!(db._get_filename(), "file".to_string());
     }
 
-     #[test]
-     fn load_items_from_file() {
+    #[test]
+    fn load_items_from_file() {
         let mut file = File::create("file".to_string()).expect("Unable to open");
-         file.write_all(b"123key;;string;value\n").unwrap();
-         file.write_all(b"124key;1623433677;string;value2\n").unwrap();
+        file.write_all(b"123key;;string;value\n").unwrap();
+        file.write_all(b"124key;1623433677;string;value2\n")
+            .unwrap();
 
-         let db = Database::new("file".to_string());
-         assert_eq!(db.items.len(), 2);
-         let mut iter = db.items.iter();
-         let kvi = iter.next().unwrap();
+        let db = Database::new("file".to_string());
+        assert_eq!(db.items.len(), 2);
+        let mut iter = db.items.iter();
+        let kvi = iter.next().unwrap();
 
-         assert_eq!(kvi.key.to_owned(),"123key");
-         assert_eq!(kvi.value.to_string(),String::from("value"));
-         match kvi.last_access_time {
-             KeyAccessTime::Persistent => assert!(true),
-             KeyAccessTime::Volatile(_) => assert!(false)
-         }
+        assert_eq!(kvi.key.to_owned(), "123key");
+        assert_eq!(kvi.value.to_string(), String::from("value"));
+        match kvi.last_access_time {
+            KeyAccessTime::Persistent => assert!(true),
+            KeyAccessTime::Volatile(_) => assert!(false),
+        }
 
-         let kvi2 = iter.next().unwrap();
-         assert_eq!(kvi2.key.to_owned(),"124key");
-         assert_eq!(kvi2.value.to_string(),String::from("value2"));
-         match kvi2.last_access_time {
-             KeyAccessTime::Volatile(1623433677) => assert!(true),
-             _ => assert!(false)
-         }
+        let kvi2 = iter.next().unwrap();
+        assert_eq!(kvi2.key.to_owned(), "124key");
+        assert_eq!(kvi2.value.to_string(), String::from("value2"));
+        match kvi2.last_access_time {
+            KeyAccessTime::Volatile(1623433677) => assert!(true),
+            _ => assert!(false),
+        }
+        std::fs::remove_file("file").unwrap();
     }
-
 
     /* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESTO.
-#[test]
-fn test_01_database_copies_value_to_new_key() {
-    let mut db = Database::new(String::from("./src/dummy.txt"));
+    #[test]
+    fn test_01_database_copies_value_to_new_key() {
+        let mut db = Database::new(String::from("./src/dummy.txt"));
 
-    let source = String::from("clave_1");
-    let destination = String::from("clone");
-    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+        let source = String::from("clave_1");
+        let destination = String::from("clone");
+        assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
-    }
-}
-
-#[test]
-fn test_02_database_copy_replaces_key_with_new_value() {
-    let mut db = Database::new(String::from("./src/dummy.txt"));
-
-    let source = String::from("clave_1");
-    let destination = String::from("clone");
-    assert_eq!(db.copy(source, destination, false).unwrap(), ());
-
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
+        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+        if let ValueType::StringType(str) = new_item._get_value() {
+            assert_eq!(str, &String::from("valor_1"));
+        }
     }
 
-    let source = String::from("clave_2");
-    let destination = String::from("clone");
-    assert_eq!(db.copy(source, destination, true).unwrap(), ());
+    #[test]
+    fn test_02_database_copy_replaces_key_with_new_value() {
+        let mut db = Database::new(String::from("./src/dummy.txt"));
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_2"));
+        let source = String::from("clave_1");
+        let destination = String::from("clone");
+        assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+        if let ValueType::StringType(str) = new_item._get_value() {
+            assert_eq!(str, &String::from("valor_1"));
+        }
+
+        let source = String::from("clave_2");
+        let destination = String::from("clone");
+        assert_eq!(db.copy(source, destination, true).unwrap(), ());
+
+        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+        if let ValueType::StringType(str) = new_item._get_value() {
+            assert_eq!(str, &String::from("valor_2"));
+        }
     }
-}
 
-#[test]
-fn test_03_clean_items_deletes_all_items() {
-    let mut db = Database::new(String::from("./src/database.txt"));
-    db.clean_items();
-    assert_eq!(db.get_size(), 0);
-}*/
+    #[test]
+    fn test_03_clean_items_deletes_all_items() {
+        let mut db = Database::new(String::from("./src/database.txt"));
+        db.clean_items();
+        assert_eq!(db.get_size(), 0);
+    }*/
 
     #[test]
     fn test_02_deletes_an_item_succesfully() {
