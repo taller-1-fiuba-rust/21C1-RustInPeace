@@ -1,4 +1,4 @@
-extern crate proyecto_taller_1;
+// extern crate proyecto_taller_1;
 extern crate redis;
 
 use proyecto_taller_1::{
@@ -80,6 +80,7 @@ fn test_main() {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
         }
+        //eliminar dummy files
     });
 
     let (sender, receiver) = mpsc::channel::<String>();
