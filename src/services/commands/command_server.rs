@@ -2,7 +2,6 @@ use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
-use std::io::{Error, ErrorKind};
 use std::sync::{Arc, RwLock};
 use std::{net::SocketAddr, sync::mpsc::Sender};
 
@@ -52,35 +51,41 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RBulkString("Erased database".to_string())
 }
 
-pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> Result<String, Error> {
+pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
     if let RespType::RBulkString(field_name) = field {
         if let Ok(read_guard) = config.read() {
             let conf = read_guard;
-            let value = conf.get_attribute(String::from(field_name))?;
-            return Ok(value);
+            match conf.get_attribute(String::from(field_name)) {
+                Ok(value) => {
+                    return RespType::RArray(vec![RespType::RSimpleString(value)]);
+                } //Hay que ajustar esta funcion
+                Err(_e) => {}
+            }
         }
-        Err(Error::new(ErrorKind::InvalidInput, "Field name missing"))
+        RespType::RError(String::from("Field name missing"))
     } else {
-        Err(Error::new(ErrorKind::InvalidInput, "Invalid request"))
+        RespType::RError(String::from("Invalid request"))
     }
 }
 
-pub fn config_set(
-    config: &Arc<RwLock<Config>>,
-    field: &RespType,
-    value: &RespType,
-) -> Result<String, Error> {
+pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespType) -> RespType {
     if let RespType::RBulkString(field_name) = field {
         if let RespType::RBulkString(value) = value {
             if let Ok(write_guard) = config.write() {
                 let mut conf = write_guard;
-                let _value = conf.set_attribute(String::from(field_name), String::from(value))?;
-                return Ok(String::from("ok"));
+                match conf.set_attribute(String::from(field_name), String::from(value)) {
+                    Ok(_) => {
+                        return RespType::RSimpleString(String::from("ok"));
+                    }
+                    Err(e) => {
+                        return RespType::RError(e.to_string());
+                    }
+                }
             }
         }
-        Err(Error::new(ErrorKind::InvalidInput, "Field name missing"))
+        RespType::RError(String::from("Field name missing"))
     } else {
-        Err(Error::new(ErrorKind::InvalidInput, "Invalid request"))
+        RespType::RError(String::from("Invalid request"))
     }
 }
 

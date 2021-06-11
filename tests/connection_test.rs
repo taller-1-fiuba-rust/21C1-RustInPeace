@@ -111,10 +111,16 @@ fn test_main() {
     let _ = handle.join().expect("Couldnt join");
 }
 
-const TESTS: &[Test] = &[Test {
-    name: "server command: config get verbose",
-    func: test_config_get_verbose,
-}];
+const TESTS: &[Test] = &[
+    Test {
+        name: "server command: config get verbose",
+        func: test_config_get_verbose,
+    },
+    Test {
+        name: "server command: config set maxmemory",
+        func: test_config_set_maxmemory,
+    },
+];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
     let client = redis::Client::open(ADDR)?;
@@ -129,16 +135,34 @@ fn shutdown() {
 
 fn test_config_get_verbose() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("CONFIG")
+    let ret: Vec<String> = redis::cmd("CONFIG")
         .arg("get")
         .arg("verbose")
         .query(&mut con)?;
 
-    if ret == String::from("1") {
+    if &ret[0] == &String::from("1") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: String::from(&ret[0]),
+        }));
+    }
+}
+
+fn test_config_set_maxmemory() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("CONFIG")
+        .arg("set")
+        .arg("maxmemory")
+        .arg("2mb")
+        .query(&mut con)?;
+
+    if ret == String::from("ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("ok"),
             got: ret,
         }));
     }

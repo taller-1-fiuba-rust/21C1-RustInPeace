@@ -39,16 +39,16 @@ pub fn handle_command(
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
                             "get" => {
-                                let res = command_server::config_get(config, &array[2]).unwrap();
-                                return Some(RespType::RSimpleString(res));
+                                return Some(command_server::config_get(config, &array[2]));
                             }
                             "set" => {
-                                command_server::config_set(config, &array[2], &array[3]).unwrap();
+                                return Some(command_server::config_set(
+                                    config, &array[2], &array[3],
+                                ));
                             }
                             _ => {}
                         }
                     }
-                    //implementar respuesta
                 }
                 "dbsize" => {
                     let db_size = command_server::dbsize(&database);

@@ -121,12 +121,12 @@ fn handle_connection(
             match parse_request(&buf[..size]) {
                 Ok(parsed_request) => {
                     tx.send(WorkerMessage::Log(format!(
-                        "Parsed request: {:?}",
+                        "Parsed request: {:?}\r\n",
                         parsed_request
                     )))
                     .unwrap();
                     tx.send(WorkerMessage::Verb(format!(
-                        "Parsed request: {:?}",
+                        "Parsed request: {:?}\r\n",
                         parsed_request
                     )))
                     .unwrap();
@@ -145,7 +145,7 @@ fn handle_connection(
                         let response = parse_response(res);
 
                         tx.send(WorkerMessage::Verb(format!(
-                            "Response for {}. Message: {:?}. Response: {}",
+                            "Response for {}. Message: {:?}. Response: {}\r\n",
                             client_addrs,
                             String::from_utf8_lossy(&buf[..size]),
                             response
@@ -153,13 +153,14 @@ fn handle_connection(
                         .unwrap();
 
                         tx.send(WorkerMessage::Log(format!(
-                            "Response for {}. Message: {:?}. Response: {}",
+                            "Response for {}. Message: {:?}. Response: {}\r\n",
                             client_addrs,
                             String::from_utf8_lossy(&buf[..size]),
                             response
                         )))
                         .unwrap();
-
+                        println!("RESPONSE: {}", response);
+                        println!("RESPONSE as bytes: {:?}", response.as_bytes());
                         stream.write_all(response.as_bytes()).unwrap();
                         stream.flush().unwrap();
                     }
