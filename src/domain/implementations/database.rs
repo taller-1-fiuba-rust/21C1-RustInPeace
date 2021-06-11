@@ -76,6 +76,29 @@ impl Database {
         None
     }
 
+    pub fn persist(&mut self, key: String) -> bool {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == &key {
+                return item.make_persistent();
+            }
+        }
+        false
+    }
+
+    pub fn rename_key(&mut self, actual_key: String, new_key: String) {
+        if let Some(pos) = self
+            .items
+            .iter()
+            .position(|x| *x.get_key().to_string() == actual_key)
+        {
+            let saved_value = self.items.get(pos).unwrap().get_copy_of_value();
+            self.items.remove(pos);
+            let updated_key = KeyValueItem::new(new_key, saved_value);
+            self.items.push(updated_key);
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn _load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -265,3 +288,109 @@ fn test_03_clean_items_deletes_all_items() {
     assert_eq!(db.get_size(), 0);
 }
 
+#[test]
+fn test_02_deletes_an_item_succesfully() {
+    let mut db = Database::new(String::from("./src/database.txt"));
+    println!("{:?}", db._get_items());
+    db.delete_key("clave_1".to_string());
+    println!("{:?}", db._get_items());
+    assert_eq!(db.get_size(), 1)
+}
+
+#[test]
+fn persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.persist("clave_1".to_string());
+
+    let item = db.search_item_by_key("clave_1").unwrap();
+    match *item._get_last_access_time() {
+        KeyAccessTime::Persistent => assert!(true),
+        KeyAccessTime::Volatile(_tmt) => assert!(false),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::key_value_item::ValueType;
+
+    // #[test]
+    // fn empty_database_returns_cero() {
+    //     let db = Database {
+    //         dbfilename: "file".to_string(),
+    //         items: vec![],
+    //     };
+
+    //     assert_eq!(db.get_size(), 0);
+    // }
+
+    #[test]
+    fn database_with_two_elements_returns_2() {
+        let db = Database::new("filename".to_string());
+        assert_eq!(db.get_size(), 2);
+    }
+
+    #[test]
+    fn size_in_memory_is_correct() {
+        let kv_item = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
+        let kv_item2 = KeyValueItem::new(
+            String::from("123"),
+            ValueType::StringType(String::from("222")),
+        );
+
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: vec![kv_item, kv_item2],
+        };
+
+        assert_eq!(db.get_size(), 2);
+    }
+    // #[test]
+    // fn add_item() {
+    //     let added_item = KeyValueItem::new(
+    //         String::from("nueva_key"),
+    //         ValueType::StringType(String::from("222")),
+    //     );
+    //     let mut db = Database {
+    //         dbfilename: "file".to_string(),
+    //         items: vec![],
+    //     };
+    //     db.add(added_item);
+
+    //     assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
+    //     assert_eq!(
+    //         db.items.first().unwrap().value.to_string(),
+    //         String::from("222")
+    //     );
+    //     assert_eq!(db.items.len(), 1)
+    // }
+
+    // #[test]
+    // fn delete_item() {
+    //     let added_item = KeyValueItem::new(
+    //         String::from("nueva_key"),
+    //         ValueType::StringType(String::from("222")),
+    //     );
+    //     let mut db = Database {
+    //         dbfilename: "file".to_string(),
+    //         items: vec![added_item],
+    //     };
+    //     assert_eq!(db.items.len(), 1);
+    //     db.delete_by_index(0);
+    //     assert_eq!(db.items.len(), 0);
+    // }
+
+    // #[test]
+    // fn filename_is_correct() {
+    //     let db = Database {
+    //         dbfilename: "file".to_string(),
+    //         items: vec![],
+    //     };
+    //     assert_eq!(db.get_filename(), "file".to_string());
+    // }
+}
