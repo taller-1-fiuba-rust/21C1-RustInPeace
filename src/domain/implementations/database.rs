@@ -1,10 +1,11 @@
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
+use crate::domain::entities::key_value_item::KeyAccessTime;
 // use std::error::Error;
 // use std::u64;
 
@@ -235,15 +236,7 @@ mod tests {
     }*/
 }
 
-#[test]
-fn empty_database_returns_cero() {
-    let db = Database {
-        dbfilename: "file".to_string(),
-        items: vec![],
-    };
-    assert_eq!(db.get_size(), 0);
-}
-
+/* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESOT.
 #[test]
 fn test_01_database_copies_value_to_new_key() {
     let mut db = Database::new(String::from("./src/dummy.txt"));
@@ -286,111 +279,36 @@ fn test_03_clean_items_deletes_all_items() {
     let mut db = Database::new(String::from("./src/database.txt"));
     db.clean_items();
     assert_eq!(db.get_size(), 0);
-}
+}*/
 
 #[test]
 fn test_02_deletes_an_item_succesfully() {
+    let _file = File::create("./src/database.txt");
     let mut db = Database::new(String::from("./src/database.txt"));
+    db.add(KeyValueItem{key: "clave_1".to_string(),
+        value: ValueType::StringType("value".to_string()),
+        last_access_time: KeyAccessTime::Persistent });
+
     println!("{:?}", db._get_items());
     db.delete_key("clave_1".to_string());
     println!("{:?}", db._get_items());
-    assert_eq!(db.get_size(), 1)
+    assert_eq!(db.get_size(), 0)
 }
 
 #[test]
 fn persist_changes_type_of_access_time() {
     use crate::domain::entities::key_value_item::KeyAccessTime;
-
+    let file = File::create("./src/dummy.txt");
     let mut db = Database::new(String::from("./src/dummy.txt"));
-    let _res = db.persist("clave_1".to_string());
+    let _res = db.add(KeyValueItem{
+        key:"clave_1".to_string(),
+        value: ValueType::StringType("value".to_string()),
+        last_access_time: KeyAccessTime::Persistent
+    });
 
     let item = db.search_item_by_key("clave_1").unwrap();
     match *item._get_last_access_time() {
         KeyAccessTime::Persistent => assert!(true),
         KeyAccessTime::Volatile(_tmt) => assert!(false),
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::entities::key_value_item::ValueType;
-
-    // #[test]
-    // fn empty_database_returns_cero() {
-    //     let db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![],
-    //     };
-
-    //     assert_eq!(db.get_size(), 0);
-    // }
-
-    #[test]
-    fn database_with_two_elements_returns_2() {
-        let db = Database::new("filename".to_string());
-        assert_eq!(db.get_size(), 2);
-    }
-
-    #[test]
-    fn size_in_memory_is_correct() {
-        let kv_item = KeyValueItem::new(
-            String::from("123"),
-            ValueType::StringType(String::from("222")),
-        );
-        let kv_item2 = KeyValueItem::new(
-            String::from("123"),
-            ValueType::StringType(String::from("222")),
-        );
-
-        let db = Database {
-            dbfilename: "file".to_string(),
-            items: vec![kv_item, kv_item2],
-        };
-
-        assert_eq!(db.get_size(), 2);
-    }
-    // #[test]
-    // fn add_item() {
-    //     let added_item = KeyValueItem::new(
-    //         String::from("nueva_key"),
-    //         ValueType::StringType(String::from("222")),
-    //     );
-    //     let mut db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![],
-    //     };
-    //     db.add(added_item);
-
-    //     assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
-    //     assert_eq!(
-    //         db.items.first().unwrap().value.to_string(),
-    //         String::from("222")
-    //     );
-    //     assert_eq!(db.items.len(), 1)
-    // }
-
-    // #[test]
-    // fn delete_item() {
-    //     let added_item = KeyValueItem::new(
-    //         String::from("nueva_key"),
-    //         ValueType::StringType(String::from("222")),
-    //     );
-    //     let mut db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![added_item],
-    //     };
-    //     assert_eq!(db.items.len(), 1);
-    //     db.delete_by_index(0);
-    //     assert_eq!(db.items.len(), 0);
-    // }
-
-    // #[test]
-    // fn filename_is_correct() {
-    //     let db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![],
-    //     };
-    //     assert_eq!(db.get_filename(), "file".to_string());
-    // }
 }
