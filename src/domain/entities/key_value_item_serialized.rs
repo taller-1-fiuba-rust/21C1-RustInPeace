@@ -1,4 +1,4 @@
-use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
+use crate::domain::entities::key_value_item::{KeyValueItem, ValueType, KeyAccessTime};
 use std::collections::{HashSet, LinkedList};
 
 // Format: key, access_time, type, value
@@ -37,7 +37,7 @@ impl KeyValueItemSerialized {
         KeyValueItem {
             key: line[0].to_string(),
             value,
-            last_access_time: line[1].parse::<u64>().unwrap(),
+            last_access_time: line[1].parse::<KeyAccessTime>().unwrap(),
         }
     }
 }
