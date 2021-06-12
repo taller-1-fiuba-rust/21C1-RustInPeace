@@ -80,9 +80,9 @@ fn test_main() {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
         }
-        std::fs::remove_file("./src/dummy_config.txt").unwrap();
-        std::fs::remove_file("./src/dummy_log.txt").unwrap();
-        std::fs::remove_file("./src/dummy_database.txt").unwrap();
+        // std::fs::remove_file("./src/dummy_config.txt").unwrap();
+        // std::fs::remove_file("./src/dummy_log.txt").unwrap();
+        // std::fs::remove_file("./src/dummy_database.txt").unwrap();
     });
 
     sleep(Duration::from_secs(5));
@@ -128,9 +128,17 @@ const TESTS: &[Test] = &[
         name: "server command: dbsize",
         func: test_dbsize,
     },
+    // Test {
+    //     name: "server command: flushdb",
+    //     func: test_flushdb,
+    // },
     Test {
-        name: "server command: flushdb",
-        func: test_flushdb,
+        name: "keys command: del",
+        func: test_keys_del,
+    },
+    Test {
+        name: "keys command: exists",
+        func: test_keys_exists,
     },
 ];
 
@@ -207,6 +215,42 @@ fn test_flushdb() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("Erased database"),
             got: ret,
+        }));
+    }
+}
+
+fn test_keys_del() -> TestResult {
+    let mut con = connect()?;
+
+    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
+    let ret: usize = redis::cmd("DEL")
+        .arg("clave_2")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_exists() -> TestResult {
+    let mut con = connect()?;
+
+    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("clave_1")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
         }));
     }
 }

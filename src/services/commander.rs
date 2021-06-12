@@ -103,11 +103,10 @@ pub fn handle_command(
                     return None;
                 }
                 "del" => {
-                    command_key::del(&array, database);
+                    return Some(command_key::del(&array, database));
                 }
                 "exists" => {
-                    let key_found = command_key::exists(&array, database);
-                    println!("{:?}", key_found);
+                    return Some(command_key::exists(&array, database));
                 }
                 "persist" => {
                     command_key::persist(&array, database);
