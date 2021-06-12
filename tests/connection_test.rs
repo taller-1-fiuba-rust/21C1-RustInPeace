@@ -140,6 +140,10 @@ const TESTS: &[Test] = &[
         name: "keys command: exists",
         func: test_keys_exists,
     },
+    Test {
+        name: "keys command: persist",
+        func: test_keys_persist,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -242,6 +246,24 @@ fn test_keys_exists() -> TestResult {
 
     // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
     let ret: usize = redis::cmd("EXISTS")
+        .arg("clave_1")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_persist() -> TestResult {
+    let mut con = connect()?;
+
+    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
+    let ret: usize = redis::cmd("PERSIST")
         .arg("clave_1")
         .query(&mut con)?;
 

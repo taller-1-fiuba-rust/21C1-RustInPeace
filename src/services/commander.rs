@@ -109,7 +109,7 @@ pub fn handle_command(
                     return Some(command_key::exists(&array, database));
                 }
                 "persist" => {
-                    command_key::persist(&array, database);
+                    return Some(command_key::persist(&array, database));
                 }
                 "rename" => {
                     command_key::rename(&array, database);
