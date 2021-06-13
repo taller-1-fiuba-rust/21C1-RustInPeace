@@ -34,7 +34,7 @@ impl Worker {
         }
     }
 
-    pub fn drop(&mut self) {
+    pub fn drop_(&mut self) {
         println!("Shutting down worker {}", self.id);
         if let Some(thread) = self.thread.take() {
             match thread.join() {
