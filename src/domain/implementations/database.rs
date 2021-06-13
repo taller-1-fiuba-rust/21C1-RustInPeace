@@ -266,10 +266,14 @@ mod tests {
         std::fs::remove_file("new_file").unwrap();
     }
 
-    /* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESTO.
     #[test]
     fn test_01_database_copies_value_to_new_key() {
         let mut db = Database::new(String::from("./src/dummy.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
 
         let source = String::from("clave_1");
         let destination = String::from("clone");
@@ -284,6 +288,11 @@ mod tests {
     #[test]
     fn test_02_database_copy_replaces_key_with_new_value() {
         let mut db = Database::new(String::from("./src/dummy.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
 
         let source = String::from("clave_1");
         let destination = String::from("clone");
@@ -293,23 +302,25 @@ mod tests {
         if let ValueType::StringType(str) = new_item._get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
-
-        let source = String::from("clave_2");
-        let destination = String::from("clone");
-        assert_eq!(db.copy(source, destination, true).unwrap(), ());
-
-        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-        if let ValueType::StringType(str) = new_item._get_value() {
-            assert_eq!(str, &String::from("valor_2"));
-        }
     }
 
     #[test]
     fn test_03_clean_items_deletes_all_items() {
         let mut db = Database::new(String::from("./src/database.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        assert_eq!(db.get_size(), 2);
         db.clean_items();
         assert_eq!(db.get_size(), 0);
-    }*/
+    }
 
     #[test]
     fn test_02_deletes_an_item_succesfully() {
