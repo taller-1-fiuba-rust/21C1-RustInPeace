@@ -3,9 +3,9 @@ use crate::domain::entities::key_value_item::KeyAccessTime;
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -126,7 +126,26 @@ impl Database {
         }
     }
 
-    pub fn _save_items_to_file(&self) {}
+    pub fn _save_items_to_file(&self) {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create_new(false)
+            .open(self.dbfilename.to_string())
+            .unwrap();
+
+        for kvi in &self.items {
+            writeln!(
+                file,
+                "{};{};{};{}",
+                kvi.key,
+                kvi.last_access_time.to_string(),
+                "string",
+                kvi.value.to_string()
+            )
+            .unwrap();
+        }
+    }
 
     pub fn get_size(&self) -> usize {
         self.items.len()
@@ -155,7 +174,7 @@ impl Database {
 mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::ValueType;
-    use std::io::Write;
+    use std::io::{BufReader, Write};
 
     #[test]
     fn empty_database_returns_cero() {
@@ -264,6 +283,37 @@ mod tests {
         let _db = Database::new("new_file".to_string());
         assert!(std::path::Path::new("new_file").exists());
         std::fs::remove_file("new_file").unwrap();
+    }
+
+    #[test]
+    fn save_items_to_file() {
+        //   let mut file = File::create("file".to_string()).expect("Unable to open");
+        //   file.write_all(b"123key;;string;value\n").unwrap();
+        //   file.write_all(b"124key;1623433677;string;value2\n")
+        //       .unwrap();
+
+        let mut db = Database::new("file".to_string());
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        db.add(KeyValueItem {
+            key: "clave_2".to_string(),
+            value: ValueType::StringType("valor_10".to_string()),
+            last_access_time: KeyAccessTime::Volatile(123),
+        });
+
+        db._save_items_to_file();
+
+        let file = File::open(&db.dbfilename);
+        let reader = BufReader::new(file.unwrap());
+
+        for line in reader.lines() {
+            println!("{}", line.unwrap());
+        }
+
+        std::fs::remove_file("file").unwrap();
     }
 
     #[test]
