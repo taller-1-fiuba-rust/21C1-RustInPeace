@@ -20,7 +20,7 @@ impl Database {
             dbfilename: filename,
             items: vec![],
         };
-        db._load_items();
+        db.load_items();
         db
     }
     pub fn _get_filename(&self) -> String {
@@ -94,7 +94,7 @@ impl Database {
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
-    pub fn _load_items(&mut self) {
+    pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
             for line in lines {
                 if let Ok(kvi_serialized) = line {
