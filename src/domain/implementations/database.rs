@@ -7,7 +7,6 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, Write};
 use std::path::Path;
-
 #[derive(Debug)]
 pub struct Database {
     dbfilename: String,
@@ -135,12 +134,17 @@ impl Database {
             .unwrap();
 
         for kvi in &self.items {
+            let kvi_type = match kvi.value {
+                ValueType::StringType(_) => "string",
+                ValueType::SetType(_) => "set",
+                ValueType::ListType(_) => "list",
+            };
             writeln!(
                 file,
                 "{};{};{};{}",
                 kvi.key,
                 kvi.last_access_time.to_string(),
-                "string",
+                kvi_type,
                 kvi.value.to_string()
             )
             .unwrap();
@@ -174,6 +178,7 @@ impl Database {
 mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::ValueType;
+    use std::collections::LinkedList;
     use std::io::{BufReader, Write};
 
     #[test]
@@ -287,10 +292,7 @@ mod tests {
 
     #[test]
     fn save_items_to_file() {
-        let mut file = File::create("file".to_string()).expect("Unable to open");
-        file.write_all(b"123key;;string;value\n").unwrap();
-        file.write_all(b"124key;1623433677;string;value2\n")
-            .unwrap();
+        let mut _file = File::create("file".to_string()).expect("Unable to open");
 
         let mut db = Database::new("file".to_string());
         db.add(KeyValueItem {
@@ -298,19 +300,31 @@ mod tests {
             value: ValueType::StringType("valor_1".to_string()),
             last_access_time: KeyAccessTime::Persistent,
         });
+        let mut un_list = LinkedList::new();
+        un_list.push_back("un_item_string".to_string());
+        un_list.push_back("segundo_item_list_string".to_string());
+
         db.add(KeyValueItem {
             key: "clave_2".to_string(),
-            value: ValueType::StringType("valor_10".to_string()),
-            last_access_time: KeyAccessTime::Volatile(123),
+            value: ValueType::ListType(un_list),
+            last_access_time: KeyAccessTime::Volatile(1231230),
         });
 
         db._save_items_to_file();
 
         let file = File::open(&db.dbfilename);
         let reader = BufReader::new(file.unwrap());
-
-        for line in reader.lines() {
-            println!("{}", line.unwrap());
+        let mut it = reader.lines();
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
+            _ => assert!(false),
+        }
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(
+                t,
+                "clave_2;1231230;list;un_item_string,segundo_item_list_string"
+            ),
+            _ => assert!(false),
         }
 
         std::fs::remove_file("file").unwrap();
