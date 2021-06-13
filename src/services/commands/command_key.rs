@@ -69,7 +69,7 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RBulkString("key_found".to_string())
+    RespType::RBulkString("OK".to_string())
 }
 
 //     for n in cmd.iter().skip(1) {

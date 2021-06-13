@@ -1,4 +1,3 @@
-// extern crate proyecto_taller_1;
 extern crate redis;
 
 use proyecto_taller_1::{
@@ -80,9 +79,9 @@ fn test_main() {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
         }
-        // std::fs::remove_file("./src/dummy_config.txt").unwrap();
-        // std::fs::remove_file("./src/dummy_log.txt").unwrap();
-        // std::fs::remove_file("./src/dummy_database.txt").unwrap();
+        std::fs::remove_file("./src/dummy_config.txt").unwrap();
+        std::fs::remove_file("./src/dummy_log.txt").unwrap();
+        std::fs::remove_file("./src/dummy_database.txt").unwrap();
     });
 
     sleep(Duration::from_secs(5));
@@ -132,10 +131,10 @@ const TESTS: &[Test] = &[
     //     name: "server command: flushdb",
     //     func: test_flushdb,
     // },
-    Test {
-        name: "keys command: del",
-        func: test_keys_del,
-    },
+    // Test {
+    //     name: "keys command: del",
+    //     func: test_keys_del,
+    // },
     Test {
         name: "keys command: exists",
         func: test_keys_exists,
@@ -143,6 +142,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: persist",
         func: test_keys_persist,
+    },
+    Test {
+        name: "keys command: rename",
+        func: test_keys_rename,
     },
 ];
 
@@ -194,8 +197,7 @@ fn test_config_set_maxmemory() -> TestResult {
 
 fn test_dbsize() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("DBSIZE")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("DBSIZE").query(&mut con)?;
 
     // OJO QUE AHORA ES 2 PORQUE ESTA HARCODEADO EL CONSTRUCTOR DE DATABASE
     if ret == 2 {
@@ -210,8 +212,7 @@ fn test_dbsize() -> TestResult {
 
 fn test_flushdb() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("FLUSHDB")
-        .query(&mut con)?;
+    let ret: String = redis::cmd("FLUSHDB").query(&mut con)?;
 
     if ret == String::from("Erased database") {
         return Ok(());
@@ -227,9 +228,7 @@ fn test_keys_del() -> TestResult {
     let mut con = connect()?;
 
     // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("DEL")
-        .arg("clave_2")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("DEL").arg("clave_2").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
@@ -245,9 +244,7 @@ fn test_keys_exists() -> TestResult {
     let mut con = connect()?;
 
     // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("EXISTS")
-        .arg("clave_1")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("EXISTS").arg("clave_1").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
@@ -263,15 +260,32 @@ fn test_keys_persist() -> TestResult {
     let mut con = connect()?;
 
     // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("PERSIST")
-        .arg("clave_1")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("PERSIST").arg("clave_1").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_rename() -> TestResult {
+    let mut con = connect()?;
+
+    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
+    let ret: String = redis::cmd("RENAME")
+        .arg("clave_2")
+        .arg("clave_renamed")
+        .query(&mut con)?;
+
+    if ret == String::from("OK") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("OK"),
             got: ret.to_string(),
         }));
     }

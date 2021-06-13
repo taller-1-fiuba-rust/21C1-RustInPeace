@@ -178,14 +178,14 @@ fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
 fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request)?;
-    if crlf == 3 {
-        return check_if_bulkstring_null_type(pos, crlf, request);
+    if check_if_bulkstring_null_type(pos, crlf, request) {
+        return Ok(RespType::RNullBulkString());
     }
-    if crlf != 2 {
-        return Err(ParseError::UnexpectedError(
-            "String size must be followed by CRFL".to_string(),
-        ));
-    }
+    // if crlf != 2 {
+    //     return Err(ParseError::UnexpectedError(
+    //         "String size must be followed by CRFL".to_string(),
+    //     ));
+    // }
     let size = read_int(pos + 1, crlf, request).unwrap_or(0);
     pos = crlf + 1;
     let slice = &request[pos + 1..];
@@ -200,19 +200,18 @@ fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
 /// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato bulkstring
 /// nulo segun el procolo RESP
 /// Devuelve true si lo es, false si no
-fn check_if_bulkstring_null_type(
-    from: usize,
-    to: usize,
-    request: &[u8],
-) -> Result<RespType, ParseError> {
-    let word = read_word(from + 1, to, request)?;
+fn check_if_bulkstring_null_type(from: usize, to: usize, request: &[u8]) -> bool {
+    let word = read_word(from + 1, to, request).unwrap();
     if word == "-1" {
-        Ok(RespType::RNullBulkString())
-    } else {
-        Err(ParseError::UnexpectedError(
-            "String size must be followed by CRFL".to_string(),
-        ))
+        //Ok(RespType::RNullBulkString())
+        return true;
     }
+    false
+    // } else {
+    //     Err(ParseError::UnexpectedError(
+    //         "String size must be followed by CRFL".to_string(),
+    //     ))
+    // }
 }
 
 /// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato array
@@ -258,6 +257,7 @@ fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
     let mut contents = &request[pos..];
     while !contents.is_empty() {
         let request_len = get_request_len(contents);
+        // println!("contents so far: {:?}", &contents[..request_len]);
         let parsed_request = parse(&contents[..request_len]).unwrap();
         vec.push(parsed_request);
         contents = &contents[request_len..];
@@ -295,7 +295,7 @@ fn get_bulkstring_len(request: &[u8]) -> usize {
         Ok(crfl) => {
             len += 1; //$
             let size = read_int(len, crfl, request).unwrap_or(0);
-            len += 1; //size
+            len += crfl - len; //size
             match search_crlf(&request[crfl + 1..]) {
                 Ok(_second_crfl) => {
                     len += size + 4; //+ 4 bytes crfl
@@ -597,8 +597,8 @@ fn parse_bulkstring_returns_error_when_missing_length() {
     let result = parse(req);
     assert!(result.is_err());
     match result.unwrap_err() {
-        ParseError::UnexpectedError(s) => {
-            assert_eq!(s, "String size must be followed by CRFL".to_string())
+        ParseError::InvalidSize(s) => {
+            assert_eq!(s, "String size mismatch".to_string())
         }
         _ => assert!(false),
     }

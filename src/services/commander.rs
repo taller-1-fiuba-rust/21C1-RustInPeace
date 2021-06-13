@@ -112,10 +112,7 @@ pub fn handle_command(
                     return Some(command_key::persist(&array, database));
                 }
                 "rename" => {
-                    command_key::rename(&array, database);
-                }
-                "shutdown" => {
-                    tx.send(WorkerMessage::Shutdown).unwrap();
+                    return Some(command_key::rename(&array, database));
                 }
                 _ => {}
             }
