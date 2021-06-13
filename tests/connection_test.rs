@@ -1,13 +1,7 @@
 // extern crate proyecto_taller_1;
 extern crate redis;
 
-use proyecto_taller_1::{
-    domain::{
-        entities::{config::Config, server::Server},
-        implementations::database::Database,
-    },
-    services::{server_service, worker_service::ThreadPool},
-};
+use proyecto_taller_1::{domain::{entities::{config::Config, key_value_item::{KeyValueItem, ValueType}, server::Server}, implementations::database::Database}, services::{server_service, worker_service::ThreadPool}};
 use std::{
     error::Error,
     fmt,
@@ -74,7 +68,13 @@ fn test_main() {
         config
             .set_attribute(String::from("verbose"), String::from("1"))
             .unwrap();
-        let database = Database::new(db_file);
+        let mut database = Database::new(db_file);
+
+        let added_item = KeyValueItem::new(
+            String::from("mykey"),
+            ValueType::StringType(String::from("Hello")),
+        );
+        database.add(added_item);
 
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
@@ -124,6 +124,10 @@ const TESTS: &[Test] = &[
         name: "server command: config set maxmemory",
         func: test_config_set_maxmemory,
     },
+    Test {
+        name: "string command: append mykey newvalue",
+        func: test_string_append,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -168,6 +172,23 @@ fn test_config_set_maxmemory() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("ok"),
             got: ret,
+        }));
+    }
+}
+
+fn test_string_append() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("mykey")
+        .arg(" World")
+        .query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
         }));
     }
 }

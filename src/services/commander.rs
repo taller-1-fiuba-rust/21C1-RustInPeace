@@ -4,6 +4,7 @@ use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
     services::commands::command_server,
+    services::commands::command_string,
 };
 #[allow(unused)]
 use std::fs::File;
@@ -120,6 +121,9 @@ pub fn handle_command(
                 }
                 "shutdown" => {
                     tx.send(WorkerMessage::Shutdown).unwrap();
+                }
+                "append" => {
+                    return Some(command_string::append(&array, database));
                 }
                 _ => {}
             }

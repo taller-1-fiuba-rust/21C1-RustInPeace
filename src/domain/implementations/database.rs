@@ -101,6 +101,22 @@ impl Database {
         }
     }
 
+    pub fn append_string(&mut self, key: &String, string: &String) -> usize {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(old_value) = item.get_copy_of_value() {
+                    let len = old_value.len() + string.len();
+                    let new_value = ValueType::StringType(old_value + string);
+                    item.set_value(new_value);
+                    return len;
+                }
+            }
+        }
+        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(string.to_string()))); 
+        string.len()
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn _load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -317,4 +333,30 @@ fn persist_changes_type_of_access_time() {
         KeyAccessTime::Persistent => assert!(true),
         KeyAccessTime::Volatile(_tmt) => assert!(false),
     }
+    std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn append_adds_string_to_end_of_existing_value() {
+    let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("Hello".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 11);
+    std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn append_adds_string_to_new_value() {
+    let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 6);
+    std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
 }
