@@ -87,8 +87,8 @@ fn test_01_config_sets_one_new_attribute_value() {
 */
 #[test]
 fn test_02_config_sets_multiple_new_attribute_value() {
-    std::fs::File::create("./src/dummy_redis.txt").unwrap();
-    let mut config = Config::new(String::from("./src/dummy_redis.txt"));
+    std::fs::File::create("./src/dummy_redis2.txt").unwrap();
+    let mut config = Config::new(String::from("./src/dummy_redis2.txt"));
     config
         .set_attribute(String::from("maxmemory"), String::from("2mb"))
         .unwrap();
@@ -116,5 +116,5 @@ fn test_02_config_sets_multiple_new_attribute_value() {
         config.config.get("maxmemory").unwrap(),
         &String::from("3mb")
     );
-    std::fs::remove_file("./src/dummy_redis.txt").unwrap();
+    std::fs::remove_file("./src/dummy_redis2.txt").unwrap();
 }

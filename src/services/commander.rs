@@ -41,15 +41,16 @@ pub fn handle_command(
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
                             "get" => {
-                                command_server::config_get(config, &array[2]).unwrap();
+                                return Some(command_server::config_get(config, &array[2]));
                             }
                             "set" => {
-                                command_server::config_set(config, &array[2], &array[3]).unwrap();
+                                return Some(command_server::config_set(
+                                    config, &array[2], &array[3],
+                                ));
                             }
                             _ => {}
                         }
                     }
-                    //implementar respuesta
                 }
                 "dbsize" => {
                     let db_size = command_server::dbsize(&database);
@@ -116,6 +117,9 @@ pub fn handle_command(
                 }
                 "rename" => {
                     command_key::rename(&array, database);
+                }
+                "shutdown" => {
+                    tx.send(WorkerMessage::Shutdown).unwrap();
                 }
                 _ => {}
             }
