@@ -52,11 +52,7 @@ impl Database {
         if let Some(source_item) = source_item {
             let new_value = source_item.get_copy_of_value();
             if replace {
-                if let Some(()) = self.replace_value_on_key(destination, new_value) {
-                    Some(())
-                } else {
-                    None
-                }
+                self.replace_value_on_key(destination, new_value)
             } else {
                 let new_item = KeyValueItem::new(destination, new_value);
                 self.items.push(new_item);
@@ -243,7 +239,12 @@ mod tests {
 /* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESOT.
 #[test]
 fn test_01_database_copies_value_to_new_key() {
-    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let mut db = Database::new(String::from("./src/dummy_database.txt"));
+    db.add(KeyValueItem {
+        key: "clave_1".to_string(),
+        value: ValueType::StringType("valor_1".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
 
     let source = String::from("clave_1");
     let destination = String::from("clone");
@@ -257,24 +258,36 @@ fn test_01_database_copies_value_to_new_key() {
 
 #[test]
 fn test_02_database_copy_replaces_key_with_new_value() {
-    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let mut db = Database::new(String::from("./src/dummy_database.txt"));
+
+    db.add(KeyValueItem {
+        key: "clave_1".to_string(),
+        value: ValueType::StringType("valor_1".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
 
     let source = String::from("clave_1");
-    let destination = String::from("clone");
+    let destination = String::from("clave_2");
     assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    let new_item = db.search_item_by_key(&String::from("clave_2")).unwrap();
     if let ValueType::StringType(str) = new_item._get_value() {
         assert_eq!(str, &String::from("valor_1"));
     }
 
+    db.add(KeyValueItem {
+        key: "clave_3".to_string(),
+        value: ValueType::StringType("valor_3".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
     let source = String::from("clave_2");
-    let destination = String::from("clone");
+    let destination = String::from("clave_3");
     assert_eq!(db.copy(source, destination, true).unwrap(), ());
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+    let new_item = db.search_item_by_key(&String::from("clave_3")).unwrap();
     if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_2"));
+        assert_eq!(str, &String::from("valor_1"));
     }
 }
 

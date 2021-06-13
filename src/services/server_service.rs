@@ -169,9 +169,7 @@ fn handle_connection(
                     }
                 }
             }
-            Err(ref err) if err.kind() == ErrorKind::WouldBlock => {
-                println!("read is blocking..");
-            }
+            Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
             Err(e) => {
                 println!("Closing connection: {:?}", e);
                 break;

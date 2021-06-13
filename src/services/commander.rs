@@ -53,56 +53,13 @@ pub fn handle_command(
                     }
                 }
                 "dbsize" => {
-                    let db_size = command_server::dbsize(&database);
-                    println!("database size: {:?}", db_size);
-                    return Some(db_size);
+                    return Some(command_server::dbsize(&database));
                 }
                 "flushdb" => {
                     return Some(command_server::flushdb(database));
                 }
                 "copy" => {
-                    if array.len() > 2 {
-                        if let RespType::RBulkString(source) = &array[1] {
-                            if let RespType::RBulkString(destination) = &array[2] {
-                                if array.len() == 3 {
-                                    let res = command_key::copy(
-                                        database,
-                                        String::from(source),
-                                        String::from(destination),
-                                        false,
-                                    );
-                                    if let Some(()) = res {
-                                        return Some(RespType::RInteger(1));
-                                    } else {
-                                        return Some(RespType::RInteger(0));
-                                    }
-                                } else if array.len() == 4 {
-                                    if let RespType::RBulkString(replace) = &array[3] {
-                                        if replace == "replace" {
-                                            let res = command_key::copy(
-                                                database,
-                                                String::from(source),
-                                                String::from(destination),
-                                                true,
-                                            );
-                                            if let Some(()) = res {
-                                                return Some(RespType::RInteger(1));
-                                            } else {
-                                                return Some(RespType::RInteger(0));
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                //
-                            }
-                        } else {
-                            //
-                        }
-                    } else {
-                        //
-                    }
-                    return None;
+                    return Some(command_key::copy(&array, database));
                 }
                 "del" => {
                     return Some(command_key::del(&array, database));

@@ -2,7 +2,11 @@ extern crate redis;
 
 use proyecto_taller_1::{
     domain::{
-        entities::{config::Config, server::Server},
+        entities::{
+            config::Config,
+            key_value_item::{KeyValueItem, ValueType},
+            server::Server,
+        },
         implementations::database::Database,
     },
     services::{server_service, worker_service::ThreadPool},
@@ -73,7 +77,28 @@ fn test_main() {
         config
             .set_attribute(String::from("verbose"), String::from("1"))
             .unwrap();
-        let database = Database::new(db_file);
+
+        let mut database = Database::new(db_file);
+        let added_item = KeyValueItem::new(
+            String::from("key_1"),
+            ValueType::StringType(String::from("value_key_1")),
+        );
+        database.add(added_item);
+        let added_item = KeyValueItem::new(
+            String::from("key_2"),
+            ValueType::StringType(String::from("value_key_2")),
+        );
+        database.add(added_item);
+        let added_item = KeyValueItem::new(
+            String::from("key_3"),
+            ValueType::StringType(String::from("value_key_3")),
+        );
+        database.add(added_item);
+        let added_item = KeyValueItem::new(
+            String::from("key_4"),
+            ValueType::StringType(String::from("value_key_4")),
+        );
+        database.add(added_item);
 
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
@@ -123,18 +148,18 @@ const TESTS: &[Test] = &[
         name: "server command: config set maxmemory",
         func: test_config_set_maxmemory,
     },
-    Test {
-        name: "server command: dbsize",
-        func: test_dbsize,
-    },
+    // Test {
+    //     name: "server command: dbsize",
+    //     func: test_dbsize,
+    // },
     // Test {
     //     name: "server command: flushdb",
     //     func: test_flushdb,
     // },
-    // Test {
-    //     name: "keys command: del",
-    //     func: test_keys_del,
-    // },
+    Test {
+        name: "keys command: del",
+        func: test_keys_del,
+    },
     Test {
         name: "keys command: exists",
         func: test_keys_exists,
@@ -146,6 +171,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: rename",
         func: test_keys_rename,
+    },
+    Test {
+        name: "keys command: copy",
+        func: test_keys_copy,
+    },
+    Test {
+        name: "keys command: copy replace",
+        func: test_keys_copy_with_replace,
     },
 ];
 
@@ -195,21 +228,22 @@ fn test_config_set_maxmemory() -> TestResult {
     }
 }
 
-fn test_dbsize() -> TestResult {
+// no lo testeo porque el resultado depende de si se ejecuta antes o despues de borrar una clave
+fn _test_dbsize() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("DBSIZE").query(&mut con)?;
 
-    // OJO QUE AHORA ES 2 PORQUE ESTA HARCODEADO EL CONSTRUCTOR DE DATABASE
-    if ret == 2 {
+    if ret == 4 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("2"),
+            expected: String::from("4"),
             got: ret.to_string(),
         }));
     }
 }
 
+// no lo testeo porque depende el orden en que se ejecuten podrian fallarme los otros tests
 fn _test_flushdb() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("FLUSHDB").query(&mut con)?;
@@ -224,11 +258,9 @@ fn _test_flushdb() -> TestResult {
     }
 }
 
-fn _test_keys_del() -> TestResult {
+fn test_keys_del() -> TestResult {
     let mut con = connect()?;
-
-    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("DEL").arg("clave_2").query(&mut con)?;
+    let ret: usize = redis::cmd("DEL").arg("key_4").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
@@ -242,9 +274,7 @@ fn _test_keys_del() -> TestResult {
 
 fn test_keys_exists() -> TestResult {
     let mut con = connect()?;
-
-    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("EXISTS").arg("clave_1").query(&mut con)?;
+    let ret: usize = redis::cmd("EXISTS").arg("key_1").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
@@ -258,9 +288,7 @@ fn test_keys_exists() -> TestResult {
 
 fn test_keys_persist() -> TestResult {
     let mut con = connect()?;
-
-    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
-    let ret: usize = redis::cmd("PERSIST").arg("clave_1").query(&mut con)?;
+    let ret: usize = redis::cmd("PERSIST").arg("key_1").query(&mut con)?;
 
     if ret == 1 {
         return Ok(());
@@ -274,11 +302,9 @@ fn test_keys_persist() -> TestResult {
 
 fn test_keys_rename() -> TestResult {
     let mut con = connect()?;
-
-    // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW
     let ret: String = redis::cmd("RENAME")
-        .arg("clave_2")
-        .arg("clave_renamed")
+        .arg("key_2")
+        .arg("key_2_renamed")
         .query(&mut con)?;
 
     if ret == String::from("OK") {
@@ -286,6 +312,41 @@ fn test_keys_rename() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("OK"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_copy() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("COPY")
+        .arg("key_2")
+        .arg("key_3")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_copy_with_replace() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("COPY")
+        .arg("key_1")
+        .arg("key_3")
+        .arg("REPLACE")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
             got: ret.to_string(),
         }));
     }
