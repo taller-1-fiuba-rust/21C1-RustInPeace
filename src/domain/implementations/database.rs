@@ -5,7 +5,7 @@ use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::path::Path;
 // use std::error::Error;
 // use std::u64;
@@ -28,7 +28,6 @@ impl Database {
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
-
     pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
@@ -36,7 +35,6 @@ impl Database {
         self.items = Vec::new();
         &self.items
     }
-
     pub fn search_item_by_key(&self, key: &str) -> Option<&KeyValueItem> {
         for item in &self.items {
             let k = item.get_key();
@@ -46,7 +44,6 @@ impl Database {
         }
         None
     }
-
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         let source_item = self.search_item_by_key(&source);
         if let Some(source_item) = source_item {
@@ -66,7 +63,6 @@ impl Database {
             None
         }
     }
-
     pub fn replace_value_on_key(&mut self, key: String, value: ValueType) -> Option<()> {
         for item in self.items.iter_mut() {
             let k = item.get_key();
@@ -77,7 +73,6 @@ impl Database {
         }
         None
     }
-
     pub fn persist(&mut self, key: String) -> bool {
         for item in self.items.iter_mut() {
             let k = item.get_key();
@@ -87,7 +82,6 @@ impl Database {
         }
         false
     }
-
     pub fn rename_key(&mut self, actual_key: String, new_key: String) {
         if let Some(pos) = self
             .items
@@ -117,18 +111,24 @@ impl Database {
         }
     }
 
-    //TODO sacar esto de acá
-    pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+    fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     where
         P: AsRef<Path>,
     {
-        let file = File::open(filename)?;
-        Ok(io::BufReader::new(file).lines())
+        let path = Path::new(filename.as_ref());
+        let file = File::open(&path);
+        match file {
+            Ok(_) => Ok(io::BufReader::new(file.unwrap()).lines()),
+            Err(_) => {
+                let mut _file = File::create(&path)?; //Lo crea en write-only mode.
+                let path = Path::new(filename.as_ref());
+                let file_op = File::open(&path);
+                Ok(io::BufReader::new(file_op.unwrap()).lines())
+            }
+        }
     }
 
-    pub fn _save_items_to_file(&self) {
-        unimplemented!()
-    }
+    pub fn _save_items_to_file(&self) {}
 
     pub fn get_size(&self) -> usize {
         self.items.len()
@@ -259,6 +259,13 @@ mod tests {
             _ => assert!(false),
         }
         std::fs::remove_file("file").unwrap();
+    }
+    #[test]
+    fn create_database_file() {
+        assert!(!std::path::Path::new("new_file").exists());
+        let _db = Database::new("new_file".to_string());
+        assert!(std::path::Path::new("new_file").exists());
+        std::fs::remove_file("new_file").unwrap();
     }
 
     /* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESTO.
