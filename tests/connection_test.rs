@@ -210,7 +210,7 @@ fn test_dbsize() -> TestResult {
     }
 }
 
-fn test_flushdb() -> TestResult {
+fn _test_flushdb() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("FLUSHDB").query(&mut con)?;
 
@@ -224,7 +224,7 @@ fn test_flushdb() -> TestResult {
     }
 }
 
-fn test_keys_del() -> TestResult {
+fn _test_keys_del() -> TestResult {
     let mut con = connect()?;
 
     // OJO PORQUE SALE DEL HARDCODEO EN DATABASE NEW

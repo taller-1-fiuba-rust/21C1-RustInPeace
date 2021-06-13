@@ -90,6 +90,7 @@ impl Database {
         false
     }
 
+    //falta devolver error si no la encuentra
     pub fn rename_key(&mut self, actual_key: String, new_key: String) {
         if let Some(pos) = self
             .items
