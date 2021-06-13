@@ -1,4 +1,3 @@
-//#[derive(Debug)]
 use super::parser_service::{parse_request, parse_response};
 use super::worker_service::ThreadPool;
 use crate::domain::entities::config::Config;
@@ -9,7 +8,7 @@ use crate::services::commander::handle_command;
 use crate::services::utils::resp_type::RespType;
 use std::io::{self, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, RwLock};
 use std::thread;
 // use std::time::Duration;
@@ -32,9 +31,6 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
                 for stream in listener.incoming() {
                     match stream {
                         Ok(stream) => {
-                            //if timeout != 0 {
-                            //stream.set_read_timeout(Some(Duration::from_millis(timeout)));//handle err
-                            //}
                             stream
                                 .set_nonblocking(true)
                                 .expect("set_nonblocking call failed");
@@ -64,17 +60,21 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
                     }
                 }
             }
-            Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
             Err(_) => {
                 println!("Listener couldn't be created");
             }
         }
     });
+    listen_server_messages(receiver_server, server);
+    println!("Shutting down.");
+    handle.join().unwrap();
+}
 
+fn listen_server_messages(receiver_server: Receiver<WorkerMessage>, server: &mut Server) {
     for msg in &receiver_server {
         match msg {
             WorkerMessage::Log(log_msg) => match server.log(log_msg) {
-                Ok(_) => {}
+                Ok(_) => (),
                 Err(e) => {
                     println!("Logging error: {}", e);
                 }
@@ -90,8 +90,6 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
             }
         }
     }
-    println!("Shutting down.");
-    handle.join().unwrap();
 }
 
 fn handle_connection(
@@ -103,19 +101,12 @@ fn handle_connection(
 ) {
     let client_addrs = stream.peer_addr().unwrap();
     // println!("HOLISSS SOY {}", client_addrs);
+    log(
+        format!("Connection to address {} established\r\n", client_addrs),
+        &tx,
+    );
 
-    tx.send(WorkerMessage::Log(format!(
-        "Connection to address {} established\r\n",
-        client_addrs
-    )))
-    .unwrap();
-
-    // leo un mensaje nuevo
-    // el mensaje nuevo llega en un arreglo de bytes
-    // se lo pasamos a parser
     // stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
-
-    // let mut buf = [0u8; 512];
     loop {
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
@@ -123,33 +114,20 @@ fn handle_connection(
                 break;
             }
             Ok(size) => {
-                tx.send(WorkerMessage::Log(format!(
-                    "Reading new message from {}. Message: {:?}\r\n",
-                    client_addrs,
-                    String::from_utf8_lossy(&buf[..size])
-                )))
-                .unwrap();
-                tx.send(WorkerMessage::Verb(format!(
-                    "Reading new message from {}. Message: {:?}\r\n",
-                    client_addrs,
-                    String::from_utf8_lossy(&buf[..size])
-                )))
-                .unwrap();
+                log(
+                    format!(
+                        "Reading new message from {}. Message: {:?}\r\n",
+                        client_addrs,
+                        String::from_utf8_lossy(&buf[..size])
+                    ),
+                    &tx,
+                );
 
                 match parse_request(&buf[..size]) {
                     Ok(parsed_request) => {
                         // println!("parsed req: {:?} from: {}", parsed_request, client_addrs);
-                        tx.send(WorkerMessage::Log(format!(
-                            "Parsed request: {:?}\r\n",
-                            parsed_request
-                        )))
-                        .unwrap();
-                        tx.send(WorkerMessage::Verb(format!(
-                            "Parsed request: {:?}\r\n",
-                            parsed_request
-                        )))
-                        .unwrap();
-                        // de aca pasa a un servicio que delegue segun la request que sea
+                        log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
+
                         tx.send(WorkerMessage::NewOperation(
                             parsed_request.clone(),
                             client_addrs,
@@ -157,7 +135,7 @@ fn handle_connection(
                         .unwrap();
 
                         //chequeo si es un shutdown
-                        if shutdown(&parsed_request) {
+                        if check_shutdown(&parsed_request) {
                             stop.send(true).unwrap();
                             break;
                         }
@@ -169,21 +147,16 @@ fn handle_connection(
                             // ese servicio va a devolver una response
                             let response = parse_response(res);
                             // println!("response:{:?}", response);
-                            tx.send(WorkerMessage::Verb(format!(
-                                "Response for {}. Message: {:?}. Response: {}\r\n",
-                                client_addrs,
-                                String::from_utf8_lossy(&buf[..size]),
-                                response
-                            )))
-                            .unwrap();
+                            log(
+                                format!(
+                                    "Response for {}. Message: {:?}. Response: {}\r\n",
+                                    client_addrs,
+                                    String::from_utf8_lossy(&buf[..size]),
+                                    response
+                                ),
+                                &tx,
+                            );
 
-                            tx.send(WorkerMessage::Log(format!(
-                                "Response for {}. Message: {:?}. Response: {}\r\n",
-                                client_addrs,
-                                String::from_utf8_lossy(&buf[..size]),
-                                response
-                            )))
-                            .unwrap();
                             // println!("RESPONSE: {}", response);
                             // println!("RESPONSE as bytes: {:?}", response.as_bytes());
                             stream.write_all(response.as_bytes()).unwrap();
@@ -207,7 +180,15 @@ fn handle_connection(
     }
 }
 
-fn shutdown(request: &RespType) -> bool {
+fn log(msg: String, tx: &Sender<WorkerMessage>) {
+    tx.send(WorkerMessage::Log(msg)).unwrap();
+}
+
+fn _verbose(msg: String, tx: &Sender<WorkerMessage>) {
+    tx.send(WorkerMessage::Verb(msg)).unwrap();
+}
+
+fn check_shutdown(request: &RespType) -> bool {
     if let RespType::RArray(array) = request {
         if let RespType::RBulkString(cmd) = &array[0] {
             if cmd == "shutdown" {
