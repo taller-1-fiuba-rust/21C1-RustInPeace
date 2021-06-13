@@ -287,10 +287,10 @@ mod tests {
 
     #[test]
     fn save_items_to_file() {
-        //   let mut file = File::create("file".to_string()).expect("Unable to open");
-        //   file.write_all(b"123key;;string;value\n").unwrap();
-        //   file.write_all(b"124key;1623433677;string;value2\n")
-        //       .unwrap();
+           let mut file = File::create("file".to_string()).expect("Unable to open");
+           file.write_all(b"123key;;string;value\n").unwrap();
+           file.write_all(b"124key;1623433677;string;value2\n")
+               .unwrap();
 
         let mut db = Database::new("file".to_string());
         db.add(KeyValueItem {
