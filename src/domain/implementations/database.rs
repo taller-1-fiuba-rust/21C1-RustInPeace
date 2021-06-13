@@ -251,12 +251,12 @@ mod tests {
 
     #[test]
     fn load_items_from_file() {
-        let mut file = File::create("file".to_string()).expect("Unable to open");
+        let mut file = File::create("file_5".to_string()).expect("Unable to open");
         file.write_all(b"123key;;string;value\n").unwrap();
         file.write_all(b"124key;1623433677;string;value2\n")
             .unwrap();
 
-        let db = Database::new("file".to_string());
+        let db = Database::new("file_5".to_string());
         assert_eq!(db.items.len(), 2);
         let mut iter = db.items.iter();
         let kvi = iter.next().unwrap();
@@ -275,7 +275,7 @@ mod tests {
             KeyAccessTime::Volatile(1623433677) => assert!(true),
             _ => assert!(false),
         }
-        std::fs::remove_file("file").unwrap();
+        std::fs::remove_file("file_5").unwrap();
     }
     #[test]
     fn create_database_file() {
@@ -287,10 +287,10 @@ mod tests {
 
     #[test]
     fn save_items_to_file() {
-           let mut file = File::create("file".to_string()).expect("Unable to open");
-           file.write_all(b"123key;;string;value\n").unwrap();
-           file.write_all(b"124key;1623433677;string;value2\n")
-               .unwrap();
+        let mut file = File::create("file".to_string()).expect("Unable to open");
+        file.write_all(b"123key;;string;value\n").unwrap();
+        file.write_all(b"124key;1623433677;string;value2\n")
+            .unwrap();
 
         let mut db = Database::new("file".to_string());
         db.add(KeyValueItem {
@@ -333,6 +333,7 @@ mod tests {
         if let ValueType::StringType(str) = new_item._get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
+        std::fs::remove_file("./src/dummy.txt").unwrap();
     }
 
     #[test]
@@ -352,6 +353,7 @@ mod tests {
         if let ValueType::StringType(str) = new_item._get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
+        std::fs::remove_file("./src/dummy.txt").unwrap();
     }
 
     #[test]
@@ -370,6 +372,7 @@ mod tests {
         assert_eq!(db.get_size(), 2);
         db.clean_items();
         assert_eq!(db.get_size(), 0);
+        std::fs::remove_file("./src/database.txt").unwrap();
     }
 
     #[test]
