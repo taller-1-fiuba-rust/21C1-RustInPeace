@@ -115,6 +115,10 @@ pub fn handle_command(
                 "rename" => {
                     command_key::rename(&array, database);
                 }
+                "sort" => {
+                    let sorted_list = command_key::true_sort(&array, database);
+                    println!("{:?}", sorted_list)
+                }
                 _ => {}
             }
         }

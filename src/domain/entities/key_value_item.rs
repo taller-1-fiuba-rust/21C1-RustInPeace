@@ -1,10 +1,11 @@
-use std::collections::{HashSet, LinkedList};
-use std::fmt;
+use std::collections::HashSet;
+use std::fmt; //, usize};
+              //use crate::services::utils::resp_type::RespType;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ValueType {
-    ListType(LinkedList<String>),
+    ListType(Vec<String>),
     SetType(HashSet<String>),
     StringType(String),
 }
@@ -43,24 +44,22 @@ pub enum KeyAccessTime {
 }
 
 #[derive(Debug)]
-pub struct KeyValueItem {
-    pub(crate) key: String, //TODO tuve que hacer publicos estos atributos porque los necesito para testear
+pub struct ValueTimeItem {
     pub(crate) value: ValueType,
     pub(crate) last_access_time: KeyAccessTime,
 }
 
-impl KeyValueItem {
-    pub fn new(key: String, value: ValueType) -> KeyValueItem {
-        KeyValueItem {
-            key,
+impl ValueTimeItem {
+    pub fn new(value: ValueType) -> ValueTimeItem {
+        ValueTimeItem {
             value,
             last_access_time: KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
         }
     }
 
-    pub fn get_key(&self) -> &String {
-        &self.key
-    }
+    // pub fn get_key(&self) -> &String {
+    //     &self.key
+    // }
 
     pub fn _get_last_access_time(&self) -> &KeyAccessTime {
         &self.last_access_time
@@ -85,26 +84,83 @@ impl KeyValueItem {
         self.value.clone()
     }
 
-    pub fn set_value(&mut self, new_value: ValueType) {
+    pub fn _set_value(&mut self, new_value: ValueType) {
         self.value = new_value;
+    }
+
+    pub fn sort_descending(&self) -> Option<Vec<&String>> {
+        let current_value = &self.value;
+        match current_value {
+            ValueType::ListType(current_list) => {
+                //let mut vec = Vec::new();
+                let mut vec: Vec<_> = current_list.into_iter().collect();
+                vec.sort();
+                vec.reverse();
+                return Some(vec);
+            }
+            ValueType::SetType(current_set) => {
+                let mut vec: Vec<_> = current_set.into_iter().collect();
+                vec.sort();
+                vec.reverse();
+                return Some(vec);
+            }
+            _ => {
+                return None;
+            }
+        }
+    }
+
+    pub fn sort(&self) -> Option<Vec<&String>> {
+        let current_value_item = &self.value;
+        match current_value_item {
+            ValueType::ListType(current_list) => {
+                let mut vec: Vec<_> = current_list.into_iter().collect();
+                vec.sort();
+                return Some(vec);
+            }
+            ValueType::SetType(current_set) => {
+                let mut vec: Vec<_> = current_set.into_iter().collect();
+                vec.sort();
+                return Some(vec);
+            }
+            _ => {
+                return None;
+            }
+        }
+    }
+
+    pub fn get_value_version_2(&self) -> Option<Vec<&String>> {
+        let current_value_item = &self.value;
+        match current_value_item {
+            ValueType::ListType(current_list) => {
+                let vec: Vec<_> = current_list.into_iter().collect();
+                return Some(vec);
+            }
+            ValueType::SetType(current_set) => {
+                let vec: Vec<_> = current_set.into_iter().collect();
+                return Some(vec);
+            }
+            ValueType::StringType(current_string) => {
+                let vec = vec![current_string];
+                return Some(vec);
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::entities::key_value_item::{KeyAccessTime, KeyValueItem, ValueType};
-    use std::collections::{HashSet, LinkedList};
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+    use std::collections::HashSet;
 
     #[test]
-    fn key_value_item_string_created() {
-        let kv_item = KeyValueItem {
-            key: "123".to_string(),
+    fn test_001_key_value_item_string_created() {
+        let kv_item = ValueTimeItem {
             value: ValueType::StringType("un_string".to_string()),
             last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_string");
-        assert_eq!(kv_item.key.to_string(), "123".to_string());
         match kv_item.last_access_time {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
@@ -112,18 +168,16 @@ mod tests {
     }
 
     #[test]
-    fn key_value_item_set_created() {
+    fn test_002_key_value_item_set_created() {
         let mut un_set = HashSet::new();
         un_set.insert("un_set_string".to_string());
 
-        let kv_item = KeyValueItem {
-            key: "123".to_string(),
+        let kv_item = ValueTimeItem {
             value: ValueType::SetType(un_set),
             last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_set_string");
-        assert_eq!(kv_item.key.to_string(), "123".to_string());
         match kv_item.last_access_time {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
@@ -131,19 +185,17 @@ mod tests {
     }
 
     #[test]
-    fn key_value_item_list_created() {
-        let mut un_list = LinkedList::new();
-        un_list.push_back("un_list_string".to_string());
-        un_list.push_back("otro_list_string".to_string());
+    fn test_003_key_value_item_list_created() {
+        let mut un_list = Vec::new();
+        un_list.push("un_list_string".to_string());
+        un_list.push("otro_list_string".to_string());
 
-        let kv_item = KeyValueItem {
-            key: "123".to_string(),
+        let kv_item = ValueTimeItem {
             value: ValueType::ListType(un_list),
             last_access_time: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
-        assert_eq!(kv_item.key.to_string(), "123".to_string());
         match kv_item.last_access_time {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
@@ -151,9 +203,8 @@ mod tests {
     }
 
     #[test]
-    fn key_value_item_changes_to_persist() {
-        let mut kv_item = KeyValueItem {
-            key: "123".to_string(),
+    fn test_004_key_value_item_changes_to_persist() {
+        let mut kv_item = ValueTimeItem {
             value: ValueType::StringType("un_string".to_string()),
             last_access_time: KeyAccessTime::Volatile(0),
         };
@@ -164,5 +215,65 @@ mod tests {
             KeyAccessTime::Volatile(_t) => assert!(false),
             KeyAccessTime::Persistent => assert!(true),
         }
+    }
+
+    #[test]
+    fn test_005_list_of_numbers_is_sorted_ascending() {
+        let kv_item = ValueTimeItem {
+            value: ValueType::ListType(vec![
+                20.to_string(),
+                65.to_string(),
+                1.to_string(),
+                34.to_string(),
+            ]),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+        let lista_ordenada = kv_item.sort().unwrap();
+        println!("{:?}", lista_ordenada)
+    }
+
+    #[test]
+    fn test_006_list_of_numbers_is_sorted_descending() {
+        let kv_item = ValueTimeItem {
+            value: ValueType::ListType(vec![
+                20.to_string(),
+                65.to_string(),
+                1.to_string(),
+                34.to_string(),
+            ]),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+        let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+        println!("{:?}", lista_ordenada_inversamente)
+    }
+
+    #[test]
+    fn test_007_list_of_words_is_sorted_inverse_abc() {
+        let kv_item = ValueTimeItem {
+            value: ValueType::ListType(vec![
+                "juan".to_string(),
+                "domingo".to_string(),
+                "irma".to_string(),
+                "dominga".to_string(),
+            ]),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+        let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+        println!("{:?}", lista_ordenada_inversamente)
+    }
+
+    #[test]
+    fn test_008_list_of_words_is_sorted_abc() {
+        let kv_item = ValueTimeItem {
+            value: ValueType::ListType(vec![
+                "juan".to_string(),
+                "domingo".to_string(),
+                "irma".to_string(),
+                "dominga".to_string(),
+            ]),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+        let lista_ordenada = kv_item.sort().unwrap();
+        println!("{:?}", lista_ordenada)
     }
 }
