@@ -39,3 +39,21 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RError(String::from("Invalid command decrby"))
 }
+
+pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let db = database.read().unwrap();
+            match db.get_value_by_key(key) {
+                Some(str) => {
+                    return RespType::RBulkString(str);
+                }
+                None => {
+                    //nil - testear
+                    return RespType::RNullBulkString();
+                }
+            }
+        }
+    }
+    RespType::RError(String::from("Invalid command get"))
+}

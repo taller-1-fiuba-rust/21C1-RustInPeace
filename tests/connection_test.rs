@@ -202,6 +202,10 @@ const TESTS: &[Test] = &[
         name: "string command: decrby mykey 3",
         func: test_string_decrby,
     },
+    Test {
+        name: "string command: get key_1",
+        func: test_string_get,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -404,6 +408,22 @@ fn test_string_decrby() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("7"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_get() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GET")
+        .arg("key_1")
+        .query(&mut con)?;
+
+    if ret == String::from("value_key_1") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("value_key_1"),
+            got: ret,
         }));
     }
 }

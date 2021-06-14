@@ -80,6 +80,9 @@ pub fn handle_command(
                 "decrby" => {
                     return Some(command_string::decrby(&array, database));
                 }
+                "get" => {
+                    return Some(command_string::get(&array, database));
+                }
                 _ => {}
             }
         }

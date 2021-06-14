@@ -124,12 +124,28 @@ impl Database {
                     let new_value = ValueType::StringType((str_as_number - decr).to_string());
                     item.set_value(new_value);
                     return Ok(str_as_number-decr);
+                } else {
+                    //devolver error
                 }
             }
         }
         let new_value = 0-decr;
         self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(new_value.to_string()))); 
         Ok(new_value)
+    }
+
+    pub fn get_value_by_key(&self, key: &String) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                return Some(str);
+            } else {
+                return None;
+            }
+        } else {
+            None
+        }
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
