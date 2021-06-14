@@ -165,6 +165,24 @@ impl Database {
         }
     }
 
+    //agregar tests
+    pub fn getset_value_by_key(&mut self, key: &String, new_value: &String) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                self.replace_value_on_key(key.to_string(), ValueType::StringType(new_value.to_string()));
+                return Some(str);
+            } else {
+                //error
+                return None;
+            }
+        } else {
+            //nil
+            None
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn _load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {

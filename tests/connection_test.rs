@@ -120,6 +120,12 @@ fn test_main() {
         );
         database.add(added_item);
 
+        let added_item = KeyValueItem::new(
+            String::from("key_getset"),
+            ValueType::StringType(String::from("OldValue")),
+        );
+        database.add(added_item);
+
 
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
@@ -216,6 +222,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: getdel key_getdel",
         func: test_string_getdel,
+    },
+    Test {
+        name: "string command: getset key_getset",
+        func: test_string_getset,
     },
 ];
 
@@ -450,6 +460,23 @@ fn test_string_getdel() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("Hello"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_getset() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GETSET")
+        .arg("key_getset")
+        .arg("NewValue")
+        .query(&mut con)?;
+
+    if ret == String::from("OldValue") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("OldValue"),
             got: ret,
         }));
     }
