@@ -76,7 +76,19 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
             println!("Listener couldn't be created");
         }
     }
-
+    println!("Saving dump before shutting down");
+    let x = Arc::try_unwrap(database);
+    match x {
+        Ok(t) => {
+            match t.try_read() {
+                Ok(n) => n._save_items_to_file(),
+                Err(_) => unreachable!(),
+            };
+        }
+        Err(_) => {
+            println!("Database couldn't be saved into file");
+        }
+    }
     println!("Shutting down.");
 }
 
@@ -176,17 +188,4 @@ fn handle_connection(
     }
 
     tx.send(WorkerMessage::HandleNextMessage).unwrap();
-
-    //lo de abajo es para que clippy no se queje
-
-    // let algo_1 = RespType::RError("no hay error".to_string());
-    // let algo_2 = RespType::RNullBulkString();
-    // let algo_3 = RespType::RNullArray();
-    // let algo_4 = RespType::RInteger(2);
-    // let algo_5 = RespType::RSimpleString("corto".to_string());
-    // println!("{:?}", algo_1);
-    // println!("{:?}", algo_2);
-    // println!("{:?}", algo_3);
-    // println!("{:?}", algo_4);
-    // println!("{:?}", algo_5);
 }
