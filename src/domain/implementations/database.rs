@@ -169,6 +169,21 @@ impl Database {
     }
 
     //agregar tests
+    pub fn get_strlen_by_key(&self, key: &String) -> Option<usize> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                return Some(str.len());
+            } else {
+                return None;
+            }
+        } else {
+            Some(0)
+        }
+    }
+
+    //agregar tests
     pub fn getdel_value_by_key(&mut self, key: &String) -> Option<String> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {

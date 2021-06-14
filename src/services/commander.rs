@@ -92,6 +92,9 @@ pub fn handle_command(
                 "incrby" => {
                     return Some(command_string::incrby(&array, database));
                 }
+                "strlen" => {
+                    return Some(command_string::strlen(&array, database));
+                }
                 _ => {}
             }
         }

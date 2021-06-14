@@ -64,7 +64,7 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RError(String::from("Invalid command decrby"))
+    RespType::RError(String::from("Invalid command incrby"))
 }
 
 pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -100,7 +100,7 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RError(String::from("Invalid command get"))
+    RespType::RError(String::from("Invalid command getdel"))
 }
 
 pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -120,5 +120,22 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RError(String::from("Invalid command get"))
+    RespType::RError(String::from("Invalid command getset"))
+}
+
+pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let db = database.read().unwrap();
+            match db.get_strlen_by_key(key) {
+                Some(len) => {
+                    return RespType::RInteger(len);
+                }
+                None => {
+                    return RespType::RError(String::from("key must hold a value of type string"));
+                }
+            }
+        }
+    }
+    RespType::RError(String::from("Invalid command strlen"))
 }

@@ -237,6 +237,10 @@ const TESTS: &[Test] = &[
         name: "string command: getset key_getset",
         func: test_string_getset,
     },
+    Test {
+        name: "string command: strlen key_1",
+        func: test_string_strlen,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -472,6 +476,22 @@ fn test_string_get() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("value_key_1"),
             got: ret,
+        }));
+    }
+}
+
+fn test_string_strlen() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("STRLEN")
+        .arg("key_1")
+        .query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
         }));
     }
 }
