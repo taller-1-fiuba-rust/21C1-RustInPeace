@@ -9,11 +9,10 @@ pub enum Message {
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
+#[derive(Debug)]
 pub enum WorkerMessage {
     Log(String),
     Verb(String),
     NewOperation(RespType, SocketAddr),
     MonitorOp(String),
-    HandleNextMessage,
-    Shutdown,
 }
