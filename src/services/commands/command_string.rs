@@ -57,3 +57,21 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RError(String::from("Invalid command get"))
 }
+
+pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            match db.getdel_value_by_key(key) {
+                Some(str) => {
+                    return RespType::RBulkString(str);
+                }
+                None => {
+                    //nil - testear
+                    return RespType::RNullBulkString();
+                }
+            }
+        }
+    }
+    RespType::RError(String::from("Invalid command get"))
+}

@@ -134,11 +134,28 @@ impl Database {
         Ok(new_value)
     }
 
+    //agregar tests
     pub fn get_value_by_key(&self, key: &String) -> Option<String> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
+                return Some(str);
+            } else {
+                return None;
+            }
+        } else {
+            None
+        }
+    }
+
+    //agregar tests
+    pub fn getdel_value_by_key(&mut self, key: &String) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                self.delete_key(key.to_string());
                 return Some(str);
             } else {
                 return None;

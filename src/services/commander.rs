@@ -83,6 +83,9 @@ pub fn handle_command(
                 "get" => {
                     return Some(command_string::get(&array, database));
                 }
+                "getdel" => {
+                    return Some(command_string::getdel(&array, database));
+                }
                 _ => {}
             }
         }
