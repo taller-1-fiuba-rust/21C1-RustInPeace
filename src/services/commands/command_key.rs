@@ -22,17 +22,37 @@ pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
-pub fn copy(
-    database: &Arc<RwLock<Database>>,
-    source: String,
-    destination: String,
-    replace: bool,
-) -> Option<()> {
-    if let Ok(write_guard) = database.write() {
-        let mut db = write_guard;
-        return db.copy(source, destination, replace);
+pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 2 {
+        if let RespType::RBulkString(source) = &cmd[1] {
+            if let RespType::RBulkString(destination) = &cmd[2] {
+                if let Ok(write_guard) = database.write() {
+                    let mut db = write_guard;
+                    if cmd.len() == 4 {
+                        if let RespType::RBulkString(replace) = &cmd[3] {
+                            if replace == "replace" {
+                                let res =
+                                    db.copy(source.to_string(), destination.to_string(), true);
+                                if let Some(()) = res {
+                                    return RespType::RInteger(1);
+                                } else {
+                                    return RespType::RInteger(0);
+                                }
+                            }
+                        }
+                    } else {
+                        let res = db.copy(source.to_string(), destination.to_string(), false);
+                        if let Some(()) = res {
+                            return RespType::RInteger(1);
+                        } else {
+                            return RespType::RInteger(0);
+                        }
+                    }
+                }
+            }
+        }
     }
-    None
+    RespType::RInteger(0)
 }
 
 pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -69,7 +89,7 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RBulkString("key_found".to_string())
+    RespType::RBulkString("OK".to_string())
 }
 
 //     for n in cmd.iter().skip(1) {

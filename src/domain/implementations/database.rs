@@ -1,12 +1,17 @@
 #[allow(unused)]
 use crate::domain::entities::key_value_item::KeyAccessTime;
+
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::{BufRead, Write};
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::BufRead;
+use std::io::Write;
+use std::io::{self};
+use std::num::ParseIntError;
 use std::path::Path;
+
 #[derive(Debug)]
 pub struct Database {
     dbfilename: String,
@@ -46,11 +51,7 @@ impl Database {
         if let Some(source_item) = source_item {
             let new_value = source_item.get_copy_of_value();
             if replace {
-                if let Some(()) = self.replace_value_on_key(destination, new_value) {
-                    Some(())
-                } else {
-                    None
-                }
+                self.replace_value_on_key(destination, new_value)
             } else {
                 let new_item = KeyValueItem::new(destination, new_value);
                 self.items.push(new_item);
@@ -79,6 +80,7 @@ impl Database {
         }
         false
     }
+
     pub fn rename_key(&mut self, actual_key: String, new_key: String) {
         if let Some(pos) = self
             .items
@@ -89,6 +91,136 @@ impl Database {
             self.items.remove(pos);
             let updated_key = KeyValueItem::new(new_key, saved_value);
             self.items.push(updated_key);
+        }
+    }
+
+    pub fn append_string(&mut self, key: &str, string: &str) -> usize {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(old_value) = item.get_copy_of_value() {
+                    let len = old_value.len() + string.len();
+                    let new_value = ValueType::StringType(old_value + string);
+                    item.set_value(new_value);
+                    return len;
+                }
+            }
+        }
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(string.to_string()),
+        ));
+        string.len()
+    }
+
+    pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(str) = item.get_copy_of_value() {
+                    let str_as_number = str.parse::<i64>()?;
+                    let new_value = ValueType::StringType((str_as_number - decr).to_string());
+                    item.set_value(new_value);
+                    return Ok(str_as_number - decr);
+                } else {
+                    //devolver error
+                }
+            }
+        }
+        let new_value = 0 - decr;
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(new_value.to_string()),
+        ));
+        Ok(new_value)
+    }
+
+    pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(str) = item.get_copy_of_value() {
+                    let str_as_number = str.parse::<i64>()?;
+                    let new_value = ValueType::StringType((str_as_number + incr).to_string());
+                    item.set_value(new_value);
+                    return Ok(str_as_number + incr);
+                } else {
+                    //devolver error
+                }
+            }
+        }
+        let new_value = incr;
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(new_value.to_string()),
+        ));
+        Ok(new_value)
+    }
+
+    //agregar tests
+    pub fn get_value_by_key(&self, key: &str) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                Some(str)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    //agregar tests
+    pub fn get_strlen_by_key(&self, key: &str) -> Option<usize> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                Some(str.len())
+            } else {
+                None
+            }
+        } else {
+            Some(0)
+        }
+    }
+
+    //agregar tests
+    pub fn getdel_value_by_key(&mut self, key: &str) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                self.delete_key(key.to_string());
+                Some(str)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    //agregar tests
+    pub fn getset_value_by_key(&mut self, key: &str, new_value: &str) -> Option<String> {
+        let item = self.search_item_by_key(key);
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                self.replace_value_on_key(
+                    key.to_string(),
+                    ValueType::StringType(new_value.to_string()),
+                );
+                Some(str)
+            } else {
+                //error
+                None
+            }
+        } else {
+            //nil
+            None
         }
     }
 
@@ -282,6 +414,7 @@ mod tests {
         }
         std::fs::remove_file("file_5").unwrap();
     }
+
     #[test]
     fn create_database_file() {
         assert!(!std::path::Path::new("new_file").exists());
@@ -332,7 +465,7 @@ mod tests {
 
     #[test]
     fn test_01_database_copies_value_to_new_key() {
-        let mut db = Database::new(String::from("./src/dummy.txt"));
+        let mut db = Database::new(String::from("./src/dummy_copy_1.txt"));
         db.add(KeyValueItem {
             key: "clave_1".to_string(),
             value: ValueType::StringType("valor_1".to_string()),
@@ -347,12 +480,12 @@ mod tests {
         if let ValueType::StringType(str) = new_item._get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
-        std::fs::remove_file("./src/dummy.txt").unwrap();
+        std::fs::remove_file("./src/dummy_copy_1.txt").unwrap();
     }
 
     #[test]
     fn test_02_database_copy_replaces_key_with_new_value() {
-        let mut db = Database::new(String::from("./src/dummy.txt"));
+        let mut db = Database::new(String::from("./src/dummy_copy.txt"));
         db.add(KeyValueItem {
             key: "clave_1".to_string(),
             value: ValueType::StringType("valor_1".to_string()),
@@ -367,12 +500,12 @@ mod tests {
         if let ValueType::StringType(str) = new_item._get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
-        std::fs::remove_file("./src/dummy.txt").unwrap();
+        std::fs::remove_file("./src/dummy_copy.txt").unwrap();
     }
 
     #[test]
     fn test_03_clean_items_deletes_all_items() {
-        let mut db = Database::new(String::from("./src/database.txt"));
+        let mut db = Database::new(String::from("./src/database_1.txt"));
         db.add(KeyValueItem {
             key: "clave_1".to_string(),
             value: ValueType::StringType("value".to_string()),
@@ -386,7 +519,7 @@ mod tests {
         assert_eq!(db.get_size(), 2);
         db.clean_items();
         assert_eq!(db.get_size(), 0);
-        std::fs::remove_file("./src/database.txt").unwrap();
+        std::fs::remove_file("./src/database_1.txt").unwrap();
     }
 
     #[test]
@@ -409,8 +542,8 @@ mod tests {
     #[test]
     fn persist_changes_type_of_access_time() {
         use crate::domain::entities::key_value_item::KeyAccessTime;
-        let _file = File::create("./src/dummy.txt");
-        let mut db = Database::new(String::from("./src/dummy.txt"));
+        // let _file = File::create("./src/dummy.txt");
+        let mut db = Database::new(String::from("./src/dummy_persist.txt"));
         let _res = db.add(KeyValueItem {
             key: "clave_1".to_string(),
             value: ValueType::StringType("value".to_string()),
@@ -422,5 +555,72 @@ mod tests {
             KeyAccessTime::Persistent => assert!(true),
             KeyAccessTime::Volatile(_tmt) => assert!(false),
         }
+        std::fs::remove_file("./src/dummy_persist.txt".to_string()).unwrap();
     }
+    // std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn append_adds_string_to_end_of_existing_value() {
+    // let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("Hello".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 11);
+    std::fs::remove_file("./src/dummy_appends_2.txt".to_string()).unwrap();
+}
+
+#[test]
+fn append_adds_string_to_new_value() {
+    // let _file = File::create("./src/dummy_appends_1.txt");
+    let mut db = Database::new(String::from("./src/dummy_appends_1.txt"));
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 6);
+    std::fs::remove_file("./src/dummy_appends_1.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_key_to_existing_key() {
+    // let _file = File::create("./src/dummy_dec.txt");
+    let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, 7);
+    std::fs::remove_file("./src/dummy_decr_1.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_by_to_new_key() {
+    // let _file = File::create("./src/dummy_decr.txt");
+    let mut db = Database::new(String::from("./src/dummy_decr.txt"));
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, -3);
+    std::fs::remove_file("./src/dummy_decr.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_by_to_invalid_string_value() {
+    // let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("Hello".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3);
+    assert!(res.is_err());
+    std::fs::remove_file("./src/dummy_decr_2.txt".to_string()).unwrap();
 }

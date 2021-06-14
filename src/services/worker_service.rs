@@ -53,7 +53,7 @@ impl Drop for ThreadPool {
         println!("Shutting down all workers.");
 
         for worker in &mut self.workers {
-            worker.drop_();
+            worker.shutdown();
         }
     }
 }
