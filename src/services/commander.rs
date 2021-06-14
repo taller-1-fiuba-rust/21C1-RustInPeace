@@ -125,6 +125,9 @@ pub fn handle_command(
                 "append" => {
                     return Some(command_string::append(&array, database));
                 }
+                "decrby" => {
+                    return Some(command_string::decrby(&array, database));
+                }
                 _ => {}
             }
         }

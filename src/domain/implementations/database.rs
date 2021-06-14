@@ -4,8 +4,9 @@ use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;
-use std::io;
+use std::io::{self};
 use std::io::BufRead;
+use std::num::ParseIntError;
 use std::path::Path;
 // use std::error::Error;
 // use std::u64;
@@ -115,6 +116,23 @@ impl Database {
         }
         self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(string.to_string()))); 
         string.len()
+    }
+
+    pub fn decrement_key_by(&mut self, key: &String, decr: i64) -> Result<i64, ParseIntError> {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(str) = item.get_copy_of_value() {
+                    let str_as_number = str.parse::<i64>()?;
+                    let new_value = ValueType::StringType((str_as_number - decr).to_string());
+                    item.set_value(new_value);
+                    return Ok(str_as_number-decr);
+                }
+            }
+        }
+        let new_value = 0-decr;
+        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(new_value.to_string()))); 
+        Ok(new_value)
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
@@ -359,4 +377,43 @@ fn append_adds_string_to_new_value() {
     let len = db.append_string(&"mykey".to_string(), &" World".to_string());
     assert_eq!(len, 6);
     std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_key_to_existing_key() {
+    let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, 7);
+    std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_by_to_new_key() {
+    let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, -3);
+    std::fs::remove_file("./src/dummy.txt".to_string()).unwrap();
+}
+
+#[test]
+fn decr_by_to_invalid_string_value() {
+    let _file = File::create("./src/dummy.txt");
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    let _res = db.add(KeyValueItem {
+        key: "mykey".to_string(),
+        value: ValueType::StringType("Hello".to_string()),
+        last_access_time: KeyAccessTime::Persistent,
+    });
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3);
+    assert!(res.is_err());
 }

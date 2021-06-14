@@ -76,6 +76,12 @@ fn test_main() {
         );
         database.add(added_item);
 
+        let added_item = KeyValueItem::new(
+            String::from("key_to_decr"),
+            ValueType::StringType(String::from("10")),
+        );
+        database.add(added_item);
+
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
@@ -127,6 +133,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: append mykey newvalue",
         func: test_string_append,
+    },
+    Test {
+        name: "string command: decrby mykey 3",
+        func: test_string_decrby,
     },
 ];
 
@@ -188,6 +198,23 @@ fn test_string_append() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_decrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("key_to_decr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 7 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("7"),
             got: ret.to_string(),
         }));
     }
