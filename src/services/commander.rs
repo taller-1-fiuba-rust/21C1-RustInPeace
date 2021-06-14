@@ -4,6 +4,7 @@ use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
     services::commands::command_server,
+    services::commands::command_string,
 };
 #[allow(unused)]
 use std::fs::File;
@@ -72,6 +73,27 @@ pub fn handle_command(
                 }
                 "rename" => {
                     return Some(command_key::rename(&array, database));
+                }
+                "append" => {
+                    return Some(command_string::append(&array, database));
+                }
+                "decrby" => {
+                    return Some(command_string::decrby(&array, database));
+                }
+                "get" => {
+                    return Some(command_string::get(&array, database));
+                }
+                "getdel" => {
+                    return Some(command_string::getdel(&array, database));
+                }
+                "getset" => {
+                    return Some(command_string::getset(&array, database));
+                }
+                "incrby" => {
+                    return Some(command_string::incrby(&array, database));
+                }
+                "strlen" => {
+                    return Some(command_string::strlen(&array, database));
                 }
                 _ => {}
             }

@@ -11,6 +11,7 @@ use proyecto_taller_1::{
     },
     services::{server_service, worker_service::ThreadPool},
 };
+
 use std::{
     error::Error,
     fmt,
@@ -95,6 +96,36 @@ fn test_main() {
         );
         database.add(added_item);
 
+        let added_item = KeyValueItem::new(
+            String::from("mykey"),
+            ValueType::StringType(String::from("Hello")),
+        );
+        database.add(added_item);
+
+        let added_item = KeyValueItem::new(
+            String::from("key_to_decr"),
+            ValueType::StringType(String::from("10")),
+        );
+        database.add(added_item);
+
+        let added_item = KeyValueItem::new(
+            String::from("key_to_incr"),
+            ValueType::StringType(String::from("10")),
+        );
+        database.add(added_item);
+
+        let added_item = KeyValueItem::new(
+            String::from("key_getdel"),
+            ValueType::StringType(String::from("Hello")),
+        );
+        database.add(added_item);
+
+        let added_item = KeyValueItem::new(
+            String::from("key_getset"),
+            ValueType::StringType(String::from("OldValue")),
+        );
+        database.add(added_item);
+
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
@@ -174,6 +205,34 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: copy replace",
         func: test_keys_copy_with_replace,
+    },
+    Test {
+        name: "string command: append mykey newvalue",
+        func: test_string_append,
+    },
+    Test {
+        name: "string command: decrby mykey 3",
+        func: test_string_decrby,
+    },
+    Test {
+        name: "string command: incrby mykey 3",
+        func: test_string_incrby,
+    },
+    Test {
+        name: "string command: get key_1",
+        func: test_string_get,
+    },
+    Test {
+        name: "string command: getdel key_getdel",
+        func: test_string_getdel,
+    },
+    Test {
+        name: "string command: getset key_getset",
+        func: test_string_getset,
+    },
+    Test {
+        name: "string command: strlen key_1",
+        func: test_string_strlen,
     },
 ];
 
@@ -343,6 +402,116 @@ fn test_keys_copy_with_replace() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_append() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("mykey")
+        .arg(" World")
+        .query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_decrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DECRBY")
+        .arg("key_to_decr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 7 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("7"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_incrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("INCRBY")
+        .arg("key_to_incr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 13 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("13"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_get() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GET").arg("key_1").query(&mut con)?;
+
+    if ret == String::from("value_key_1") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("value_key_1"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_strlen() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("STRLEN").arg("key_1").query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_getdel() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+
+    if ret == String::from("Hello") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Hello"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_getset() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GETSET")
+        .arg("key_getset")
+        .arg("NewValue")
+        .query(&mut con)?;
+
+    if ret == String::from("OldValue") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("OldValue"),
+            got: ret,
         }));
     }
 }
