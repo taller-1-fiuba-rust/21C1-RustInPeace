@@ -47,6 +47,7 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
                             // Decide if we should exit
                             if let Ok(drop) = stop_signal_receiver.try_recv() {
                                 if drop {
+                                    save_database(database);
                                     break;
                                 }
                             }
@@ -88,6 +89,22 @@ fn listen_server_messages(receiver_server: Receiver<WorkerMessage>, server: &mut
             WorkerMessage::MonitorOp(addrs) => {
                 server.print_last_operations_by_client(addrs);
             }
+        }
+    }
+}
+
+fn save_database(database: Arc<RwLock<Database>>) {
+    println!("Saving dump before shutting down");
+    let x = Arc::try_unwrap(database);
+    match x {
+        Ok(t) => {
+            match t.try_read() {
+                Ok(n) => n._save_items_to_file(),
+                Err(_) => unreachable!(),
+            };
+        }
+        Err(_) => {
+            println!("Database couldn't be saved into file");
         }
     }
 }

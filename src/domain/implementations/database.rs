@@ -3,13 +3,10 @@ use crate::domain::entities::key_value_item::KeyAccessTime;
 #[allow(unused)]
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::path::Path;
-// use std::error::Error;
-// use std::u64;
-
 #[derive(Debug)]
 pub struct Database {
     dbfilename: String,
@@ -22,13 +19,12 @@ impl Database {
             dbfilename: filename,
             items: vec![],
         };
-        db._load_items();
+        db.load_items();
         db
     }
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
-
     pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
@@ -36,7 +32,6 @@ impl Database {
         self.items = Vec::new();
         &self.items
     }
-
     pub fn search_item_by_key(&self, key: &str) -> Option<&KeyValueItem> {
         for item in &self.items {
             let k = item.get_key();
@@ -46,7 +41,6 @@ impl Database {
         }
         None
     }
-
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         let source_item = self.search_item_by_key(&source);
         if let Some(source_item) = source_item {
@@ -62,7 +56,6 @@ impl Database {
             None
         }
     }
-
     pub fn replace_value_on_key(&mut self, key: String, value: ValueType) -> Option<()> {
         for item in self.items.iter_mut() {
             let k = item.get_key();
@@ -73,7 +66,6 @@ impl Database {
         }
         None
     }
-
     pub fn persist(&mut self, key: String) -> bool {
         for item in self.items.iter_mut() {
             let k = item.get_key();
@@ -84,7 +76,6 @@ impl Database {
         false
     }
 
-    //falta devolver error si no la encuentra
     pub fn rename_key(&mut self, actual_key: String, new_key: String) {
         if let Some(pos) = self
             .items
@@ -99,7 +90,7 @@ impl Database {
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
-    pub fn _load_items(&mut self) {
+    pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
             for line in lines {
                 if let Ok(kvi_serialized) = line {
@@ -114,17 +105,47 @@ impl Database {
         }
     }
 
-    //TODO sacar esto de acá
-    pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+    fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     where
         P: AsRef<Path>,
     {
-        let file = File::open(filename)?;
-        Ok(io::BufReader::new(file).lines())
+        let path = Path::new(filename.as_ref());
+        let file = File::open(&path);
+        match file {
+            Ok(_) => Ok(io::BufReader::new(file.unwrap()).lines()),
+            Err(_) => {
+                let mut _file = File::create(&path)?; //Lo crea en write-only mode.
+                let path = Path::new(filename.as_ref());
+                let file_op = File::open(&path);
+                Ok(io::BufReader::new(file_op.unwrap()).lines())
+            }
+        }
     }
 
     pub fn _save_items_to_file(&self) {
-        unimplemented!()
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create_new(false)
+            .open(self.dbfilename.to_string())
+            .unwrap();
+
+        for kvi in &self.items {
+            let kvi_type = match kvi.value {
+                ValueType::StringType(_) => "string",
+                ValueType::SetType(_) => "set",
+                ValueType::ListType(_) => "list",
+            };
+            writeln!(
+                file,
+                "{};{};{};{}",
+                kvi.key,
+                kvi.last_access_time.to_string(),
+                kvi_type,
+                kvi.value.to_string()
+            )
+            .unwrap();
+        }
     }
 
     pub fn get_size(&self) -> usize {
@@ -154,6 +175,9 @@ impl Database {
 mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::ValueType;
+    use std::collections::LinkedList;
+    use std::io::{BufReader, Write};
+
     #[test]
     fn empty_database_returns_cero() {
         let db = Database {
@@ -163,6 +187,7 @@ mod tests {
 
         assert_eq!(db.get_size(), 0);
     }
+
     #[test]
     fn size_in_memory_is_correct() {
         let kv_item = KeyValueItem::new(
@@ -181,6 +206,7 @@ mod tests {
 
         assert_eq!(db.get_size(), 2);
     }
+
     #[test]
     fn add_item() {
         let added_item = KeyValueItem::new(
@@ -200,6 +226,7 @@ mod tests {
         );
         assert_eq!(db.items.len(), 1)
     }
+
     #[test]
     fn delete_item() {
         let added_item = KeyValueItem::new(
@@ -214,6 +241,7 @@ mod tests {
         db._delete_by_index(0);
         assert_eq!(db.items.len(), 0);
     }
+
     #[test]
     fn filename_is_correct() {
         let db = Database {
@@ -222,113 +250,175 @@ mod tests {
         };
         assert_eq!(db._get_filename(), "file".to_string());
     }
-    /*
-     #[test]
 
-     fn load_items_from_file() {
-        //TODO me falta mockear el archivo para que pueda correr el test.
-        let db = Database::new("file".to_string());
-        assert_eq!(db.items.len(), 4);
-        assert_eq!(
-            db.items.get(0).unwrap().value.to_string(),
-            ValueType::StringType(String::from("222")).to_string()
-        );
-    }*/
-}
+    #[test]
+    fn load_items_from_file() {
+        let mut file = File::create("file_5".to_string()).expect("Unable to open");
+        file.write_all(b"123key;;string;value\n").unwrap();
+        file.write_all(b"124key;1623433677;string;value2\n")
+            .unwrap();
 
-/* TODO LO COMENTO PORQUE VAMOS A CAMBIAR ESOT.
-#[test]
-fn test_01_database_copies_value_to_new_key() {
-    let mut db = Database::new(String::from("./src/dummy_database.txt"));
-    db.add(KeyValueItem {
-        key: "clave_1".to_string(),
-        value: ValueType::StringType("valor_1".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
-    });
+        let db = Database::new("file_5".to_string());
+        assert_eq!(db.items.len(), 2);
+        let mut iter = db.items.iter();
+        let kvi = iter.next().unwrap();
 
-    let source = String::from("clave_1");
-    let destination = String::from("clone");
-    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+        assert_eq!(kvi.key.to_owned(), "123key");
+        assert_eq!(kvi.value.to_string(), String::from("value"));
+        match kvi.last_access_time {
+            KeyAccessTime::Persistent => assert!(true),
+            KeyAccessTime::Volatile(_) => assert!(false),
+        }
 
-    let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
+        let kvi2 = iter.next().unwrap();
+        assert_eq!(kvi2.key.to_owned(), "124key");
+        assert_eq!(kvi2.value.to_string(), String::from("value2"));
+        match kvi2.last_access_time {
+            KeyAccessTime::Volatile(1623433677) => assert!(true),
+            _ => assert!(false),
+        }
+        std::fs::remove_file("file_5").unwrap();
     }
-}
-
-#[test]
-fn test_02_database_copy_replaces_key_with_new_value() {
-    let mut db = Database::new(String::from("./src/dummy_database.txt"));
-
-    db.add(KeyValueItem {
-        key: "clave_1".to_string(),
-        value: ValueType::StringType("valor_1".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
-    });
-
-    let source = String::from("clave_1");
-    let destination = String::from("clave_2");
-    assert_eq!(db.copy(source, destination, false).unwrap(), ());
-
-    let new_item = db.search_item_by_key(&String::from("clave_2")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
+    #[test]
+    fn create_database_file() {
+        assert!(!std::path::Path::new("new_file").exists());
+        let _db = Database::new("new_file".to_string());
+        assert!(std::path::Path::new("new_file").exists());
+        std::fs::remove_file("new_file").unwrap();
     }
 
-    db.add(KeyValueItem {
-        key: "clave_3".to_string(),
-        value: ValueType::StringType("valor_3".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
-    });
+    #[test]
+    fn save_items_to_file() {
+        let mut _file = File::create("file".to_string()).expect("Unable to open");
 
-    let source = String::from("clave_2");
-    let destination = String::from("clave_3");
-    assert_eq!(db.copy(source, destination, true).unwrap(), ());
+        let mut db = Database::new("file".to_string());
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        let mut un_list = LinkedList::new();
+        un_list.push_back("un_item_string".to_string());
+        un_list.push_back("segundo_item_list_string".to_string());
 
-    let new_item = db.search_item_by_key(&String::from("clave_3")).unwrap();
-    if let ValueType::StringType(str) = new_item._get_value() {
-        assert_eq!(str, &String::from("valor_1"));
+        db.add(KeyValueItem {
+            key: "clave_2".to_string(),
+            value: ValueType::ListType(un_list),
+            last_access_time: KeyAccessTime::Volatile(1231230),
+        });
+
+        db._save_items_to_file();
+
+        let file = File::open(&db.dbfilename);
+        let reader = BufReader::new(file.unwrap());
+        let mut it = reader.lines();
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
+            _ => assert!(false),
+        }
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(
+                t,
+                "clave_2;1231230;list;un_item_string,segundo_item_list_string"
+            ),
+            _ => assert!(false),
+        }
+
+        std::fs::remove_file("file").unwrap();
     }
-}
 
-#[test]
-fn test_03_clean_items_deletes_all_items() {
-    let mut db = Database::new(String::from("./src/database.txt"));
-    db.clean_items();
-    assert_eq!(db.get_size(), 0);
-}*/
+    #[test]
+    fn test_01_database_copies_value_to_new_key() {
+        let mut db = Database::new(String::from("./src/dummy_copy_1.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
 
-#[test]
-fn test_02_deletes_an_item_succesfully() {
-    let _file = File::create("./src/database.txt");
-    let mut db = Database::new(String::from("./src/database.txt"));
-    db.add(KeyValueItem {
-        key: "clave_1".to_string(),
-        value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
-    });
+        let source = String::from("clave_1");
+        let destination = String::from("clone");
+        assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-    println!("{:?}", db._get_items());
-    db.delete_key("clave_1".to_string());
-    println!("{:?}", db._get_items());
-    assert_eq!(db.get_size(), 0);
-    std::fs::remove_file("./src/database.txt".to_string()).unwrap();
-}
+        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+        if let ValueType::StringType(str) = new_item._get_value() {
+            assert_eq!(str, &String::from("valor_1"));
+        }
+        std::fs::remove_file("./src/dummy_copy_1.txt").unwrap();
+    }
 
-#[test]
-fn persist_changes_type_of_access_time() {
-    use crate::domain::entities::key_value_item::KeyAccessTime;
-    let _file = File::create("./src/dummy.txt");
-    let mut db = Database::new(String::from("./src/dummy.txt"));
-    let _res = db.add(KeyValueItem {
-        key: "clave_1".to_string(),
-        value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
-    });
+    #[test]
+    fn test_02_database_copy_replaces_key_with_new_value() {
+        let mut db = Database::new(String::from("./src/dummy_copy.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("valor_1".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
 
-    let item = db.search_item_by_key("clave_1").unwrap();
-    match *item._get_last_access_time() {
-        KeyAccessTime::Persistent => assert!(true),
-        KeyAccessTime::Volatile(_tmt) => assert!(false),
+        let source = String::from("clave_1");
+        let destination = String::from("clone");
+        assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+        let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
+        if let ValueType::StringType(str) = new_item._get_value() {
+            assert_eq!(str, &String::from("valor_1"));
+        }
+        std::fs::remove_file("./src/dummy_copy.txt").unwrap();
+    }
+
+    #[test]
+    fn test_03_clean_items_deletes_all_items() {
+        let mut db = Database::new(String::from("./src/database_1.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+        assert_eq!(db.get_size(), 2);
+        db.clean_items();
+        assert_eq!(db.get_size(), 0);
+        std::fs::remove_file("./src/database_1.txt").unwrap();
+    }
+
+    #[test]
+    fn test_02_deletes_an_item_succesfully() {
+        //let _file = File::create("./src/database.txt");
+        let mut db = Database::new(String::from("./src/database.txt"));
+        db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+
+        println!("{:?}", db._get_items());
+        db.delete_key("clave_1".to_string());
+        println!("{:?}", db._get_items());
+        assert_eq!(db.get_size(), 0);
+        std::fs::remove_file("./src/database.txt".to_string()).unwrap();
+    }
+
+    #[test]
+    fn persist_changes_type_of_access_time() {
+        use crate::domain::entities::key_value_item::KeyAccessTime;
+        //let _file = File::create("./src/dummy.txt");
+        let mut db = Database::new(String::from("./src/dummy_persist.txt"));
+        let _res = db.add(KeyValueItem {
+            key: "clave_1".to_string(),
+            value: ValueType::StringType("value".to_string()),
+            last_access_time: KeyAccessTime::Persistent,
+        });
+
+        let item = db.search_item_by_key("clave_1").unwrap();
+        match *item._get_last_access_time() {
+            KeyAccessTime::Persistent => assert!(true),
+            KeyAccessTime::Volatile(_tmt) => assert!(false),
+        }
+        std::fs::remove_file("./src/dummy_persist.txt".to_string()).unwrap();
     }
 }

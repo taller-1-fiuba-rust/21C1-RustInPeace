@@ -63,11 +63,6 @@ fn test_main() {
             Err(e) => println!("Error creating config {:?}", e),
         }
 
-        match std::fs::File::create(&db_file) {
-            Ok(_) => {}
-            Err(e) => println!("Error creating db {:?}", e),
-        }
-
         match std::fs::File::create(&log_file) {
             Ok(_) => {}
             Err(e) => println!("Error creating log {:?}", e),
