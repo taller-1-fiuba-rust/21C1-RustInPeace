@@ -524,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_02_deletes_an_item_succesfully() {
-        let _file = File::create("./src/database.txt");
+        //let _file = File::create("./src/database.txt");
         let mut db = Database::new(String::from("./src/database.txt"));
         db.add(KeyValueItem {
             key: "clave_1".to_string(),

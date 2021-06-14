@@ -67,7 +67,6 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
         }
     });
     listen_server_messages(receiver_server, server);
-    // save_database(database);
     println!("Shutting down.");
     handle.join().unwrap();
 }
@@ -94,7 +93,7 @@ fn listen_server_messages(receiver_server: Receiver<WorkerMessage>, server: &mut
     }
 }
 
-pub fn save_database(database: Arc<RwLock<Database>>) {
+fn save_database(database: Arc<RwLock<Database>>) {
     println!("Saving dump before shutting down");
     let x = Arc::try_unwrap(database);
     match x {
