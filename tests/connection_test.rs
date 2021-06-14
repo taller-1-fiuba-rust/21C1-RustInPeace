@@ -115,6 +115,12 @@ fn test_main() {
         database.add(added_item);
 
         let added_item = KeyValueItem::new(
+            String::from("key_to_incr"),
+            ValueType::StringType(String::from("10")),
+        );
+        database.add(added_item);
+
+        let added_item = KeyValueItem::new(
             String::from("key_getdel"),
             ValueType::StringType(String::from("Hello")),
         );
@@ -214,6 +220,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: decrby mykey 3",
         func: test_string_decrby,
+    },
+    Test {
+        name: "string command: incrby mykey 3",
+        func: test_string_incrby,
     },
     Test {
         name: "string command: get key_1",
@@ -428,6 +438,23 @@ fn test_string_decrby() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("7"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_incrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("INCRBY")
+        .arg("key_to_incr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 13 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("13"),
             got: ret.to_string(),
         }));
     }

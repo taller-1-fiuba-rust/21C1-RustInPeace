@@ -89,6 +89,9 @@ pub fn handle_command(
                 "getset" => {
                     return Some(command_string::getset(&array, database));
                 }
+                "incrby" => {
+                    return Some(command_string::incrby(&array, database));
+                }
                 _ => {}
             }
         }

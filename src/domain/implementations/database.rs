@@ -134,6 +134,25 @@ impl Database {
         Ok(new_value)
     }
 
+    pub fn increment_key_by(&mut self, key: &String, incr: i64) -> Result<i64, ParseIntError> {
+        for item in self.items.iter_mut() {
+            let k = item.get_key();
+            if k == key {
+                if let ValueType::StringType(str) = item.get_copy_of_value() {
+                    let str_as_number = str.parse::<i64>()?;
+                    let new_value = ValueType::StringType((str_as_number + incr).to_string());
+                    item.set_value(new_value);
+                    return Ok(str_as_number+incr);
+                } else {
+                    //devolver error
+                }
+            }
+        }
+        let new_value = incr;
+        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(new_value.to_string()))); 
+        Ok(new_value)
+    }
+
     //agregar tests
     pub fn get_value_by_key(&self, key: &String) -> Option<String> {
         let item = self.search_item_by_key(key);

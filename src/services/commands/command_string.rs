@@ -40,6 +40,33 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RError(String::from("Invalid command decrby"))
 }
 
+pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 2 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            if let RespType::RBulkString(incr) = &cmd[2] {
+                let number = incr.parse::<i64>();
+                match number {
+                    Ok(incr) => {
+                        match db.increment_key_by(key, incr) {
+                            Ok(res) => {
+                                return RespType::RInteger(res.try_into().unwrap());
+                            }
+                            Err(e) => {
+                                return RespType::RError(e.to_string());
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        return RespType::RError(e.to_string());
+                    }
+                }
+            }
+        }
+    }
+    RespType::RError(String::from("Invalid command decrby"))
+}
+
 pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
