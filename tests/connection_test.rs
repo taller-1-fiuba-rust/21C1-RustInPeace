@@ -1,6 +1,5 @@
 extern crate redis;
 
-
 use proyecto_taller_1::{
     domain::{
         entities::{
@@ -131,7 +130,6 @@ fn test_main() {
             ValueType::StringType(String::from("OldValue")),
         );
         database.add(added_item);
-
 
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
@@ -425,7 +423,7 @@ fn test_string_append() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("11"),
-            got: ret.to_string()
+            got: ret.to_string(),
         }));
     }
 }
@@ -466,9 +464,7 @@ fn test_string_incrby() -> TestResult {
 
 fn test_string_get() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("GET")
-        .arg("key_1")
-        .query(&mut con)?;
+    let ret: String = redis::cmd("GET").arg("key_1").query(&mut con)?;
 
     if ret == String::from("value_key_1") {
         return Ok(());
@@ -482,9 +478,7 @@ fn test_string_get() -> TestResult {
 
 fn test_string_strlen() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("STRLEN")
-        .arg("key_1")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("STRLEN").arg("key_1").query(&mut con)?;
 
     if ret == 11 {
         return Ok(());
@@ -498,9 +492,7 @@ fn test_string_strlen() -> TestResult {
 
 fn test_string_getdel() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("GETDEL")
-        .arg("key_getdel")
-        .query(&mut con)?;
+    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
 
     if ret == String::from("Hello") {
         return Ok(());
@@ -528,4 +520,3 @@ fn test_string_getset() -> TestResult {
         }));
     }
 }
-

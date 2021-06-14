@@ -4,8 +4,8 @@ use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{KeyValueItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;
-use std::io::{self};
 use std::io::BufRead;
+use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 // use std::error::Error;
@@ -99,7 +99,7 @@ impl Database {
         }
     }
 
-    pub fn append_string(&mut self, key: &String, string: &String) -> usize {
+    pub fn append_string(&mut self, key: &str, string: &str) -> usize {
         for item in self.items.iter_mut() {
             let k = item.get_key();
             if k == key {
@@ -111,11 +111,14 @@ impl Database {
                 }
             }
         }
-        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(string.to_string()))); 
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(string.to_string()),
+        ));
         string.len()
     }
 
-    pub fn decrement_key_by(&mut self, key: &String, decr: i64) -> Result<i64, ParseIntError> {
+    pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
         for item in self.items.iter_mut() {
             let k = item.get_key();
             if k == key {
@@ -123,18 +126,21 @@ impl Database {
                     let str_as_number = str.parse::<i64>()?;
                     let new_value = ValueType::StringType((str_as_number - decr).to_string());
                     item.set_value(new_value);
-                    return Ok(str_as_number-decr);
+                    return Ok(str_as_number - decr);
                 } else {
                     //devolver error
                 }
             }
         }
-        let new_value = 0-decr;
-        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(new_value.to_string()))); 
+        let new_value = 0 - decr;
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(new_value.to_string()),
+        ));
         Ok(new_value)
     }
 
-    pub fn increment_key_by(&mut self, key: &String, incr: i64) -> Result<i64, ParseIntError> {
+    pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
         for item in self.items.iter_mut() {
             let k = item.get_key();
             if k == key {
@@ -142,26 +148,29 @@ impl Database {
                     let str_as_number = str.parse::<i64>()?;
                     let new_value = ValueType::StringType((str_as_number + incr).to_string());
                     item.set_value(new_value);
-                    return Ok(str_as_number+incr);
+                    return Ok(str_as_number + incr);
                 } else {
                     //devolver error
                 }
             }
         }
         let new_value = incr;
-        self.items.push(KeyValueItem::new(key.to_string(), ValueType::StringType(new_value.to_string()))); 
+        self.items.push(KeyValueItem::new(
+            key.to_string(),
+            ValueType::StringType(new_value.to_string()),
+        ));
         Ok(new_value)
     }
 
     //agregar tests
-    pub fn get_value_by_key(&self, key: &String) -> Option<String> {
+    pub fn get_value_by_key(&self, key: &str) -> Option<String> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                return Some(str);
+                Some(str)
             } else {
-                return None;
+                None
             }
         } else {
             None
@@ -169,14 +178,14 @@ impl Database {
     }
 
     //agregar tests
-    pub fn get_strlen_by_key(&self, key: &String) -> Option<usize> {
+    pub fn get_strlen_by_key(&self, key: &str) -> Option<usize> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                return Some(str.len());
+                Some(str.len())
             } else {
-                return None;
+                None
             }
         } else {
             Some(0)
@@ -184,15 +193,15 @@ impl Database {
     }
 
     //agregar tests
-    pub fn getdel_value_by_key(&mut self, key: &String) -> Option<String> {
+    pub fn getdel_value_by_key(&mut self, key: &str) -> Option<String> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 self.delete_key(key.to_string());
-                return Some(str);
+                Some(str)
             } else {
-                return None;
+                None
             }
         } else {
             None
@@ -200,16 +209,19 @@ impl Database {
     }
 
     //agregar tests
-    pub fn getset_value_by_key(&mut self, key: &String, new_value: &String) -> Option<String> {
+    pub fn getset_value_by_key(&mut self, key: &str, new_value: &str) -> Option<String> {
         let item = self.search_item_by_key(key);
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                self.replace_value_on_key(key.to_string(), ValueType::StringType(new_value.to_string()));
-                return Some(str);
+                self.replace_value_on_key(
+                    key.to_string(),
+                    ValueType::StringType(new_value.to_string()),
+                );
+                Some(str)
             } else {
                 //error
-                return None;
+                None
             }
         } else {
             //nil

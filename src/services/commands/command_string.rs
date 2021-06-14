@@ -1,5 +1,8 @@
-use std::{convert::TryInto, sync::{Arc, RwLock}};
 use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
+use std::{
+    convert::TryInto,
+    sync::{Arc, RwLock},
+};
 
 pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
@@ -20,16 +23,14 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             if let RespType::RBulkString(decr) = &cmd[2] {
                 let number = decr.parse::<i64>();
                 match number {
-                    Ok(decr) => {
-                        match db.decrement_key_by(key, decr) {
-                            Ok(res) => {
-                                return RespType::RInteger(res.try_into().unwrap());
-                            }
-                            Err(e) => {
-                                return RespType::RError(e.to_string());
-                            }
+                    Ok(decr) => match db.decrement_key_by(key, decr) {
+                        Ok(res) => {
+                            return RespType::RInteger(res.try_into().unwrap());
                         }
-                    }
+                        Err(e) => {
+                            return RespType::RError(e.to_string());
+                        }
+                    },
                     Err(e) => {
                         return RespType::RError(e.to_string());
                     }
@@ -47,16 +48,14 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             if let RespType::RBulkString(incr) = &cmd[2] {
                 let number = incr.parse::<i64>();
                 match number {
-                    Ok(incr) => {
-                        match db.increment_key_by(key, incr) {
-                            Ok(res) => {
-                                return RespType::RInteger(res.try_into().unwrap());
-                            }
-                            Err(e) => {
-                                return RespType::RError(e.to_string());
-                            }
+                    Ok(incr) => match db.increment_key_by(key, incr) {
+                        Ok(res) => {
+                            return RespType::RInteger(res.try_into().unwrap());
                         }
-                    }
+                        Err(e) => {
+                            return RespType::RError(e.to_string());
+                        }
+                    },
                     Err(e) => {
                         return RespType::RError(e.to_string());
                     }
