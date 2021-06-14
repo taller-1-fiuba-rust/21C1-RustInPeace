@@ -54,73 +54,25 @@ pub fn handle_command(
                     }
                 }
                 "dbsize" => {
-                    let db_size = command_server::dbsize(&database);
-                    println!("database size: {:?}", db_size);
-                    return Some(db_size);
+                    return Some(command_server::dbsize(&database));
                 }
                 "flushdb" => {
-                    let erased = command_server::flushdb(database);
-                    println!("{:?}", erased);
+                    return Some(command_server::flushdb(database));
                 }
                 "copy" => {
-                    if array.len() > 2 {
-                        if let RespType::RBulkString(source) = &array[1] {
-                            if let RespType::RBulkString(destination) = &array[2] {
-                                if array.len() == 3 {
-                                    let res = command_key::copy(
-                                        database,
-                                        String::from(source),
-                                        String::from(destination),
-                                        false,
-                                    );
-                                    if let Some(()) = res {
-                                        return Some(RespType::RInteger(1));
-                                    } else {
-                                        return Some(RespType::RInteger(0));
-                                    }
-                                } else if array.len() == 4 {
-                                    if let RespType::RBulkString(replace) = &array[3] {
-                                        if replace == "replace" {
-                                            let res = command_key::copy(
-                                                database,
-                                                String::from(source),
-                                                String::from(destination),
-                                                true,
-                                            );
-                                            if let Some(()) = res {
-                                                return Some(RespType::RInteger(1));
-                                            } else {
-                                                return Some(RespType::RInteger(0));
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                //
-                            }
-                        } else {
-                            //
-                        }
-                    } else {
-                        //
-                    }
-                    return None;
+                    return Some(command_key::copy(&array, database));
                 }
                 "del" => {
-                    command_key::del(&array, database);
+                    return Some(command_key::del(&array, database));
                 }
                 "exists" => {
-                    let key_found = command_key::exists(&array, database);
-                    println!("{:?}", key_found);
+                    return Some(command_key::exists(&array, database));
                 }
                 "persist" => {
-                    command_key::persist(&array, database);
+                    return Some(command_key::persist(&array, database));
                 }
                 "rename" => {
-                    command_key::rename(&array, database);
-                }
-                "shutdown" => {
-                    tx.send(WorkerMessage::Shutdown).unwrap();
+                    return Some(command_key::rename(&array, database));
                 }
                 "append" => {
                     return Some(command_string::append(&array, database));
