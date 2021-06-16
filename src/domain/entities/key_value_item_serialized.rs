@@ -1,5 +1,5 @@
-use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType, ValueTimeItem};
-use std::collections::{HashMap, HashSet, LinkedList};
+use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+use std::collections::HashSet;
 
 // Format: key; access_time; type; value
 pub struct KeyValueItemSerialized {
@@ -10,7 +10,8 @@ impl KeyValueItemSerialized {
     pub fn _new(line: String) -> KeyValueItemSerialized {
         KeyValueItemSerialized { line }
     }
-    pub fn transform_to_item(&self) -> (String, ValueTimeItem) {//KeyValueItem {
+    pub fn transform_to_item(&self) -> (String, ValueTimeItem) {
+        //KeyValueItem {
         // Format: key; access_time; type; value
         let line: Vec<&str> = self.line.split(';').collect();
         let value = match line[2] {
