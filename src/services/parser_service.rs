@@ -40,6 +40,10 @@ pub fn parse_response(response: RespType) -> String {
 /// -ejemplos-
 //Agregar str_to_lower a lo que llega
 pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
+    println!("request: {:?}", request);
+    if request.is_empty() {
+        return Err(ParseError::InvalidSize(String::from("Empty request")));
+    }
     match parse(request) {
         Ok(parsed_request) => {
             if is_array_of_bulkstring(&parsed_request) {
@@ -104,7 +108,7 @@ fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseErro
         ));
     }
     let slice = &request[from..to];
-    Ok(String::from_utf8_lossy(slice).to_string())
+    Ok(String::from_utf8_lossy(slice).to_string().to_lowercase())
 }
 
 /// Recibe un arreglo de bytes (request) y dos numeros enteros, from y to, que indican las posiciones
@@ -174,14 +178,14 @@ fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
 fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request)?;
-    if crlf == 3 {
-        return check_if_bulkstring_null_type(pos, crlf, request);
+    if check_if_bulkstring_null_type(pos, crlf, request) {
+        return Ok(RespType::RNullBulkString());
     }
-    if crlf != 2 {
-        return Err(ParseError::UnexpectedError(
-            "String size must be followed by CRFL".to_string(),
-        ));
-    }
+    // if crlf != 2 {
+    //     return Err(ParseError::UnexpectedError(
+    //         "String size must be followed by CRFL".to_string(),
+    //     ));
+    // }
     let size = read_int(pos + 1, crlf, request).unwrap_or(0);
     pos = crlf + 1;
     let slice = &request[pos + 1..];
@@ -196,19 +200,18 @@ fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
 /// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato bulkstring
 /// nulo segun el procolo RESP
 /// Devuelve true si lo es, false si no
-fn check_if_bulkstring_null_type(
-    from: usize,
-    to: usize,
-    request: &[u8],
-) -> Result<RespType, ParseError> {
-    let word = read_word(from + 1, to, request)?;
+fn check_if_bulkstring_null_type(from: usize, to: usize, request: &[u8]) -> bool {
+    let word = read_word(from + 1, to, request).unwrap();
     if word == "-1" {
-        Ok(RespType::RNullBulkString())
-    } else {
-        Err(ParseError::UnexpectedError(
-            "String size must be followed by CRFL".to_string(),
-        ))
+        //Ok(RespType::RNullBulkString())
+        return true;
     }
+    false
+    // } else {
+    //     Err(ParseError::UnexpectedError(
+    //         "String size must be followed by CRFL".to_string(),
+    //     ))
+    // }
 }
 
 /// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato array
@@ -254,6 +257,7 @@ fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
     let mut contents = &request[pos..];
     while !contents.is_empty() {
         let request_len = get_request_len(contents);
+        // println!("contents so far: {:?}", &contents[..request_len]);
         let parsed_request = parse(&contents[..request_len]).unwrap();
         vec.push(parsed_request);
         contents = &contents[request_len..];
@@ -291,7 +295,7 @@ fn get_bulkstring_len(request: &[u8]) -> usize {
         Ok(crfl) => {
             len += 1; //$
             let size = read_int(len, crfl, request).unwrap_or(0);
-            len += 1; //size
+            len += crfl - len; //size
             match search_crlf(&request[crfl + 1..]) {
                 Ok(_second_crfl) => {
                     len += size + 4; //+ 4 bytes crfl
@@ -346,7 +350,7 @@ fn parse_returns_ok_when_given_valid_simple_string() {
     assert!(result.is_ok());
     match result.unwrap() {
         RespType::RSimpleString(s) => {
-            assert_eq!(s, "Ok".to_string())
+            assert_eq!(s, "ok".to_string())
         }
         _ => assert!(false),
     }
@@ -359,7 +363,7 @@ fn parse_returns_ok_when_given_valid_resp_error() {
     assert!(result.is_ok());
     match result.unwrap() {
         RespType::RError(s) => {
-            assert_eq!(s, "Error message".to_string())
+            assert_eq!(s, "error message".to_string())
         }
         _ => assert!(false),
     }
@@ -525,8 +529,8 @@ fn parse_returns_ok_when_given_array_of_errors() {
             assert_eq!(
                 v,
                 vec![
-                    RespType::RError(String::from("ErrorMessage1")),
-                    RespType::RError(String::from(" SomeError Message2"))
+                    RespType::RError(String::from("errormessage1")),
+                    RespType::RError(String::from(" someerror message2"))
                 ]
             )
         }
@@ -551,8 +555,8 @@ fn parse_returns_ok_when_given_array_of_arrays() {
                         RespType::RInteger(3)
                     ]),
                     RespType::RArray(vec![
-                        RespType::RSimpleString(String::from("Foo")),
-                        RespType::RError(String::from("Bar"))
+                        RespType::RSimpleString(String::from("foo")),
+                        RespType::RError(String::from("bar"))
                     ])
                 ]
             )
@@ -593,8 +597,8 @@ fn parse_bulkstring_returns_error_when_missing_length() {
     let result = parse(req);
     assert!(result.is_err());
     match result.unwrap_err() {
-        ParseError::UnexpectedError(s) => {
-            assert_eq!(s, "String size must be followed by CRFL".to_string())
+        ParseError::InvalidSize(s) => {
+            assert_eq!(s, "String size mismatch".to_string())
         }
         _ => assert!(false),
     }
@@ -706,8 +710,8 @@ fn parse_response_returns_ok_when_given_integer() {
 
 #[test]
 fn parse_response_returns_ok_when_given_error() {
-    let result = parse_response(RespType::RError("Error Some error".to_string()));
-    let expected = "-Error Some error\r\n".to_string();
+    let result = parse_response(RespType::RError("error some error".to_string()));
+    let expected = "-error some error\r\n".to_string();
     assert_eq!(result, expected);
 }
 

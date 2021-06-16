@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 mockall = "0.9.1"
 regex = "1"
+
+[dependencies.redis]
+version = "*"

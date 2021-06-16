@@ -1,6 +1,13 @@
 use std::collections::HashSet;
-use std::fmt; //, usize};
+use std::fmt;
+use std::num::ParseIntError;
+use std::str::FromStr; //, usize};
               //use crate::services::utils::resp_type::RespType;
+// use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
+// use std::collections::{HashSet, LinkedList};
+// use std::fmt;
+// use std::num::ParseIntError;
+// use std::str::FromStr;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -42,6 +49,27 @@ pub enum KeyAccessTime {
     Volatile(u64),
     Persistent,
 }
+impl fmt::Display for KeyAccessTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let printable = match self {
+            KeyAccessTime::Volatile(value) => value.to_string(),
+            KeyAccessTime::Persistent {} => "".to_string(),
+        };
+        write!(f, "{}", printable)
+    }
+}
+
+impl FromStr for KeyAccessTime {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let kat = match s {
+            "" => KeyAccessTime::Persistent,
+            _ => KeyAccessTime::Volatile(s.parse::<u64>().unwrap()),
+        };
+        Ok(kat)
+    }
+}
 
 #[derive(Debug)]
 pub struct ValueTimeItem {
@@ -50,12 +78,21 @@ pub struct ValueTimeItem {
 }
 
 impl ValueTimeItem {
-    pub fn new(value: ValueType) -> ValueTimeItem {
+    pub fn new(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
         ValueTimeItem {
+// #[allow(dead_code)]
+// impl KeyValueItem {
+//     pub fn new(key: String, value: ValueType) -> KeyValueItem {
+//         KeyValueItem {
+//             key,
             value,
-            last_access_time: KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
+            last_access_time: time,//KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
         }
     }
+
+    // pub fn _from_file(kvis: KeyValueItemSerialized) -> KeyValueItem {
+    //     kvis.transform_to_item()
+    // }
 
     // pub fn get_key(&self) -> &String {
     //     &self.key
@@ -69,7 +106,6 @@ impl ValueTimeItem {
         match self.last_access_time {
             KeyAccessTime::Persistent => false,
             KeyAccessTime::Volatile(_timeout) => {
-                println!("entro a volatile..");
                 self.last_access_time = KeyAccessTime::Persistent;
                 true
             }
@@ -147,7 +183,6 @@ impl ValueTimeItem {
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
@@ -165,6 +200,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -182,6 +218,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -200,6 +237,7 @@ mod tests {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
     }
 
     #[test]
@@ -215,6 +253,7 @@ mod tests {
             KeyAccessTime::Volatile(_t) => assert!(false),
             KeyAccessTime::Persistent => assert!(true),
         }
+        assert_eq!(kv_item.last_access_time.to_string(), "".to_string());
     }
 
     #[test]
