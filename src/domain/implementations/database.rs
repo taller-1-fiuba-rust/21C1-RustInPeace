@@ -129,28 +129,25 @@ impl Database {
 
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         let source_item = self.items.get(&source);
-        if let Some(source_item) = source_item {
-            let new_value = source_item.get_copy_of_value();
-            // let new_value_time = ValueTimeItem::new(new_value, new_value._get_last_access_time());
-            if self.items.contains_key(&destination) {
-                if replace {
-                    let dest = self.items.get_mut(&destination).unwrap();
-                    dest._set_value(new_value);
-                    //self.items.insert(destination, ValueTimeItem::new(dest._get_copy_of_value(), dest._get_last_access_time()));
-                    return Some(());
-                } else {
-                    return None;
-                }
-            } else {
-                //ver set del tiempo cuando es nuevo
-                self.items.insert(
-                    destination,
-                    ValueTimeItem::new(new_value, KeyAccessTime::Volatile(12423423)),
-                );
+        let new_value = source_item?.get_copy_of_value();
+        // let new_value_time = ValueTimeItem::new(new_value, new_value._get_last_access_time());
+        if self.items.contains_key(&destination) {
+            if replace {
+                let dest = self.items.get_mut(&destination).unwrap();
+                dest._set_value(new_value);
+                //self.items.insert(destination, ValueTimeItem::new(dest._get_copy_of_value(), dest._get_last_access_time()));
                 return Some(());
+            } else {
+                return None;
             }
+        } else {
+            //ver set del tiempo cuando es nuevo
+            self.items.insert(
+                destination,
+                ValueTimeItem::new(new_value, KeyAccessTime::Volatile(12423423)),
+            );
+            return Some(());
         }
-        None
     }
     pub fn persist(&mut self, key: String) -> bool {
         match self.items.get_mut(&key) {

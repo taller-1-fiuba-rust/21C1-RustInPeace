@@ -40,7 +40,7 @@ pub fn parse_response(response: RespType) -> String {
 /// -ejemplos-
 //Agregar str_to_lower a lo que llega
 pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
-    println!("request: {:?}", request);
+    // println!("request: {:?}", request);
     if request.is_empty() {
         return Err(ParseError::InvalidSize(String::from("Empty request")));
     }

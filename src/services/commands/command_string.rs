@@ -25,6 +25,7 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 match number {
                     Ok(decr) => match db.decrement_key_by(key, decr) {
                         Ok(res) => {
+                            //falla si el nro es negativo
                             return RespType::RInteger(res.try_into().unwrap());
                         }
                         Err(e) => {
