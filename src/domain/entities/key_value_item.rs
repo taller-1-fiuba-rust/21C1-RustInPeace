@@ -129,20 +129,18 @@ impl ValueTimeItem {
         match current_value {
             ValueType::ListType(current_list) => {
                 //let mut vec = Vec::new();
-                let mut vec: Vec<_> = current_list.into_iter().collect();
+                let mut vec: Vec<_> = current_list.iter().collect();
                 vec.sort();
                 vec.reverse();
-                return Some(vec);
+                Some(vec)
             }
             ValueType::SetType(current_set) => {
-                let mut vec: Vec<_> = current_set.into_iter().collect();
+                let mut vec: Vec<_> = current_set.iter().collect();
                 vec.sort();
                 vec.reverse();
-                return Some(vec);
+                Some(vec)
             }
-            _ => {
-                return None;
-            }
+            _ => None,
         }
     }
 
@@ -150,18 +148,16 @@ impl ValueTimeItem {
         let current_value_item = &self.value;
         match current_value_item {
             ValueType::ListType(current_list) => {
-                let mut vec: Vec<_> = current_list.into_iter().collect();
+                let mut vec: Vec<_> = current_list.iter().collect();
                 vec.sort();
-                return Some(vec);
+                Some(vec)
             }
             ValueType::SetType(current_set) => {
-                let mut vec: Vec<_> = current_set.into_iter().collect();
+                let mut vec: Vec<_> = current_set.iter().collect();
                 vec.sort();
-                return Some(vec);
+                Some(vec)
             }
-            _ => {
-                return None;
-            }
+            _ => None,
         }
     }
 
@@ -169,16 +165,16 @@ impl ValueTimeItem {
         let current_value_item = &self.value;
         match current_value_item {
             ValueType::ListType(current_list) => {
-                let vec: Vec<_> = current_list.into_iter().collect();
-                return Some(vec);
+                let vec: Vec<_> = current_list.iter().collect();
+                Some(vec)
             }
             ValueType::SetType(current_set) => {
-                let vec: Vec<_> = current_set.into_iter().collect();
-                return Some(vec);
+                let vec: Vec<_> = current_set.iter().collect();
+                Some(vec)
             }
             ValueType::StringType(current_string) => {
                 let vec = vec![current_string];
-                return Some(vec);
+                Some(vec)
             }
         }
     }

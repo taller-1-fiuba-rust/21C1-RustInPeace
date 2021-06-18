@@ -202,9 +202,9 @@ pub fn true_sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
         sorted_list
             .into_iter()
             .for_each(|value| vector.push(RespType::RBulkString(value.to_string())));
-        return RespType::RArray(vector);
+        RespType::RArray(vector)
     } else {
-        return RespType::RBulkString("empty".to_string());
+        RespType::RBulkString("empty".to_string())
     }
 }
 
