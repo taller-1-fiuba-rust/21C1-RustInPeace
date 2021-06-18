@@ -6,7 +6,6 @@ use crate::errors::parse_error::ParseError;
 /// Recibe una response de tipo RespType y lo traduce a un String respetando el protocolo RESP
 /// -ejemplos-
 pub fn parse_response(response: RespType) -> String {
-    // trait display -> en resp_type.rs
     match response {
         RespType::RBulkString(string) => {
             format!("${}\r\n{}\r\n", string.len(), string)

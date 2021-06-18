@@ -13,6 +13,9 @@ use std::sync::{Arc, RwLock};
 use std::thread;
 // use std::time::Duration;
 
+/// Recibe una refencia mutable al Server, la base de datos Database y la configuración Config
+/// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
+/// que va a escuchar mensajes hasta que se le envíe una señal de "shutdown".
 pub fn init(server: &mut Server, db: Database, config: Config) {
     let (sender_server, receiver_server) = mpsc::channel();
     let port: String = server.get_port().clone();
@@ -71,6 +74,9 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
     handle.join().unwrap();
 }
 
+/// Recibe un Receiver de mensajes de tipo WorkerMessage y el Server
+/// Escucha mensajes provenientes de los workers, según el mensaje delega al server una tarea distinta.
+/// Las tareas pueden ser: log, verbose, update_clients_operation, print_last_operations_by_client
 fn listen_server_messages(receiver_server: Receiver<WorkerMessage>, server: &mut Server) {
     for msg in &receiver_server {
         match msg {
@@ -93,6 +99,8 @@ fn listen_server_messages(receiver_server: Receiver<WorkerMessage>, server: &mut
     }
 }
 
+/// Recibe una base de datos de tipo Database protegida por un RwLock
+/// y guarda la información en su correspondiente archivo
 fn save_database(database: Arc<RwLock<Database>>) {
     println!("Saving dump before shutting down");
     let x = Arc::try_unwrap(database);
@@ -109,6 +117,11 @@ fn save_database(database: Arc<RwLock<Database>>) {
     }
 }
 
+/// Recibe un stream proveniente de la conexión TCP, un sender de mensajes de tipo WorkerMessage, una base de datos de tipo Database dentro de un RwLock
+/// la configuración config dentro de un RwLock y un sender de mensajes de tipo booleano stop.
+/// Lee el stream de datos recibido del cliente, lo decodifica, mediante la función handle_command realiza la operación que corresponda y luego
+/// escribe una respuesta sobre el mismo stream. La lectura se hace dentro de un ciclo loop hasta recibir la señal de "stop" por parte del cliente
+/// o hasta que se cierre la conexión por parte del cliente o se produzca algún error interno.
 fn handle_connection(
     mut stream: TcpStream,
     tx: Sender<WorkerMessage>,
@@ -117,7 +130,6 @@ fn handle_connection(
     stop: Sender<bool>,
 ) {
     let client_addrs = stream.peer_addr().unwrap();
-    // println!("HOLISSS SOY {}", client_addrs);
     log(
         format!("Connection to address {} established\r\n", client_addrs),
         &tx,
@@ -142,7 +154,6 @@ fn handle_connection(
 
                 match parse_request(&buf[..size]) {
                     Ok(parsed_request) => {
-                        // println!("parsed req: {:?} from: {}", parsed_request, client_addrs);
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
 
                         tx.send(WorkerMessage::NewOperation(
@@ -151,19 +162,15 @@ fn handle_connection(
                         ))
                         .unwrap();
 
-                        //chequeo si es un shutdown
                         if check_shutdown(&parsed_request) {
                             stop.send(true).unwrap();
                             break;
                         }
 
-                        // le pasamos el request al commander
                         if let Some(res) =
                             handle_command(parsed_request, &tx, client_addrs, &database, &config)
                         {
-                            // ese servicio va a devolver una response
                             let response = parse_response(res);
-                            // println!("response:{:?}", response);
                             log(
                                 format!(
                                     "Response for {}. Message: {:?}. Response: {}\r\n",
@@ -174,15 +181,13 @@ fn handle_connection(
                                 &tx,
                             );
 
-                            // println!("RESPONSE: {}", response);
-                            // println!("RESPONSE as bytes: {:?}", response.as_bytes());
                             stream.write_all(response.as_bytes()).unwrap();
                             stream.flush().unwrap();
                         }
                     }
                     Err(e) => {
-                        println!("Error: {:?}", e);
-                        break;
+                        println!("Error trying to parse request: {:?}", e);
+                        continue;
                     }
                 }
             }
@@ -195,14 +200,20 @@ fn handle_connection(
     }
 }
 
+/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
+/// El sender envia el mensaje Log
 fn log(msg: String, tx: &Sender<WorkerMessage>) {
     tx.send(WorkerMessage::Log(msg)).unwrap();
 }
 
+/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
+/// El sender envia el mensaje Verbose
 fn _verbose(msg: String, tx: &Sender<WorkerMessage>) {
     tx.send(WorkerMessage::Verb(msg)).unwrap();
 }
 
+/// Recibe una solicitud request de tipo &RespType y valida si es el comando "SHUTDOWN"
+/// Devuelve true si lo es, false si no
 fn check_shutdown(request: &RespType) -> bool {
     if let RespType::RArray(array) = request {
         if let RespType::RBulkString(cmd) = &array[0] {

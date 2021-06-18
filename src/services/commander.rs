@@ -13,6 +13,10 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
+/// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
+/// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
+/// Lee la primera palabra de la operación para disparar la acción que corresponda. 
+/// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 pub fn handle_command(
     operation: RespType,
     tx: &Sender<WorkerMessage>,

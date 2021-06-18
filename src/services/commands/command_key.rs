@@ -1,56 +1,44 @@
-// use crate::domain::entities::key_value_item::ValueTimeItem;
-// use crate::domain::entities::key_value_item::ValueType;
-// use regex::Regex;
-//use external regex::Regex;
-// use crate::domain::entities::config::Config;
-// use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-// use std::io::{Error, ErrorKind};
-// use std::{net::SocketAddr, sync::mpsc::Sender};
-
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Elimina las claves recibidas en el comando
+/// Devuelve la cantidad de claves eliminadas en un tipo de dato RespType
 pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut n_key_deleted = 0;
-    if cmd.len() == 1 {
-        RespType::RInteger(n_key_deleted)
-    } else {
-        for n in cmd.iter().skip(1) {
-            if let RespType::RBulkString(current_key) = n {
-                let mut new_database = database.write().unwrap();
-                new_database.delete_key(current_key.to_string());
-                n_key_deleted += 1;
-            }
+
+    for n in cmd.iter().skip(1) {
+        if let RespType::RBulkString(current_key) = n {
+            let mut new_database = database.write().unwrap();
+            new_database.delete_key(current_key.to_string());
+            n_key_deleted += 1;
         }
-        RespType::RInteger(n_key_deleted)
     }
+
+    RespType::RInteger(n_key_deleted)
 }
 
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Extra del comando una clave fuente y una clave destino, copia el valor guardado en la clave fuente a la clave destino.
+/// Si el comando contiene el parametro "replace", en el caso de que ya exista una clave con el mismo nombre que la clave destino,
+/// se reemplaza su valor por el valor de la clave fuente y se devuelve un entero 1. En el caso que la clave destino ya exista pero no se incluya
+/// el parametro "replace", entonces no se copia el valor y se devuelve un entero 0.
+/// Si no existe la clave, se crea, se guarda una copia del valor que guarda la clave fuente y se devuelve un entero 1.
+/// Ante algun error se devuelve un entero 0.
 pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(source) = &cmd[1] {
             if let RespType::RBulkString(destination) = &cmd[2] {
                 if let Ok(write_guard) = database.write() {
                     let mut db = write_guard;
-                    if cmd.len() == 4 {
-                        if let RespType::RBulkString(replace) = &cmd[3] {
-                            if replace == "replace" {
-                                let res =
-                                    db.copy(source.to_string(), destination.to_string(), true);
-                                if let Some(()) = res {
-                                    return RespType::RInteger(1);
-                                } else {
-                                    return RespType::RInteger(0);
-                                }
-                            }
-                        }
-                    } else {
-                        let res = db.copy(source.to_string(), destination.to_string(), false);
-                        if let Some(()) = res {
+                    let replace = copy_should_replace(cmd);
+                    match db.copy(source.to_string(), destination.to_string(), replace) {
+                        Some(_) => {
                             return RespType::RInteger(1);
-                        } else {
+                        }
+                        None => {
                             return RespType::RInteger(0);
                         }
                     }
@@ -61,6 +49,22 @@ pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(0)
 }
 
+/// Recibe un comando de tipo &[RespType]
+/// Verifica que si el ultimo parametro es "replace". Si lo es, devuelve true, sino devuelve false.
+fn copy_should_replace(cmd: &[RespType]) -> bool {
+    if cmd.len() == 4 {
+        if let RespType::RBulkString(replace) = &cmd[3] {
+            if replace == "replace" {
+                return true; 
+            }
+        }
+    }
+    false
+}
+
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Verifica si las claves extraidas del comando existen en la base de datos o no.
+/// Devuelve la cantidad de claves encontradas.
 pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut key_found = 0;
     if cmd.len() > 1 {
@@ -75,6 +79,9 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(key_found)
 }
 
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Extrae una clave key del comando, intenta cambiar el tipo de clave de volatir a persistente.
+/// En caso de exito devuelve un 1, si falla devuelve un 0.
 pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
         if database.write().unwrap().persist(key.to_string()) {
@@ -86,8 +93,10 @@ pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(0)
 }
 
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Extrae una clave current_key y una clave new_key del comando.
+/// Renombre a current_key por new_key y devuelve un BulkString con el mensaje "OK"
 pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    //let mut message = "key not found".to_string();
     if cmd.len() > 1 {
         if let RespType::RBulkString(current_key) = &cmd[1] {
             let mut new_database = database.write().unwrap();
