@@ -6,7 +6,7 @@ use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use crate::services::utils::resp_type::RespType;
-use std::io::{self, ErrorKind, Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, RwLock};
@@ -30,14 +30,9 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
 
         match TcpListener::bind(format!("{}:{}", dir, port)) {
             Ok(listener) => {
-                listener.set_nonblocking(true).expect("non block error");
                 for stream in listener.incoming() {
                     match stream {
                         Ok(stream) => {
-                            stream
-                                .set_nonblocking(true)
-                                .expect("set_nonblocking call failed");
-
                             let tx = sender_server.clone();
                             let conf_lock = conf.clone();
                             let cloned_database = database.clone();
@@ -45,17 +40,12 @@ pub fn init(server: &mut Server, db: Database, config: Config) {
                             pool.spawn(|| {
                                 handle_connection(stream, tx, cloned_database, conf_lock, stop);
                             });
-                        }
-                        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                            // Decide if we should exit
-                            if let Ok(drop) = stop_signal_receiver.try_recv() {
+                            if let Ok(drop) = stop_signal_receiver.recv() {
                                 if drop {
                                     save_database(database);
                                     break;
                                 }
                             }
-                            // Decide if we should try to accept a connection again
-                            continue;
                         }
                         Err(_) => {
                             println!("Couldn't get stream");
@@ -183,6 +173,7 @@ fn handle_connection(
 
                             stream.write_all(response.as_bytes()).unwrap();
                             stream.flush().unwrap();
+                            stop.send(false).unwrap();
                         }
                     }
                     Err(e) => {
