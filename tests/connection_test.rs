@@ -4,7 +4,7 @@ use proyecto_taller_1::{
     domain::{
         entities::{
             config::Config,
-            key_value_item::{KeyValueItem, ValueType},
+            key_value_item::{KeyAccessTime, ValueTimeItem, ValueType},
             server::Server,
         },
         implementations::database::Database,
@@ -51,6 +51,8 @@ impl fmt::Display for ReturnError {
 impl Error for ReturnError {}
 
 #[test]
+//use crate::src::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
 fn test_main() {
     let pool = ThreadPool::new(4);
 
@@ -75,56 +77,60 @@ fn test_main() {
             .unwrap();
 
         let mut database = Database::new(db_file);
-        let added_item = KeyValueItem::new(
-            String::from("key_1"),
+
+        let added_item_1 = ValueTimeItem::new(
             ValueType::StringType(String::from("value_key_1")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
-        let added_item = KeyValueItem::new(
-            String::from("key_2"),
+        database.add(String::from("key_1"), added_item_1);
+
+        let added_item_2 = ValueTimeItem::new(
             ValueType::StringType(String::from("value_key_2")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
-        let added_item = KeyValueItem::new(
-            String::from("key_3"),
+        database.add(String::from("key_2"), added_item_2);
+
+        let added_item_3 = ValueTimeItem::new(
             ValueType::StringType(String::from("value_key_3")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
-        let added_item = KeyValueItem::new(
-            String::from("key_4"),
+        database.add(String::from("key_3"), added_item_3);
+
+        let added_item_4 = ValueTimeItem::new(
             ValueType::StringType(String::from("value_key_4")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("key_4"), added_item_4);
 
-        let added_item = KeyValueItem::new(
-            String::from("mykey"),
+        let added_item_5 = ValueTimeItem::new(
             ValueType::StringType(String::from("Hello")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("mykey"), added_item_5);
 
-        let added_item = KeyValueItem::new(
-            String::from("key_to_decr"),
+        let added_item_6 = ValueTimeItem::new(
             ValueType::StringType(String::from("10")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("key_to_decr"), added_item_6);
 
-        let added_item = KeyValueItem::new(
-            String::from("key_to_incr"),
+        let added_item_7 = ValueTimeItem::new(
             ValueType::StringType(String::from("10")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("key_to_incr"), added_item_7);
 
-        let added_item = KeyValueItem::new(
-            String::from("key_getdel"),
+        let added_item_8 = ValueTimeItem::new(
             ValueType::StringType(String::from("Hello")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("key_getdel"), added_item_8);
 
-        let added_item = KeyValueItem::new(
-            String::from("key_getset"),
+        let added_item_9 = ValueTimeItem::new(
             ValueType::StringType(String::from("OldValue")),
+            KeyAccessTime::Volatile(4234234),
         );
-        database.add(added_item);
+        database.add(String::from("key_getset"), added_item_9);
 
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),

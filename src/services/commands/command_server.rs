@@ -41,21 +41,28 @@ pub fn info(cmd: &[RespType]) -> RespType {
     }
 }
 
+/// Recibe la base de datos database dentro de un RwLock
+/// Devuelve la cantidad de claves almacenadas en la base
 pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(database.read().unwrap().get_size())
 }
 
 //hay que hacerlo con las opciones sync/async??
+/// Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
+/// Elimina todas las claves y valores almacenados en la base de datos
+/// Devuelve el mensaje "Erased database"
 pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     new_database.clean_items();
     RespType::RBulkString("Erased database".to_string())
 }
 
+/// Recibe la configuración config y un campo field de tipo &RespType
+/// Busca el valor del atributo de nombre field en la configuración
+/// En caso de encontrarlo, lo devuelve como un Simple String, sino devuelve Error.
 pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
     if let RespType::RBulkString(field_name) = field {
-        if let Ok(read_guard) = config.read() {
-            let conf = read_guard;
+        if let Ok(conf) = config.read() {
             match conf.get_attribute(String::from(field_name)) {
                 Ok(value) => {
                     return RespType::RArray(vec![RespType::RSimpleString(value)]);
@@ -69,11 +76,13 @@ pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
     }
 }
 
+/// Recibe la configuración config, un campo field de tipo &RespType y un valor value de tipo &RespType
+/// Setea el campo field de la configuración con el valor value
+/// En caso de exito devuelve un Simple String "ok", sino devuelve Error
 pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespType) -> RespType {
     if let RespType::RBulkString(field_name) = field {
         if let RespType::RBulkString(value) = value {
-            if let Ok(write_guard) = config.write() {
-                let mut conf = write_guard;
+            if let Ok(mut conf) = config.write() {
                 match conf.set_attribute(String::from(field_name), String::from(value)) {
                     Ok(_) => {
                         return RespType::RSimpleString(String::from("ok"));
@@ -89,8 +98,3 @@ pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespTy
         RespType::RError(String::from("Invalid request"))
     }
 }
-
-// #[test]
-// fn test_config_get_verbose() {
-//     let _parsed_command = RespType::RBulkString(String::from("verbose"));
-// }
