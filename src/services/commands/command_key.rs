@@ -55,7 +55,7 @@ fn copy_should_replace(cmd: &[RespType]) -> bool {
     if cmd.len() == 4 {
         if let RespType::RBulkString(replace) = &cmd[3] {
             if replace == "replace" {
-                return true; 
+                return true;
             }
         }
     }
