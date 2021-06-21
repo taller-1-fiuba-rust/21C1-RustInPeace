@@ -37,7 +37,7 @@ impl KeyValueItemSerialized {
         KeyValueItem {
             key: line[0].to_string(),
             value,
-            last_access_time: line[1].parse::<KeyAccessTime>().unwrap(),
+            timeout: line[1].parse::<KeyAccessTime>().unwrap(),
         }
     }
 }
@@ -58,16 +58,16 @@ mod tests {
     fn line_string_type() {
         let kvis = KeyValueItemSerialized::_new("123key;1623427130;string;value".to_string());
         let kvi = kvis.transform_to_item();
-        assert_eq!(kvi.key.to_string(), "123key");
-        assert_eq!(kvi.value.to_string(), "value");
-        assert_eq!(kvi.last_access_time.to_string(), "1623427130");
+        assert_eq!(kvi.get_key().to_string(), "123key");
+        assert_eq!(kvi._get_value().to_string(), "value");
+        assert_eq!(kvi._get_key_timeout().to_string(), "1623427130");
     }
 
     #[test]
     fn line_set_type() {
         let kvis = KeyValueItemSerialized::_new("123key;1623427130;set;3,2,4".to_string());
         let kvi = kvis.transform_to_item();
-        assert_eq!(kvi.key.to_string(), "123key");
+        assert_eq!(kvi.get_key().to_string(), "123key");
         match kvi.value {
             ValueType::SetType(hs) => {
                 assert_eq!(hs.len(), 3);
@@ -77,7 +77,7 @@ mod tests {
             }
             _ => assert!(false),
         }
-        assert_eq!(kvi.last_access_time.to_string(), "1623427130");
+        assert_eq!(kvi.timeout.to_string(), "1623427130");
     }
 
     #[test]
@@ -95,7 +95,7 @@ mod tests {
             }
             _ => assert!(false),
         }
-        assert_eq!(kvi.last_access_time.to_string(), "1623427130");
+        assert_eq!(kvi.timeout.to_string(), "1623427130");
     }
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.key.to_string(), "123key");
         assert_eq!(kvi.value.to_string(), "value");
-        match kvi.last_access_time {
+        match kvi.timeout {
             KeyAccessTime::Persistent => assert!(true),
             _ => assert!(false),
         }

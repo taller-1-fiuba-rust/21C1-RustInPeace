@@ -7,6 +7,9 @@ use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
+use std::str::FromStr;
+use crate::errors::parse_error::ParseError::InvalidRequest;
+use crate::errors::parse_error::ParseError;
 // use std::error::Error;
 // use std::u64;
 
@@ -147,6 +150,19 @@ impl Database {
 
     pub fn add(&mut self, kv_item: KeyValueItem) {
         self.items.push(kv_item);
+    }
+
+    pub fn expire_key(&mut self, key: String, timeout: &str) -> bool{
+        if let Some(pos) = self
+            .items
+            .iter()
+            .position(|x| *x.get_key().to_string() == key)
+        {
+            self.items.get(pos).unwrap().set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap()));
+            return true
+        }
+        return false
+
     }
 }
 
@@ -305,7 +321,7 @@ fn test_02_deletes_an_item_succesfully() {
     db.add(KeyValueItem {
         key: "clave_1".to_string(),
         value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
+        timeout: KeyAccessTime::Persistent,
     });
 
     println!("{:?}", db._get_items());
@@ -323,11 +339,11 @@ fn persist_changes_type_of_access_time() {
     let _res = db.add(KeyValueItem {
         key: "clave_1".to_string(),
         value: ValueType::StringType("value".to_string()),
-        last_access_time: KeyAccessTime::Persistent,
+        timeout: KeyAccessTime::Persistent,
     });
 
     let item = db.search_item_by_key("clave_1").unwrap();
-    match *item._get_last_access_time() {
+    match *item._get_key_timeout() {
         KeyAccessTime::Persistent => assert!(true),
         KeyAccessTime::Volatile(_tmt) => assert!(false),
     }

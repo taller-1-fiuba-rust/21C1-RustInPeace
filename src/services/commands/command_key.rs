@@ -92,6 +92,24 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RBulkString("OK".to_string())
 }
 
+pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() != 2{
+        RespType::RInteger(0);
+    }else{
+    if let RespType::RBulkString(key) = &cmd[1] {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(timeout) = &cmd[2] {
+            let result = db.expire_key(key.to_string(), timeout);
+            if result{
+                return RespType::RInteger(1)
+            }else{
+                return RespType::RInteger(0)
+            }
+        }
+    }}
+    RespType::RInteger(0)
+}
+
 //     for n in cmd.iter().skip(1) {
 //         //            key_in_db = database.search_by_key()
 //         if let RespType::RBulkString(actual_key) = n {
