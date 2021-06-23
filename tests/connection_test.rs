@@ -12,13 +12,7 @@ use proyecto_taller_1::{
     services::{server_service, worker_service::ThreadPool},
 };
 
-use std::{
-    error::Error,
-    fmt,
-    sync::mpsc,
-    thread::{self, sleep},
-    time::Duration,
-};
+use std::{error::Error, fmt, sync::{Arc, Mutex, mpsc}, thread::{self, sleep}, time::Duration};
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
 
@@ -55,90 +49,100 @@ impl Error for ReturnError {}
 
 fn test_main() {
     let pool = ThreadPool::new(4);
+    let config_file = String::from("./src/dummy_config.txt");
+    let db_file = String::from("./src/dummy_database.txt");
+    let log_file = String::from("./src/dummy_log.txt");
+
+    match std::fs::File::create(&config_file) {
+        Ok(_) => {}
+        Err(e) => println!("Error creating config {:?}", e),
+    }
+
+    match std::fs::File::create(&log_file) {
+        Ok(_) => {}
+        Err(e) => println!("Error creating log {:?}", e),
+    }
+
+    let mut config = Config::new(config_file);
+    config
+        .set_attribute(String::from("verbose"), String::from("1"))
+        .unwrap();
+
+    let mut database = Database::new(db_file);
+
+    let added_item_1 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_1")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_1"), added_item_1);
+
+    let added_item_2 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_2")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_2"), added_item_2);
+
+    let added_item_3 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_3")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_3"), added_item_3);
+
+    let added_item_4 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_4")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_4"), added_item_4);
+
+    let added_item_5 = ValueTimeItem::new(
+        ValueType::StringType(String::from("Hello")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("mykey"), added_item_5);
+
+    let added_item_6 = ValueTimeItem::new(
+        ValueType::StringType(String::from("10")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_to_decr"), added_item_6);
+
+    let added_item_7 = ValueTimeItem::new(
+        ValueType::StringType(String::from("10")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_to_incr"), added_item_7);
+
+    let added_item_8 = ValueTimeItem::new(
+        ValueType::StringType(String::from("Hello")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_getdel"), added_item_8);
+
+    let added_item_9 = ValueTimeItem::new(
+        ValueType::StringType(String::from("OldValue")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_getset"), added_item_9);
+
+    let (server_sender, server_receiver) = mpsc::channel();
+    let server_receiver = Arc::new(Mutex::new(server_receiver));
+    let port = String::from("8080");
+    let verbose = String::from("0");
+    let port_2 = port.clone();
+    let dir = String::from("127.0.0.1");
 
     let handle: thread::JoinHandle<()> = thread::spawn(|| {
-        let config_file = String::from("./src/dummy_config.txt");
-        let db_file = String::from("./src/dummy_database.txt");
-        let log_file = String::from("./src/dummy_log.txt");
+        let h = thread::spawn(|| {
+            let mut server = Server::new(port_2, log_file, verbose, server_receiver).unwrap();
+            server.listen();
+        });
 
-        match std::fs::File::create(&config_file) {
-            Ok(_) => {}
-            Err(e) => println!("Error creating config {:?}", e),
-        }
-
-        match std::fs::File::create(&log_file) {
-            Ok(_) => {}
-            Err(e) => println!("Error creating log {:?}", e),
-        }
-
-        let mut config = Config::new(config_file);
-        config
-            .set_attribute(String::from("verbose"), String::from("1"))
-            .unwrap();
-
-        let mut database = Database::new(db_file);
-
-        let added_item_1 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_1")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_1"), added_item_1);
-
-        let added_item_2 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_2")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_2"), added_item_2);
-
-        let added_item_3 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_3")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_3"), added_item_3);
-
-        let added_item_4 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_4")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_4"), added_item_4);
-
-        let added_item_5 = ValueTimeItem::new(
-            ValueType::StringType(String::from("Hello")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("mykey"), added_item_5);
-
-        let added_item_6 = ValueTimeItem::new(
-            ValueType::StringType(String::from("10")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_to_decr"), added_item_6);
-
-        let added_item_7 = ValueTimeItem::new(
-            ValueType::StringType(String::from("10")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_to_incr"), added_item_7);
-
-        let added_item_8 = ValueTimeItem::new(
-            ValueType::StringType(String::from("Hello")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_getdel"), added_item_8);
-
-        let added_item_9 = ValueTimeItem::new(
-            ValueType::StringType(String::from("OldValue")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_getset"), added_item_9);
-
-        match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
-            Ok(server) => server_service::init(server, database, config),
-            Err(e) => println!("Error on server: {:?}", e),
-        }
-        std::fs::remove_file("./src/dummy_config.txt").unwrap();
-        std::fs::remove_file("./src/dummy_log.txt").unwrap();
-        std::fs::remove_file("./src/dummy_database.txt").unwrap();
+        server_service::init(database, config, port, dir, server_sender);
+        h.join().unwrap();
+        // match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
+        //     Ok(server) => server_service::init(server, database, config),
+        //     Err(e) => println!("Error on server: {:?}", e),
+        // }
     });
 
     sleep(Duration::from_secs(5));
@@ -169,6 +173,9 @@ fn test_main() {
 
     pool.spawn(shutdown);
     let _ = handle.join().expect("Couldnt join");
+    std::fs::remove_file("./src/dummy_config.txt").unwrap();
+    // std::fs::remove_file("./src/dummy_log.txt").unwrap();
+    std::fs::remove_file("./src/dummy_database.txt").unwrap();
 }
 
 const TESTS: &[Test] = &[
