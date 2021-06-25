@@ -1,3 +1,4 @@
+use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
 use crate::{
@@ -102,6 +103,9 @@ pub fn handle_command(
                 "sort" => {
                     let sorted_list = command_key::true_sort(&array, database);
                     println!("{:?}", sorted_list)
+                }
+                "subscribe" => {
+                    command_pubsub::subscribe(&array, tx, addrs);
                 }
                 _ => {}
             }

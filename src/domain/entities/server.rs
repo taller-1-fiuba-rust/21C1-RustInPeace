@@ -32,6 +32,7 @@ pub struct Server {
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
+    channels: HashMap<String, HashMap<String, Sender<String>>>,
     // threadpool: ThreadPool,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
 }
@@ -46,6 +47,7 @@ impl Server {
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
+        let channels = HashMap::new();
         // let threadpool = ThreadPool::new(4);
         // let server = ServerImpl::new(port, logfile, verb);
 
@@ -60,6 +62,7 @@ impl Server {
             // threadpool_size,
             logger,
             clients_operations,
+            channels,
             // threadpool,
             receiver
         })
@@ -103,6 +106,11 @@ impl Server {
                 }
                 WorkerMessage::Verb(verbose_txt) => {
                     self.verbose(verbose_txt);
+                }
+                WorkerMessage::Subscribe(channel, addrs, message_sender) => {
+                    let mut inner_map = HashMap::new();
+                    inner_map.insert(addrs.to_string(), message_sender);
+                    self.channels.entry(channel).or_insert(inner_map);
                 }
             }
         }
