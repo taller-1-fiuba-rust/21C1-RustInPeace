@@ -35,6 +35,7 @@ pub fn init(db: Database, config: Config, port: String, dir: String, server_send
         match TcpListener::bind(format!("{}:{}", dir, port)) {
             Ok(listener) => {
                 for stream in listener.incoming() {
+                    println!("NEW STREAM!");
                     match stream {
                         Ok(stream) => {
                             let tx = server_sender.clone();
@@ -179,7 +180,7 @@ pub fn handle_connection(
                             tx.send(WorkerMessage::Stop(true)).unwrap();
                             break;
                         }
-
+                        stop.send(false).unwrap();
                         if let Some(res) =
                             handle_command(parsed_request, &tx, client_addrs, &database, &config)
                         {
@@ -195,13 +196,13 @@ pub fn handle_connection(
                             );
 
                             stream.write_all(response.as_bytes()).unwrap();
-                            // stream.flush().unwrap();
+                            stream.flush().unwrap();
                             // stop.send(false).unwrap();
                             // tx.send(WorkerMessage::Stop(false)).unwrap();
                         }
-                        println!("flushing {}", client_addrs);
-                        stream.flush().unwrap();
-                        stop.send(false).unwrap();
+                        // println!("flushing {}", client_addrs);
+                        // stream.flush().unwrap();
+                        // stop.send(false).unwrap();
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);

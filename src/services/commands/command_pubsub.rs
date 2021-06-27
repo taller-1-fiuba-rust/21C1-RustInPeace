@@ -25,17 +25,20 @@ pub fn subscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr
 
         //en thread aparte?
         //se tiene que cerrar con CTRL-C
-        thread::spawn(|| {
+        // thread::spawn(|| {
             println!("tamo aca esperando");
             for message in messages_receiver {
+                println!("llego un mensaje {}", message);
                 if message == "QUIT" {
                     break;
                 }
                 println!("{}", message);
             }
             println!("llego aca");
-        });
+            // drop(messages_sender);
+        // });
         println!("bye");
+    
         // h.join().unwrap();
     // }
 }
@@ -66,8 +69,14 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
 pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr) -> RespType {
     if let RespType::RBulkString(channel) = &cmd[1] {
         if let RespType::RBulkString(message) = &cmd[2] {
-            tx.send(WorkerMessage::Publish(channel.to_string(), addrs, message.to_string())).unwrap();
+            let (response_sender, response_receiver) = mpsc::channel();
+            tx.send(WorkerMessage::Publish(channel.to_string(), response_sender, message.to_string())).unwrap();
+
+            let res = response_receiver.recv().unwrap();
+            println!("res: {}", res);
+            return RespType::RInteger(res);
         }
     }
+    println!("oops");
     RespType::RInteger(0)
 }

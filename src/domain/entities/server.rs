@@ -120,8 +120,10 @@ impl Server {
                 WorkerMessage::UnsubscribeAll(addrs) => {
                     self.unsubscribe_to_all_channels(addrs);
                 }
-                WorkerMessage::Publish(channel, addrs, message) => {
-                    self.send_message_to_channel(channel, message);
+                WorkerMessage::Publish(channel, response_sender, message) => {
+                    let messages_sent = self.send_message_to_channel(channel, message);
+                    println!("sending response!!");
+                    response_sender.send(messages_sent).unwrap();
                 }
             }
         }
@@ -200,7 +202,10 @@ impl Server {
         let subscribers = self.channels.get_mut(&channel).unwrap();
         let sender = subscribers.get(&addrs.ip().to_string()).unwrap();
         sender.send(String::from("UNSUBSCRIBE")).unwrap();
+        // println!("envio un unsubscribe");
         sender.send(String::from("QUIT")).unwrap();
+        // println!("envio un QUIT");
+        // drop(sender);
         subscribers.remove(&addrs.ip().to_string());
     }
 

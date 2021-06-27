@@ -534,26 +534,32 @@ fn test_string_getset() -> TestResult {
 }
 
 fn test_pubsub() -> TestResult {
-    
-    // pubsub.subscribe("channel_1");
-    // pubsub.subscribe("channel_2");
     let h = thread::spawn(|| {
+        println!("GONNA SUBSCRIBE");
         let mut con = connect().unwrap();
         let _ : () = redis::cmd("SUBSCRIBE")
-        .arg("channel_1")
-        .arg("channel_2")
-        .query(&mut con).unwrap();
-        println!("done with subscribe");
+            .arg("channel_1")
+            // .arg("channel_2")
+            .query(&mut con).unwrap();
     });
 
     thread::sleep(Duration::from_secs(1));
     let mut con = connect()?;
-    println!("marche un unsubscribe");
-    let _ = redis::cmd("UNSUBSCRIBE")
+    println!("marche un publish");
+    let receivers : usize = redis::cmd("PUBLISH")
         .arg("channel_1")
-        .arg("channel_2")
-        .query(&mut con)?;
-    println!("ke onda");
+        .arg("Hello channel_1")
+        .query(&mut con).unwrap();
+
+    println!("RECEIVERS: {}", receivers);
+
+    thread::sleep(Duration::from_secs(3));
+    let mut con = connect()?;
+    println!("marche un unsubscribe");
+    let _ : () = redis::cmd("UNSUBSCRIBE")
+        .arg("channel_1")
+        // .arg("channel_2")
+        .query(&mut con).unwrap();
     h.join().unwrap();
     return Ok(());
 }
