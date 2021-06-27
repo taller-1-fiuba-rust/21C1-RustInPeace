@@ -178,6 +178,23 @@ impl ValueTimeItem {
             }
         }
     }
+
+    pub fn get_value_type(&self) -> String {
+        let value_type; // = "none".to_string();//String::from("none");
+        let current_value = &self.value;
+        match current_value {
+            ValueType::ListType(_current_list) => {
+                value_type = "list".to_string();
+            }
+            ValueType::SetType(_current_set) => {
+                value_type = "set".to_string();
+            }
+            ValueType::StringType(_current_string) => {
+                value_type = "string".to_string();
+            }
+        }
+        value_type
+    }
 }
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,5 @@
 use super::utils::resp_type::RespType;
+use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
@@ -78,6 +79,18 @@ pub fn handle_command(
                 "rename" => {
                     return Some(command_key::rename(&array, database));
                 }
+                "sort" => {
+                    return Some(command_key::sort(&array, database));
+                    //let sorted_list = command_key::sort(&array, database);
+                    //println!("{:?}", sorted_list)
+                }
+                "keys" => return Some(command_key::keys(&array, database)),
+                "touch" => return Some(command_key::keys(&array, database)),
+                "type" => {
+                    let tipo = command_key::get_type(&array, database);
+                    println!("{:?}", tipo);
+                    //return Some (command_key::get_type(&array, database))
+                }
                 "append" => {
                     return Some(command_string::append(&array, database));
                 }
@@ -99,15 +112,18 @@ pub fn handle_command(
                 "strlen" => {
                     return Some(command_string::strlen(&array, database));
                 }
-                "sort" => {
-                    let sorted_list = command_key::true_sort(&array, database);
-                    println!("{:?}", sorted_list)
-                }
                 _ => {}
             }
         }
     }
     None
+}
+
+pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
+    if let Ok(write_guard) = database.write() {
+        let mut db = write_guard;
+        db.add(key, value)
+    }
 }
 
 #[test]
@@ -218,4 +234,399 @@ fn test_006_check_if_key_exists_throws_one() {
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
     std::fs::remove_file("filename_6".to_string()).unwrap();
+}
+
+#[test]
+fn test_007_sort_ascending() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "15".to_string(),
+            "18".to_string(),
+            "12".to_string(),
+            "54".to_string(),
+            "22".to_string(),
+            "45".to_string(),
+        ]),
+        //value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
+    load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("edades_amigos".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_008_sort_descending() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "15".to_string(),
+            "18".to_string(),
+            "12".to_string(),
+            "54".to_string(),
+            "22".to_string(),
+            "45".to_string(),
+        ]),
+        //value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
+    load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("edades_amigos".to_string()),
+        RespType::RBulkString("DESC".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_009_sort_ascending_first_4_elements() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "15".to_string(),
+            "18".to_string(),
+            "12".to_string(),
+            "54".to_string(),
+            "22".to_string(),
+            "45".to_string(),
+        ]),
+        //value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
+    load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("edades_amigos".to_string()),
+        RespType::RBulkString("LIMIT".to_string()),
+        RespType::RBulkString("0".to_string()),
+        RespType::RBulkString("4".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_010_sort_descending_first_4_elements() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "15".to_string(),
+            "18".to_string(),
+            "12".to_string(),
+            "54".to_string(),
+            "22".to_string(),
+            "45".to_string(),
+        ]),
+        //value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
+    load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("edades_amigos".to_string()),
+        RespType::RBulkString("LIMIT".to_string()),
+        RespType::RBulkString("0".to_string()),
+        RespType::RBulkString("4".to_string()),
+        RespType::RBulkString("DESC".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_011_sort_by_external_key_value_using_pattern_ascending() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["15".to_string()]),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("20".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["11".to_string()]),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("40".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["1".to_string()]),
+        value: ValueType::StringType("50".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("60".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "ignacio".to_string(),
+            "pepo".to_string(),
+            "silvina".to_string(),
+            "lucila".to_string(),
+        ]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edad_juana".to_string(), vt_1);
+    load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
+    load_data_in_db(&database, "edad_ignacio".to_string(), vt_3);
+    load_data_in_db(&database, "edad_pepo".to_string(), vt_4);
+    load_data_in_db(&database, "juana".to_string(), vt_5);
+    load_data_in_db(&database, "lucila_edad".to_string(), vt_6);
+    load_data_in_db(&database, "familiares".to_string(), vt_7);
+
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("familiares".to_string()),
+        RespType::RBulkString("BY".to_string()),
+        RespType::RBulkString("edad_".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_012_sort_by_external_key_value_using_pattern_descending() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_7".to_string());
+    let db = Database::new("filename_7".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["15".to_string()]),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("20".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["11".to_string()]),
+        value: ValueType::StringType("30".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("40".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["1".to_string()]),
+        value: ValueType::StringType("50".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("60".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "ignacio".to_string(),
+            "pepo".to_string(),
+            "silvina".to_string(),
+            "lucila".to_string(),
+        ]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edad_juana".to_string(), vt_1);
+    load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
+    load_data_in_db(&database, "edad_ignacio".to_string(), vt_3);
+    load_data_in_db(&database, "edad_pepo".to_string(), vt_4);
+    load_data_in_db(&database, "juana".to_string(), vt_5);
+    load_data_in_db(&database, "lucila_edad".to_string(), vt_6);
+    load_data_in_db(&database, "familiares".to_string(), vt_7);
+
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("sort".to_string()),
+        RespType::RBulkString("familiares".to_string()),
+        RespType::RBulkString("BY".to_string()),
+        RespType::RBulkString("edad_".to_string()),
+        RespType::RBulkString("DESC".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_013_gets_value_type_list() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_13".to_string());
+    let db = Database::new("filename_13".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["15".to_string()]),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("20".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+
+    let vt_7 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "ignacio".to_string(),
+            "pepo".to_string(),
+            "silvina".to_string(),
+            "lucila".to_string(),
+        ]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edad_juana".to_string(), vt_1);
+    load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
+    load_data_in_db(&database, "familiares".to_string(), vt_7);
+
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("type".to_string()),
+        RespType::RBulkString("familiares".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_014_gets_value_type_string() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_13".to_string());
+    let db = Database::new("filename_13".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        // value: ValueType::ListType(vec!["15".to_string()]),
+        value: ValueType::StringType("10".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("20".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+
+    let vt_7 = ValueTimeItem {
+        value: ValueType::ListType(vec![
+            "ignacio".to_string(),
+            "pepo".to_string(),
+            "silvina".to_string(),
+            "lucila".to_string(),
+        ]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "edad_juana".to_string(), vt_1);
+    load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
+    load_data_in_db(&database, "familiares".to_string(), vt_7);
+
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("type".to_string()),
+        RespType::RBulkString("edad_juana".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
 }

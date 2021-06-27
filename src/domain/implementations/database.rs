@@ -1,5 +1,6 @@
 // use std::error::Error;
 // use std::u64;
+use regex::Regex;
 use std::collections::HashMap; //, ops::Bound};
 
 //use regex::{Captures, Regex};
@@ -46,23 +47,25 @@ impl Database {
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
-
+    /// devuelve el hashmap donde se almacenan los datos
     pub fn _get_items(&self) -> &HashMap<String, ValueTimeItem> {
         // pub fn _get_items(&self) -> &Vec<KeyValueItem> {
         &self.items
     }
+    /// borra todos las claves (y sus valores asociados) de la base de datos
     pub fn clean_items(&mut self) -> &HashMap<String, ValueTimeItem> {
         self.items.clear();
         &self.items
     }
-
+    /// devuelve el valor almacenado en **key**
     pub fn search_item_by_key(&self, key: String) -> Option<&ValueTimeItem> {
         self.items.get(&key)
         // match self.items.get(&key) {
         //     Some(item) => return item,
         //     None => None,
     }
-    pub fn _get_keys_that_match_pattern(&self, pattern: String) -> Vec<String> {
+    /// Devuelve las claves que hacen *match* con un *pattern* sin uso de regex (limitado)
+    pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
         //-> Some(){
         let mut vector_keys = vec![];
         for key in &self.items {
@@ -78,15 +81,44 @@ impl Database {
         }
         vector_keys_filtered
     }
+    /// Devuelve las claves que hacen *match* con un *pattern* con uso de regex (exhaustivo)
+    pub fn get_keys_that_match_pattern(&self, pattern: &str) -> Vec<String> {
+        //-> Some(){
+        let mut vec_matching_keys = vec![];
+        //aca agarro todas las claves disponibles en un vector
+        let mut vector_keys = vec![];
+        for key in &self.items {
+            let current_key = key.to_owned().0.to_string();
+            vector_keys.push(current_key);
+        }
+        //aca genero el regex a partir de pattern y lo comparo contra todas las claves
+        let re = Regex::new(pattern).unwrap();
+        for key in vector_keys {
+            if re.is_match(&key) {
+                vec_matching_keys.push(key);
+            }
+        }
+        vec_matching_keys
 
+        // let mut vector_keys_filtered = vec![];
+        // for key in vector_keys {
+        //     if key.contains(&pattern.to_string()) {
+        //         vector_keys_filtered.push(key);
+        //     }
+        // }
+        // vector_keys_filtered
+    }
+
+    ///devuelve **true** si la clave existe en *database*
     pub fn key_exists(&self, key: String) -> bool {
         self.items.contains_key(&key)
     }
-
+    /// permite agregar *clave* y *valor* a la base de datos
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
     }
-
+    /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
+    /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
     pub fn get_values_of_external_keys_that_match_a_pattern(
         &self,
         elements: Vec<String>,
@@ -95,16 +127,15 @@ impl Database {
         let mut vec_auxiliar = Vec::new();
         for element in elements {
             let patterned_key = pat.to_string() + element.as_str();
-            if let Some(patterned_key_value) = self
-                .items
-                .get(&patterned_key)
-                .unwrap()
-                .get_value_version_2()
-            {
-                let vectorcito = (element, patterned_key_value[0].to_string());
+            if self.items.contains_key(&patterned_key) {
+                let current_value = self
+                    .items
+                    .get(&patterned_key)
+                    .unwrap()
+                    .get_value_version_2()
+                    .unwrap();
+                let vectorcito = (element, current_value[0].to_string());
                 vec_auxiliar.push(vectorcito);
-            } else {
-                //
             }
         }
         if !vec_auxiliar.is_empty() {
@@ -113,18 +144,25 @@ impl Database {
             None
         }
     }
-    // pub fn get_values_of_external_keys_that_match_a_pattern(&self , pat: &str) {
-    //     let current_regex = Regex::new(pat).unwrap();
-    //     for (clave, valor) in self.items.iter().filter(|x|
-    //         current_regex.is_match(x.0)
-    //     ) {
-    //         println!("clave {}", clave);
+    // VER EL TEMA DE LOS TIPOS DE DATOS GUARDADOS EN VALUE (SIN ITEM) PORQUE PUEDE SER CUALQUIERA DE 3 TIPOS
+    /// Resetea el tiempo de acceso **KeyAccessTime** de una clave
+    pub fn reboot_time(&mut self, key: String) {
+        let current_value = self.items.remove(&key).unwrap();
+        let cv = current_value.get_value_version_2().unwrap();
+        let mut vec_aux = vec![];
+        for elemento in cv {
+            vec_aux.push(elemento.to_string());
+        }
+        let vt = ValueTimeItem {
+            value: ValueType::ListType(vec_aux),
+            last_access_time: KeyAccessTime::Volatile(0),
+        };
+        self.items.insert(key, vt);
+    }
 
-    //     }
-
-    //         //current_
-
-    // }
+    pub fn get_type_of_value(&self, key: String) -> String {
+        self.items.get(&key).unwrap().get_value_type()
+    }
 
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         let source_item = self.items.get(&source);
@@ -155,6 +193,7 @@ impl Database {
         }
     }
 
+    ///renombra una clave, conservando su valor actual
     pub fn rename_key(&mut self, current_key: String, new_key: String) -> bool {
         let item = self.items.remove(&current_key);
         if let Some(item) = item {
@@ -315,7 +354,7 @@ impl Database {
         // Ok(new_value)
     }
 
-    //agregar tests
+    /// REVISAR: NO ES LO MISMO QUE search_item_by_key?
     pub fn get_value_by_key(&self, key: &str) -> Option<String> {
         let item = self.items.get(&key.to_string());
         if let Some(item) = item {
@@ -442,7 +481,7 @@ impl Database {
             .unwrap();
         }
     }
-
+    /// devuelve todos los valores almacenados en todas las claves en orden aleatorio
     pub fn _get_all_values(&self) -> Vec<ValueType> {
         let mut all_values = Vec::new();
         let values_vector = &self.items;
@@ -453,10 +492,12 @@ impl Database {
         all_values
     }
 
+    /// devuelve la cantidad de claves almacenadas en la base de datos
     pub fn get_size(&self) -> usize {
         self.items.len()
     }
 
+    /// permite eliminar una clave y su valor asociado
     pub fn delete_key(&mut self, key: String) -> bool {
         matches!(self.items.remove(&key), Some(_key))
     }
@@ -505,8 +546,7 @@ mod tests {
         db.items.insert("banana_weight".to_string(), vt_4);
 
         // db.get_values_of_external_keys_that_match_a_pattern("banana");
-
-        let vec_filtered = db._get_keys_that_match_pattern("weight".to_string());
+        let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
         assert_eq!(vec_filtered.len(), 4);
         std::fs::remove_file("./src/dummy.txt").unwrap();
     }
@@ -952,4 +992,305 @@ fn test_14_decr_by_to_invalid_string_value() {
     let res = db.decrement_key_by(&"mykey".to_string(), 3);
     assert!(res.is_err());
     std::fs::remove_file("./src/dummy_decr_2.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_15_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("weight_apples".to_string(), vt_2);
+    db.items.insert("weight_kiwi".to_string(), vt_3);
+    db.items.insert("weight_pear".to_string(), vt_4);
+
+    let pat = "weight_";
+    let vec_strings = vec![
+        "sandia".to_string(),
+        "pear".to_string(),
+        "apples".to_string(),
+    ];
+    let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
+    let algo = tuplas.unwrap();
+    println!("{:?}", algo)
+}
+
+#[test]
+fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_8 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("pablo".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("mariano".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m?riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+}
+
+#[test]
+fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_8 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m[ae]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+}
+
+#[test]
+fn test_18_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_8 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m[^a]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+}
+
+#[test]
+fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_8 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("muriana".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("moriana".to_string(), vt_8);
+
+    let pat = "m[a-o]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+}
+
+#[test]
+fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_4 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_5 = ValueTimeItem {
+        value: ValueType::StringType("1".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_6 = ValueTimeItem {
+        value: ValueType::StringType("2".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_7 = ValueTimeItem {
+        value: ValueType::StringType("11".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_8 = ValueTimeItem {
+        value: ValueType::StringType("5".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("jose".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("pedro".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("moriana".to_string(), vt_8);
+
+    let pat = "m*a";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
 }
