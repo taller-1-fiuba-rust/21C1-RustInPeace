@@ -196,10 +196,10 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         let mut vec = vec![];
         pattern_matching_keys
             .into_iter()
-            .for_each(|value| vec.push(RespType::RBulkString(value.to_string())));
-        return RespType::RArray(vec);
+            .for_each(|value| vec.push(RespType::RBulkString(value)));
+        RespType::RArray(vec)
     } else {
-        return RespType::RBulkString("No matching keys".to_string());
+        RespType::RBulkString("No matching keys".to_string())
     }
 }
 
@@ -216,7 +216,7 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    return RespType::RInteger(number_of_touched_keys);
+    RespType::RInteger(number_of_touched_keys)
 }
 
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -224,7 +224,7 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
         if db.key_exists(current_key.to_string()) {
-            tipo = db.get_type_of_value(current_key.to_string()).to_string();
+            tipo = db.get_type_of_value(current_key.to_string());
         }
     }
     RespType::RBulkString(tipo)

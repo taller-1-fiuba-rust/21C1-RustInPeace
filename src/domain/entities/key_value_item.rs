@@ -193,7 +193,7 @@ impl ValueTimeItem {
                 value_type = "string".to_string();
             }
         }
-        return value_type;
+        value_type
     }
 }
 #[cfg(test)]
