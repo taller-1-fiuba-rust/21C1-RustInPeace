@@ -167,7 +167,7 @@ fn test_main() {
         }
     }
 
-    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(10)) {
+    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(20)) {
         panic!("{}", err);
     }
 
@@ -246,6 +246,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: strlen key_1",
         func: test_string_strlen,
+    },
+    Test {
+        name: "pubsub command: subscribe channel_1 channel_2 ",
+        func: test_pubsub,
     },
 ];
 
@@ -527,4 +531,29 @@ fn test_string_getset() -> TestResult {
             got: ret,
         }));
     }
+}
+
+fn test_pubsub() -> TestResult {
+    
+    // pubsub.subscribe("channel_1");
+    // pubsub.subscribe("channel_2");
+    let h = thread::spawn(|| {
+        let mut con = connect().unwrap();
+        let _ : () = redis::cmd("SUBSCRIBE")
+        .arg("channel_1")
+        .arg("channel_2")
+        .query(&mut con).unwrap();
+        println!("done with subscribe");
+    });
+
+    thread::sleep(Duration::from_secs(1));
+    let mut con = connect()?;
+    println!("marche un unsubscribe");
+    let _ = redis::cmd("UNSUBSCRIBE")
+        .arg("channel_1")
+        .arg("channel_2")
+        .query(&mut con)?;
+    println!("ke onda");
+    h.join().unwrap();
+    return Ok(());
 }

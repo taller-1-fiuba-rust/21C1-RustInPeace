@@ -15,6 +15,8 @@ use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -24,6 +26,9 @@ use std::{io::Error, net::SocketAddr};
 use super::config::Config;
 use super::message::WorkerMessage;
 
+static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
+fn get_id() -> usize { ID_COUNTER.fetch_add(1, Ordering::Relaxed) }
+
 #[derive(Debug)]
 pub struct Server {
     dir: String,
@@ -32,7 +37,7 @@ pub struct Server {
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    channels: HashMap<String, HashMap<String, Sender<String>>>,
+    channels: HashMap<String, HashMap<String, Sender<String>>>, //el 2do hashmap deberia tener un vector de senders, no? podria el mismo cliente conectarse desde distintas "ventanas"
     // threadpool: ThreadPool,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
 }
@@ -100,7 +105,6 @@ impl Server {
                 WorkerMessage::NewOperation(operation, addrs) => {
                     self.update_clients_operations(operation, addrs);
                 }
-                // WorkerMessage::Request(_) => {}
                 WorkerMessage::Stop(_) => {
                     break;
                 }
@@ -108,40 +112,20 @@ impl Server {
                     self.verbose(verbose_txt);
                 }
                 WorkerMessage::Subscribe(channel, addrs, message_sender) => {
-                    let mut inner_map = HashMap::new();
-                    inner_map.insert(addrs.to_string(), message_sender);
-                    self.channels.entry(channel).or_insert(inner_map);
+                    self.subscribe_to_channel(channel, addrs, message_sender);
+                }
+                WorkerMessage::Unsubscribe(channel, addrs) => {
+                    self.unsubscribe(channel, addrs);
+                }
+                WorkerMessage::UnsubscribeAll(addrs) => {
+                    self.unsubscribe_to_all_channels(addrs);
+                }
+                WorkerMessage::Publish(channel, addrs, message) => {
+                    self.send_message_to_channel(channel, message);
                 }
             }
         }
     }
-
-    // pub fn listen(&mut self, receiver: &Receiver<WorkerMessage>) {
-    //     for msg in receiver {
-    //         println!("msg: {:?}", msg);
-    //         match msg {
-    //             WorkerMessage::Log(log_msg) => match self.log(log_msg) {
-    //                 Ok(_) => (),
-    //                 Err(e) => {
-    //                     println!("Logging error: {}", e);
-    //                 }
-    //             },
-    //             WorkerMessage::Verb(verbose_txt) => {
-    //                 self.verbose(verbose_txt);
-    //             }
-    //             WorkerMessage::NewOperation(operation, addrs) => {
-    //                 self.update_clients_operations(operation, addrs);
-    //             }
-    //             WorkerMessage::MonitorOp(addrs) => {
-    //                 self.print_last_operations_by_client(addrs);
-    //             }
-    //             WorkerMessage::Stop(_) => {
-    //                 break;
-    //             }
-    //             _ => continue
-    //         }
-    //     }
-    // }
 
     pub fn get_port(&self) -> &String {
         &self.port
@@ -196,6 +180,42 @@ impl Server {
         }
     }
 
+    pub fn subscribe_to_channel(&mut self, channel: String, addrs: SocketAddr, sender: Sender<String>) {
+        println!("me suscribo a: {}", channel);
+        let mut inner_map = HashMap::new();
+        inner_map.insert(addrs.ip().to_string(), sender);
+        self.channels.entry(channel).or_insert(inner_map);
+    }
+
+    pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr) {
+        for subscriber in self.channels.values_mut() {
+            let sender = subscriber.get(&addrs.to_string()).unwrap();
+            sender.send(String::from("UNSUBSCRIBE")).unwrap();
+            sender.send(String::from("QUIT")).unwrap();
+            subscriber.remove(&addrs.ip().to_string());
+        }
+    }
+
+    pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr) {
+        let subscribers = self.channels.get_mut(&channel).unwrap();
+        let sender = subscribers.get(&addrs.ip().to_string()).unwrap();
+        sender.send(String::from("UNSUBSCRIBE")).unwrap();
+        sender.send(String::from("QUIT")).unwrap();
+        subscribers.remove(&addrs.ip().to_string());
+    }
+
+    pub fn send_message_to_channel(&mut self, channel: String, msg: String) -> usize {
+        let mut sent = 0;
+        let subscribers = self.channels.get_mut(&channel).unwrap();
+        for sender in subscribers.values() {
+            match sender.send(msg.clone()) {
+                Ok(()) => {sent += 1}
+                Err(_) => continue
+            }
+        }
+        sent
+    }
+
     // pub fn init(self, db: Database, config: Config) {
     //     let (sender_server, receiver_server) = mpsc::channel();
     //     let port: String = self.port.clone();
@@ -246,81 +266,81 @@ impl Server {
     // }
 }
 
-pub struct ServerImpl {
-    port: String,
-    verbose: String,
-    logger: Logger,
-    clients_operations: HashMap<String, OperationRegister>,
-    dir: String
-}
+// pub struct ServerImpl {
+//     port: String,
+//     verbose: String,
+//     logger: Logger,
+//     clients_operations: HashMap<String, OperationRegister>,
+//     dir: String
+// }
 
-impl ServerImpl {
-    pub fn new(port: String, logfile: String, verb: String) -> Result<Self, Error> {
-        let dir = "127.0.0.1".to_string();
-        let port = port;
-        let verbose = verb;
-        let logger_path = &logfile;
-        let logger = Logger::new(logger_path)?;
-        let clients_operations = HashMap::new();
+// impl ServerImpl {
+//     pub fn new(port: String, logfile: String, verb: String) -> Result<Self, Error> {
+//         let dir = "127.0.0.1".to_string();
+//         let port = port;
+//         let verbose = verb;
+//         let logger_path = &logfile;
+//         let logger = Logger::new(logger_path)?;
+//         let clients_operations = HashMap::new();
 
-        Ok(ServerImpl {
-            port,
-            verbose,
-            logger,
-            clients_operations,
-            dir
-        })
-    }
+//         Ok(ServerImpl {
+//             port,
+//             verbose,
+//             logger,
+//             clients_operations,
+//             dir
+//         })
+//     }
 
-    pub fn get_port(&self) -> &String {
-        &self.port
-    }
+//     pub fn get_port(&self) -> &String {
+//         &self.port
+//     }
 
-    pub fn get_dir(&self) -> &String {
-        &self.dir
-    }
+//     pub fn get_dir(&self) -> &String {
+//         &self.dir
+//     }
 
-    pub fn get_verbose(&self) -> &String {
-        &self.verbose
-    }
+//     pub fn get_verbose(&self) -> &String {
+//         &self.verbose
+//     }
 
-    pub fn log(&mut self, msg: String) -> Result<(), Error> {
-        self.logger.log(msg.as_bytes())?;
-        Ok(())
-    }
+//     pub fn log(&mut self, msg: String) -> Result<(), Error> {
+//         self.logger.log(msg.as_bytes())?;
+//         Ok(())
+//     }
 
-    pub fn verbose(&self, msg: String) {
-        if self.parse_verbose(self.get_verbose()) == 1 {
-            println!("{}", msg);
-        }
-    }
+//     pub fn verbose(&self, msg: String) {
+//         if self.parse_verbose(self.get_verbose()) == 1 {
+//             println!("{}", msg);
+//         }
+//     }
 
-    fn parse_verbose(&self, string: &str) -> usize {
-        let mut verbose: usize = 1;
-        let verb_aux = string.parse::<usize>();
-        match verb_aux {
-            Ok(verb) => verbose = verb,
-            Err(_) => println!("parsing error"),
-        }
-        verbose
-    }
+//     fn parse_verbose(&self, string: &str) -> usize {
+//         let mut verbose: usize = 1;
+//         let verb_aux = string.parse::<usize>();
+//         match verb_aux {
+//             Ok(verb) => verbose = verb,
+//             Err(_) => println!("parsing error"),
+//         }
+//         verbose
+//     }
 
-    pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
-        let last_operations = self
-            .clients_operations
-            .entry(addrs.to_string())
-            .or_insert_with(|| OperationRegister::new(100));
-        last_operations.store_operation(operation);
-    }
+//     pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
+//         let last_operations = self
+//             .clients_operations
+//             .entry(addrs.to_string())
+//             .or_insert_with(|| OperationRegister::new(100));
+//         last_operations.store_operation(operation);
+//     }
 
-    pub fn print_last_operations_by_client(&self, addrs: String) {
-        if let Some(operations) = self.clients_operations.get(&addrs) {
-            for operation in operations.get_operations() {
-                println!("{:?}", operation)
-            }
-        }
-    }
-}
+//     pub fn print_last_operations_by_client(&self, addrs: String) {
+//         if let Some(operations) = self.clients_operations.get(&addrs) {
+//             for operation in operations.get_operations() {
+//                 println!("{:?}", operation)
+//             }
+//         }
+//     }
+// }
 
 
 // fn handle_connection(

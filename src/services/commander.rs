@@ -106,6 +106,13 @@ pub fn handle_command(
                 }
                 "subscribe" => {
                     command_pubsub::subscribe(&array, tx, addrs);
+                    println!("saliennndo");
+                }
+                "unsubscribe" => {
+                    command_pubsub::unsubscribe(&array, tx, addrs);
+                }
+                "publish" => {
+                    return Some(command_pubsub::publish(&array, tx, addrs));
                 }
                 _ => {}
             }

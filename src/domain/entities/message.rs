@@ -18,6 +18,9 @@ pub enum WorkerMessage {
     NewOperation(RespType, SocketAddr),
     MonitorOp(String),
     Stop(bool),
-    Subscribe(String, SocketAddr, Sender<String>)
+    Subscribe(String, SocketAddr, Sender<String>),
+    Unsubscribe(String, SocketAddr),
+    UnsubscribeAll(SocketAddr),
+    Publish(String, SocketAddr, String)
     // Request(TcpStream, Sender<WorkerMessage>, Arc<RwLock<Database>>, Arc<RwLock<Config>>, Sender<bool>)
 }

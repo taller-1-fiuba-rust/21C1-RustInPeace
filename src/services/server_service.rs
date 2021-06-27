@@ -148,8 +148,10 @@ pub fn handle_connection(
     // stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
     loop {
         let mut buf = [0u8; 512];
+        println!("essspero nuevo read....{}", client_addrs);
         match stream.read(&mut buf) {
             Ok(0) => {
+                println!("cero");
                 break;
             }
             Ok(size) => {
@@ -193,10 +195,13 @@ pub fn handle_connection(
                             );
 
                             stream.write_all(response.as_bytes()).unwrap();
-                            stream.flush().unwrap();
-                            stop.send(false).unwrap();
+                            // stream.flush().unwrap();
+                            // stop.send(false).unwrap();
                             // tx.send(WorkerMessage::Stop(false)).unwrap();
                         }
+                        println!("flushing {}", client_addrs);
+                        stream.flush().unwrap();
+                        stop.send(false).unwrap();
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);
