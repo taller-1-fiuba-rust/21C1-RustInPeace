@@ -1027,7 +1027,8 @@ fn test_15_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_li
     ];
     let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
     let algo = tuplas.unwrap();
-    println!("{:?}", algo)
+    println!("{:?}", algo);
+    let _ = std::fs::remove_file("file10".to_string());
 }
 
 #[test]
@@ -1081,6 +1082,7 @@ fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
     for key in matching_keys {
         println!("{:?}", key)
     }
+    let _removed = std::fs::remove_file("file10".to_string());
 }
 
 #[test]
@@ -1134,6 +1136,8 @@ fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes(
     for key in matching_keys {
         println!("{:?}", key)
     }
+    let _removed = std::fs::remove_file("file10".to_string());
+
 }
 
 #[test]
@@ -1187,6 +1191,7 @@ fn test_18_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchet
     for key in matching_keys {
         println!("{:?}", key)
     }
+    let _removed = std::fs::remove_file("file10".to_string());
 }
 
 #[test]
@@ -1240,6 +1245,7 @@ fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchet
     for key in matching_keys {
         println!("{:?}", key)
     }
+    let _ = std::fs::remove_file("file10".to_string());
 }
 
 #[test]
@@ -1293,4 +1299,5 @@ fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
     for key in matching_keys {
         println!("{:?}", key)
     }
+    let _ = std::fs::remove_file("file10".to_string());
 }
