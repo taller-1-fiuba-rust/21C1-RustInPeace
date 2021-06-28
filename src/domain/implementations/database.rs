@@ -763,7 +763,6 @@ mod tests {
 
     #[test]
     fn test_14_decr_by_to_invalid_string_value() {
-        // let _file = File::create("./src/dummy.txt");
         let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
@@ -775,7 +774,7 @@ mod tests {
 
         let res = db.decrement_key_by(&"mykey".to_string(), 3);
         assert!(res.is_err());
-        std::fs::remove_file("./src/dummy_decr_2.txt".to_string()).unwrap();
+        let _ = std::fs::remove_file("./src/dummy_decr_2.txt".to_string());
     }
 
     #[test]
@@ -812,7 +811,8 @@ mod tests {
         ];
         let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
         let algo = tuplas.unwrap();
-        println!("{:?}", algo)
+        println!("{:?}", algo);
+        let _removed = std::fs::remove_file("file10".to_string());
     }
 
     #[test]
@@ -866,6 +866,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _removed = std::fs::remove_file("file10".to_string());
     }
 
     #[test]
@@ -972,6 +973,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _removed = std::fs::remove_file("file10".to_string());
     }
 
     #[test]
@@ -1026,6 +1028,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _ = std::fs::remove_file("file10".to_string());
     }
 
     #[test]
@@ -1079,5 +1082,6 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _ = std::fs::remove_file("file10".to_string());
     }
 }
