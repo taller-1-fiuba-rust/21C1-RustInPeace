@@ -1,9 +1,9 @@
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
-use std::str::FromStr;
 
 /// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
 /// Elimina las claves recibidas en el comando
@@ -152,7 +152,6 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
     }
     RespType::RInteger(0)
 }
-
 
 /// GRUPO [KEYS]:Recibe un comando **cmd** de tipo &[RespType] y la base de datos **database** dentro de un RwLock.
 ///Ordena una lista alojada como **value** de una **key** de distitnas formas:
