@@ -1108,7 +1108,7 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
         let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
-        db.expire_key("key123", "10");
+        db.expire_key("key123", &new_timeout.to_string());
         let new_item = db.items.get("key123");
         match new_item {
             Some(vti) => {
@@ -1116,6 +1116,6 @@ mod tests {
             }
             None => assert!(false),
         }
-        let _ = std::fs::remove_file("file10".to_string());
+        let _ = std::fs::remove_file("file100".to_string());
     }
 }

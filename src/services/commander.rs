@@ -366,7 +366,7 @@ fn test_010_sort_descending_first_4_elements() {
     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 
     use std::net::{IpAddr, Ipv4Addr};
-    let db = Database::new("filename_7".to_string());
+    let db = Database::new("filename_701".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
     let vt_1 = ValueTimeItem {
@@ -401,7 +401,7 @@ fn test_010_sort_descending_first_4_elements() {
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
-    let _removed = std::fs::remove_file("filename_7".to_string());
+    let _removed = std::fs::remove_file("filename_701".to_string());
 }
 
 #[test]
