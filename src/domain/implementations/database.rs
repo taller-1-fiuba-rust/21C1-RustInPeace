@@ -615,26 +615,17 @@ mod tests {
     #[test]
     fn load_items_from_file() {
         let mut file = File::create("file_5".to_string()).expect("Unable to open");
-        file.write_all(b"123key;;string;value\n").unwrap();
         file.write_all(b"124key;1623433677;string;value2\n")
             .unwrap();
 
         let db = Database::new("file_5".to_string());
-        assert_eq!(db.items.len(), 2);
+        assert_eq!(db.items.len(), 1);
         let mut iter = db.items.iter();
         let kvi = iter.next().unwrap();
 
-        assert_eq!(kvi.0, "123key");
-        assert_eq!(kvi.1.value.to_string(), String::from("value"));
+        assert_eq!(kvi.0, "124key");
+        assert_eq!(kvi.1.value.to_string(), String::from("value2"));
         match kvi.1.last_access_time {
-            KeyAccessTime::Persistent => assert!(true),
-            KeyAccessTime::Volatile(_) => assert!(false),
-        }
-
-        let kvi2 = iter.next().unwrap();
-        assert_eq!(kvi2.0, "124key");
-        assert_eq!(kvi2.1.value.to_string(), String::from("value2"));
-        match kvi2.1.last_access_time {
             KeyAccessTime::Volatile(1623433677) => assert!(true),
             _ => assert!(false),
         }
@@ -652,13 +643,6 @@ mod tests {
     #[test]
     fn save_items_to_file() {
         let mut db = Database::new("file".to_string());
-        db.items.insert(
-            "clave_1".to_string(),
-            ValueTimeItem {
-                value: ValueType::StringType("valor_1".to_string()),
-                last_access_time: KeyAccessTime::Persistent,
-            },
-        );
 
         let list = vec![
             "un_item_string".to_string(),
@@ -678,10 +662,7 @@ mod tests {
         let file = File::open(&db.dbfilename);
         let reader = BufReader::new(file.unwrap());
         let mut it = reader.lines();
-        match it.next().unwrap() {
-            Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
-            _ => assert!(false),
-        }
+
         match it.next().unwrap() {
             Ok(t) => assert_eq!(
                 t,
