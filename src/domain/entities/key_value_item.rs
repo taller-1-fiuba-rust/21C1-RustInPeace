@@ -1,8 +1,8 @@
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::collections::HashSet;
 use std::fmt;
 use std::num::ParseIntError;
 use std::str::FromStr;
-use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -80,9 +80,9 @@ impl ValueTimeItem {
         }
     }
 
-     pub fn _from_file(kvis: KeyValueItemSerialized) ->  (String, ValueTimeItem) {
-         kvis.transform_to_item()
-     }
+    pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
+        kvis.transform_to_item()
+    }
 
     pub fn get_last_access_time(&self) -> &KeyAccessTime {
         &self.last_access_time

@@ -1,7 +1,6 @@
-
+use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 use regex::Regex;
 use std::collections::HashMap;
-use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 
 #[allow(unused)]
 use crate::domain::entities::key_value_item::KeyAccessTime;
@@ -351,9 +350,9 @@ impl Database {
         }
     }
     /*
-       Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
-       Formato: key;last_access_time;type;value1,value,2
-     */
+      Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
+      Formato: key;last_access_time;type;value1,value,2
+    */
     pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
             .write(true)
@@ -399,7 +398,6 @@ impl Database {
     pub fn delete_key(&mut self, key: String) -> bool {
         matches!(self.items.remove(&key), Some(_key))
     }
-
 }
 
 #[cfg(test)]
@@ -452,10 +450,13 @@ mod tests {
     #[test]
     fn test_01_database_copies_value_to_new_key() {
         let mut db = Database::new(String::from("./src/dummy.txt"));
-        db.add("clave_1".to_string(), ValueTimeItem {
-            value: (ValueType::StringType("valor_1".to_string())),
-            last_access_time: KeyAccessTime::Persistent
-        });
+        db.add(
+            "clave_1".to_string(),
+            ValueTimeItem {
+                value: (ValueType::StringType("valor_1".to_string())),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
 
         let source = String::from("clave_1");
         let destination = String::from("clone");
@@ -471,14 +472,20 @@ mod tests {
     #[test]
     fn test_02_database_copy_replaces_key_with_new_value() {
         let mut db = Database::new(String::from("./src/dummy2.txt"));
-        db.add("clave_1".to_string(), ValueTimeItem {
-            value: (ValueType::StringType("valor_1".to_string())),
-            last_access_time: KeyAccessTime::Persistent
-        });
-        db.add("clave_2".to_string(), ValueTimeItem {
-            value: (ValueType::StringType("valor_2".to_string())),
-            last_access_time: KeyAccessTime::Persistent
-        });
+        db.add(
+            "clave_1".to_string(),
+            ValueTimeItem {
+                value: (ValueType::StringType("valor_1".to_string())),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
+        db.add(
+            "clave_2".to_string(),
+            ValueTimeItem {
+                value: (ValueType::StringType("valor_2".to_string())),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
 
         let source = String::from("clave_1");
         let destination = String::from("clone");
@@ -556,120 +563,135 @@ mod tests {
         std::fs::remove_file("file").unwrap();
     }
 
-     #[test]
-     fn add_item() {
-         let mut db = Database {
-             dbfilename: "file".to_string(),
-             items: HashMap::new(),
-         };
-         db.add(String::from("nueva_key"),ValueTimeItem{
-             value: (ValueType::StringType(String::from("222"))),
-             last_access_time: KeyAccessTime::Persistent
-         });
+    #[test]
+    fn add_item() {
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: HashMap::new(),
+        };
+        db.add(
+            String::from("nueva_key"),
+            ValueTimeItem {
+                value: (ValueType::StringType(String::from("222"))),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
 
-         assert_eq!(
-             db.items.get("nueva_key").unwrap().value.to_string(),
-             String::from("222")
-         );
-         assert_eq!(db.items.len(), 1)
-     }
+        assert_eq!(
+            db.items.get("nueva_key").unwrap().value.to_string(),
+            String::from("222")
+        );
+        assert_eq!(db.items.len(), 1)
+    }
 
-     #[test]
-     fn delete_item() {
-         let mut db = Database {
-             dbfilename: "file".to_string(),
-             items: HashMap::new(),
-         };
-         db.items.insert(String::from("nueva_key"), ValueTimeItem{
-             value: ValueType::StringType(String::from ("222")),
-             last_access_time: KeyAccessTime::Persistent
-         });
+    #[test]
+    fn delete_item() {
+        let mut db = Database {
+            dbfilename: "file".to_string(),
+            items: HashMap::new(),
+        };
+        db.items.insert(
+            String::from("nueva_key"),
+            ValueTimeItem {
+                value: ValueType::StringType(String::from("222")),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
 
-         assert_eq!(db.items.len(), 1);
-         db.delete_key(String::from("nueva_key"));
-         assert_eq!(db.items.len(), 0);
-     }
+        assert_eq!(db.items.len(), 1);
+        db.delete_key(String::from("nueva_key"));
+        assert_eq!(db.items.len(), 0);
+    }
 
-     #[test]
-     fn filename_is_correct() {
-         let db = Database {
-             dbfilename: "file".to_string(),
-             items: HashMap::new()
-         };
-         assert_eq!(db._get_filename(), "file".to_string());
-     }
+    #[test]
+    fn filename_is_correct() {
+        let db = Database {
+            dbfilename: "file".to_string(),
+            items: HashMap::new(),
+        };
+        assert_eq!(db._get_filename(), "file".to_string());
+    }
 
-     #[test]
-     fn load_items_from_file() {
-         let mut file = File::create("file_5".to_string()).expect("Unable to open");
-         file.write_all(b"123key;;string;value\n").unwrap();
-         file.write_all(b"124key;1623433677;string;value2\n")
-             .unwrap();
+    #[test]
+    fn load_items_from_file() {
+        let mut file = File::create("file_5".to_string()).expect("Unable to open");
+        file.write_all(b"123key;;string;value\n").unwrap();
+        file.write_all(b"124key;1623433677;string;value2\n")
+            .unwrap();
 
-         let db = Database::new("file_5".to_string());
-         assert_eq!(db.items.len(), 2);
-         let mut iter = db.items.iter();
-         let kvi = iter.next().unwrap();
+        let db = Database::new("file_5".to_string());
+        assert_eq!(db.items.len(), 2);
+        let mut iter = db.items.iter();
+        let kvi = iter.next().unwrap();
 
-         assert_eq!(kvi.0, "123key");
-         assert_eq!(kvi.1.value.to_string(), String::from("value"));
-         match kvi.1.last_access_time {
-             KeyAccessTime::Persistent => assert!(true),
-             KeyAccessTime::Volatile(_) => assert!(false),
-         }
+        assert_eq!(kvi.0, "123key");
+        assert_eq!(kvi.1.value.to_string(), String::from("value"));
+        match kvi.1.last_access_time {
+            KeyAccessTime::Persistent => assert!(true),
+            KeyAccessTime::Volatile(_) => assert!(false),
+        }
 
-         let kvi2 = iter.next().unwrap();
-         assert_eq!(kvi2.0, "124key");
-         assert_eq!(kvi2.1.value.to_string(), String::from("value2"));
-         match kvi2.1.last_access_time {
-             KeyAccessTime::Volatile(1623433677) => assert!(true),
-             _ => assert!(false),
-         }
-         let _ = std::fs::remove_file("file_5");
-     }
+        let kvi2 = iter.next().unwrap();
+        assert_eq!(kvi2.0, "124key");
+        assert_eq!(kvi2.1.value.to_string(), String::from("value2"));
+        match kvi2.1.last_access_time {
+            KeyAccessTime::Volatile(1623433677) => assert!(true),
+            _ => assert!(false),
+        }
+        let _ = std::fs::remove_file("file_5");
+    }
 
-     #[test]
-     fn create_database_file() {
-         assert!(!std::path::Path::new("new_file").exists());
-         let _db = Database::new("new_file".to_string());
-         assert!(std::path::Path::new("new_file").exists());
-         let _ = std::fs::remove_file("new_file");
-     }
+    #[test]
+    fn create_database_file() {
+        assert!(!std::path::Path::new("new_file").exists());
+        let _db = Database::new("new_file".to_string());
+        assert!(std::path::Path::new("new_file").exists());
+        let _ = std::fs::remove_file("new_file");
+    }
 
-     #[test]
-     fn save_items_to_file() {
-         let mut db = Database::new("file".to_string());
-         db.items.insert("clave_1".to_string(), ValueTimeItem{
-             value: ValueType::StringType("valor_1".to_string()),
-             last_access_time: KeyAccessTime::Persistent
-         });
+    #[test]
+    fn save_items_to_file() {
+        let mut db = Database::new("file".to_string());
+        db.items.insert(
+            "clave_1".to_string(),
+            ValueTimeItem {
+                value: ValueType::StringType("valor_1".to_string()),
+                last_access_time: KeyAccessTime::Persistent,
+            },
+        );
 
-         let list = vec!["un_item_string".to_string(),"segundo_item_list_string".to_string()];
+        let list = vec![
+            "un_item_string".to_string(),
+            "segundo_item_list_string".to_string(),
+        ];
 
-         db.items.insert("clave_2".to_string(), ValueTimeItem{
-             value: ValueType::ListType(list),
-             last_access_time: KeyAccessTime::Volatile(1231230)
-         });
+        db.items.insert(
+            "clave_2".to_string(),
+            ValueTimeItem {
+                value: ValueType::ListType(list),
+                last_access_time: KeyAccessTime::Volatile(1231230),
+            },
+        );
 
-         db.save_items_to_file();
+        db.save_items_to_file();
 
-         let file = File::open(&db.dbfilename);
-         let reader = BufReader::new(file.unwrap());
-         let mut it = reader.lines();
-         match it.next().unwrap() {
-             Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
-             _ => assert!(false),
-         }
-         match it.next().unwrap() {
-             Ok(t) => assert_eq!(
-                 t,
-                 "clave_2;1231230;list;un_item_string,segundo_item_list_string"
-             ),
-             _ => assert!(false),
-         }
+        let file = File::open(&db.dbfilename);
+        let reader = BufReader::new(file.unwrap());
+        let mut it = reader.lines();
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
+            _ => assert!(false),
+        }
+        match it.next().unwrap() {
+            Ok(t) => assert_eq!(
+                t,
+                "clave_2;1231230;list;un_item_string,segundo_item_list_string"
+            ),
+            _ => assert!(false),
+        }
 
-         let _ = std::fs::remove_file("file");
-     }
+        let _ = std::fs::remove_file("file");
+    }
 
     #[test]
     fn test_08_size_in_memory_is_correct() {
@@ -776,7 +798,8 @@ mod tests {
     }
 
     #[test]
-    fn test_15_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos() {
+    fn test_15_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos(
+    ) {
         let mut db = Database::new("file10".to_string());
 
         let vt_1 = ValueTimeItem {
@@ -971,7 +994,8 @@ mod tests {
     }
 
     #[test]
-    fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
+    fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango(
+    ) {
         let mut db = Database::new("file10".to_string());
 
         let vt_1 = ValueTimeItem {
