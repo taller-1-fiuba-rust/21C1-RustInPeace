@@ -410,12 +410,12 @@ impl Database {
             .unwrap();
         let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
         let kvi = self.items.get_mut(key);
-        return match kvi {
+        match kvi {
             Some(k) => {
-                return k.set_timeout(KeyAccessTime::Volatile(new_time));
+                k.set_timeout(KeyAccessTime::Volatile(new_time))
             }
-            None => false,
-        };
+            None => false
+        }
     }
 }
 #[cfg(test)]
