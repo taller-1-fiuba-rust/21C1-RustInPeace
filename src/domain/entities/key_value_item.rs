@@ -1,13 +1,8 @@
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::collections::HashSet;
 use std::fmt;
 use std::num::ParseIntError;
-use std::str::FromStr; //, usize};
-                       //use crate::services::utils::resp_type::RespType;
-                       // use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-                       // use std::collections::{HashSet, LinkedList};
-                       // use std::fmt;
-                       // use std::num::ParseIntError;
-                       // use std::str::FromStr;
+use std::str::FromStr;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -80,25 +75,16 @@ pub struct ValueTimeItem {
 impl ValueTimeItem {
     pub fn new(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
         ValueTimeItem {
-            // #[allow(dead_code)]
-            // impl KeyValueItem {
-            //     pub fn new(key: String, value: ValueType) -> KeyValueItem {
-            //         KeyValueItem {
-            //             key,
             value,
             last_access_time: time, //KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
         }
     }
 
-    // pub fn _from_file(kvis: KeyValueItemSerialized) -> KeyValueItem {
-    //     kvis.transform_to_item()
-    // }
+    pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
+        kvis.transform_to_item()
+    }
 
-    // pub fn get_key(&self) -> &String {
-    //     &self.key
-    // }
-
-    pub fn _get_last_access_time(&self) -> &KeyAccessTime {
+    pub fn get_last_access_time(&self) -> &KeyAccessTime {
         &self.last_access_time
     }
 
@@ -112,7 +98,7 @@ impl ValueTimeItem {
         }
     }
 
-    pub fn _get_value(&self) -> &ValueType {
+    pub fn get_value(&self) -> &ValueType {
         &self.value
     }
 
