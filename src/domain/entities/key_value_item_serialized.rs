@@ -11,7 +11,6 @@ impl KeyValueItemSerialized {
         KeyValueItemSerialized { line }
     }
     pub fn transform_to_item(&self) -> (String, ValueTimeItem) {
-        //KeyValueItem {
         // Format: key; access_time; type; value
         let line: Vec<&str> = self.line.split(';').collect();
         let value = match line[2] {
@@ -36,14 +35,6 @@ impl KeyValueItemSerialized {
         };
         let time = line[1].parse::<KeyAccessTime>().unwrap();
         (line[0].to_string(), ValueTimeItem::new(value, time))
-        // let map = HashMap::new();
-        // map.insert(line[0].to_string(), ValueTimeItem::new(value, time));
-        // map
-        // KeyValueItem {
-        //     key: line[0].to_string(),
-        //     value,
-        //     last_access_time: line[1].parse::<KeyAccessTime>().unwrap(),
-        // }
     }
 }
 
