@@ -628,21 +628,3 @@ fn test_014_gets_value_type_string() {
     handle_command(operation, &tx, addrs, &database, &conf);
     let _ = std::fs::remove_file("filename_13".to_string());
 }
-
-#[test]
-fn test_015_check_expires_throws_one() {
-    use std::net::{IpAddr, Ipv4Addr};
-    let _file = File::create("filename_7".to_string());
-    let db = Database::new("filename_7".to_string());
-    let database = Arc::new(RwLock::new(db));
-    let operation = RespType::RArray(vec![
-        RespType::RBulkString("expire".to_string()),
-        RespType::RBulkString("10".to_string()),
-    ]);
-    let (tx, _sx) = std::sync::mpsc::channel();
-    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    let config = Config::new(String::from("./src/redis.conf"));
-    let conf = Arc::new(RwLock::new(config));
-    handle_command(operation, &tx, addrs, &database, &conf);
-    std::fs::remove_file("filename_7".to_string()).unwrap();
-}

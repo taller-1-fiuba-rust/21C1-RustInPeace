@@ -15,6 +15,7 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -402,11 +403,12 @@ impl Database {
 
     /// le setea una clave de expiración a una determinada key
     pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
+        let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+        let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
         let kvi = self.items.get_mut(key);
         return match kvi {
             Some(k) => {
-                let b = k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap()));
-                return b
+                return k.set_timeout(KeyAccessTime::Volatile(new_time));
             },
             None => false
         }
