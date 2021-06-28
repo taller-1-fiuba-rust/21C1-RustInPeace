@@ -7,7 +7,7 @@ pub struct KeyValueItemSerialized {
 }
 
 impl KeyValueItemSerialized {
-    pub fn _new(line: String) -> KeyValueItemSerialized {
+    pub fn new(line: String) -> KeyValueItemSerialized {
         KeyValueItemSerialized { line }
     }
     pub fn transform_to_item(&self) -> (String, ValueTimeItem) {
@@ -46,13 +46,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn line_has_no_valid_type() {
-        let kvis = KeyValueItemSerialized::_new("123key;1623427130;no_type;value".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;1623427130;no_type;value".to_string());
         kvis.transform_to_item();
     }
 
     #[test]
     fn line_string_type() {
-        let kvis = KeyValueItemSerialized::_new("123key;1623427130;string;value".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;1623427130;string;value".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
         assert_eq!(kvi.1.get_value().to_string(), "value");
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn line_set_type() {
-        let kvis = KeyValueItemSerialized::_new("123key;1623427130;set;3,2,4".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;1623427130;set;3,2,4".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
         match kvi.1.get_value() {
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn line_list_type() {
-        let kvis = KeyValueItemSerialized::_new("123key;1623427130;list;1,2,3".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;1623427130;list;1,2,3".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
         match kvi.1.get_value() {
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn line_persistent() {
-        let kvis = KeyValueItemSerialized::_new("123key;;string;value".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;;string;value".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
         assert_eq!(kvi.1.get_value().to_string(), "value");
