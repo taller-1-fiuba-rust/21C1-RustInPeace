@@ -11,6 +11,7 @@ use proyecto_taller_1::{
     },
     services::{server_service, worker_service::ThreadPool},
 };
+use redis::Commands;
 
 use std::{error::Error, fmt, sync::{Arc, Mutex, mpsc}, thread::{self, sleep}, time::Duration};
 
@@ -535,31 +536,34 @@ fn test_string_getset() -> TestResult {
 
 fn test_pubsub() -> TestResult {
     let h = thread::spawn(|| {
-        println!("GONNA SUBSCRIBE");
         let mut con = connect().unwrap();
-        let _ : () = redis::cmd("SUBSCRIBE")
-            .arg("channel_1")
-            // .arg("channel_2")
-            .query(&mut con).unwrap();
+        let mut pubsub = con.as_pubsub();
+        pubsub.subscribe("channel_1").unwrap();
+
+        let msg = pubsub.get_message().unwrap();
+        let payload : String = msg.get_payload().unwrap();
+        println!("CHANNEL '{}': {}", msg.get_channel_name(), payload);
+
     });
 
     thread::sleep(Duration::from_secs(1));
-    let mut con = connect()?;
-    println!("marche un publish");
-    let receivers : usize = redis::cmd("PUBLISH")
-        .arg("channel_1")
-        .arg("Hello channel_1")
-        .query(&mut con).unwrap();
+    let mut con = connect().unwrap();
+    let receivers: usize = con.publish("channel_1", "Hello channel_1")?;
+    println!("rec {}", receivers);
 
-    println!("RECEIVERS: {}", receivers);
-
-    thread::sleep(Duration::from_secs(3));
+    thread::sleep(Duration::from_secs(10));
     let mut con = connect()?;
-    println!("marche un unsubscribe");
-    let _ : () = redis::cmd("UNSUBSCRIBE")
-        .arg("channel_1")
-        // .arg("channel_2")
-        .query(&mut con).unwrap();
+    let mut pubsub = con.as_pubsub();
+    pubsub.unsubscribe("channel_1")?;
+    
     h.join().unwrap();
-    return Ok(());
+
+    // if receivers == 1 {
+        return Ok(());
+    // } else {
+    //     return Err(Box::new(ReturnError {
+    //         expected: String::from("1"),
+    //         got: receivers.to_string(),
+    //     }));
+    // }
 }

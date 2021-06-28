@@ -1,33 +1,32 @@
-use crate::domain::implementations::database::Database;
+// use crate::domain::implementations::database::Database;
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
-use crate::services::commander::handle_command;
-use crate::services::parser_service::parse_request;
-use crate::services::parser_service::parse_response;
-use crate::services::server_service::handle_connection;
 use crate::services::utils::resp_type::RespType;
-use crate::services::worker_service::ThreadPool;
+// use crate::services::worker_service::ThreadPool;
 use std::collections::HashMap;
-use std::io::Read;
-use std::io::Write;
-use std::net::TcpListener;
-use std::net::TcpStream;
+// use std::io::Read;
+// use std::io::Write;
+// use std::net::TcpListener;
+// use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::RwLock;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
+// use std::sync::RwLock;
+// use std::sync::atomic::AtomicUsize;
+// use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
-use std::thread;
+// use std::thread;
 use std::{io::Error, net::SocketAddr};
 
-use super::config::Config;
+// use super::config::Config;
 use super::message::WorkerMessage;
 
-static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
-fn get_id() -> usize { ID_COUNTER.fetch_add(1, Ordering::Relaxed) }
+// pub struct Client {
+//     address: SocketAddr,
+//     operations: OperationRegister,
+//     subscriptions: Vec<String>
+// }
 
 #[derive(Debug)]
 pub struct Server {
@@ -37,7 +36,7 @@ pub struct Server {
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    channels: HashMap<String, HashMap<String, Sender<String>>>, //el 2do hashmap deberia tener un vector de senders, no? podria el mismo cliente conectarse desde distintas "ventanas"
+    channels: HashMap<String, HashMap<String, Sender<String>>>,
     // threadpool: ThreadPool,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
 }
@@ -53,40 +52,21 @@ impl Server {
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
         let channels = HashMap::new();
-        // let threadpool = ThreadPool::new(4);
-        // let server = ServerImpl::new(port, logfile, verb);
-
-        // let _ = thread::spawn(|| loop {
-        //     let request = receiver.lock().unwrap().recv();
-        // });
 
         Ok(Server {
             dir,
             port,
             verbose,
-            // threadpool_size,
             logger,
             clients_operations,
             channels,
-            // threadpool,
             receiver
         })
     }
 
-
-
-    // pub fn handle_request(&mut self, receiver: &Receiver<WorkerMessage>) {
-    //     if let Ok(request) = receiver.recv() {
-    //         if let WorkerMessage::Request(stream, tx, db, config, stop) = request {
-    //             // let (sender_server, receiver_server) = mpsc::channel();
-    //             self.threadpool.spawn(||
-    //                 handle_connection(stream, tx, db, config, stop)
-    //             );
-    //             // self.listen(receiver);
-    //         }
-    //     }
-    // }
-
+    /// Escucha mensajes provenientes de los workers, según el mensaje delega al server una tarea distinta.
+    /// Las tareas pueden ser: log, verbose, update_clients_operation, print_last_operations_by_client,
+    /// subscribe, stop, unsubscribe, unsubscribeall, publish
     pub fn listen(&mut self) {
         loop {
             let msg = self.receiver.lock().unwrap().recv().unwrap();
@@ -122,21 +102,24 @@ impl Server {
                 }
                 WorkerMessage::Publish(channel, response_sender, message) => {
                     let messages_sent = self.send_message_to_channel(channel, message);
-                    println!("sending response!!");
                     response_sender.send(messages_sent).unwrap();
                 }
             }
         }
     }
 
+    /// Retorna el puerto donde escucha el server
     pub fn get_port(&self) -> &String {
         &self.port
     }
 
+    /// Retorna la dirección IP del server
     pub fn get_dir(&self) -> &String {
         &self.dir
     }
 
+    /// Retorna un String "1" si verbose es true, "0" sino.
+    /// Verbose true implica imprimir mensajes que describan lo que pasa en el server
     pub fn get_verbose(&self) -> &String {
         &self.verbose
     }
@@ -145,17 +128,20 @@ impl Server {
     //     &self.threadpool_size
     // }
 
+    /// Envia un mensaje al Logger para que lo imprima en el archivo de logs
     pub fn log(&mut self, msg: String) -> Result<(), Error> {
         self.logger.log(msg.as_bytes())?;
         Ok(())
     }
 
+    /// Si verbose es 1 (true), imprime el mensaje recibido
     pub fn verbose(&self, msg: String) {
         if self.parse_verbose(self.get_verbose()) == 1 {
             println!("{}", msg);
         }
     }
 
+    /// Convierte el verbose original de tipo String a tipo Usize
     fn parse_verbose(&self, string: &str) -> usize {
         let mut verbose: usize = 1;
         let verb_aux = string.parse::<usize>();
@@ -166,14 +152,18 @@ impl Server {
         verbose
     }
 
+    /// Recibe una nueva operación de un cliente y la agrega a la lista de operaciones
+    /// Busca al cliente por dirección. Si es un cliente nuevo, primero lo agrega con un OperationRegister vacio
+    /// luego agrega la nueva operacion
     pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
         let last_operations = self
             .clients_operations
             .entry(addrs.to_string())
-            .or_insert_with(|| OperationRegister::new(100));
+            .or_insert(OperationRegister::new(100));
         last_operations.store_operation(operation);
     }
 
+    // 
     pub fn print_last_operations_by_client(&self, addrs: String) {
         if let Some(operations) = self.clients_operations.get(&addrs) {
             for operation in operations.get_operations() {
@@ -182,13 +172,21 @@ impl Server {
         }
     }
 
+    /// Suscribe un cliente al channel
+    /// Primero chequea si el channel ya existe, si existe agrega al cliente
+    /// Sino lo crea y agrega al cliente y su sender
     pub fn subscribe_to_channel(&mut self, channel: String, addrs: SocketAddr, sender: Sender<String>) {
-        println!("me suscribo a: {}", channel);
-        let mut inner_map = HashMap::new();
-        inner_map.insert(addrs.ip().to_string(), sender);
-        self.channels.entry(channel).or_insert(inner_map);
+        if let Some(subscribers) = self.channels.get_mut(&channel) {
+            subscribers.insert(addrs.ip().to_string(), sender);
+        } else {
+            let mut inner_map = HashMap::new();
+            inner_map.insert(addrs.ip().to_string(), sender);
+            self.channels.entry(channel).or_insert(inner_map);
+        }
     }
 
+    /// Desuscribe la dirección dada de todos los canales a los que este suscrito
+    /// Por el sender asociado envia mensaje para dejar de aceptar
     pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr) {
         for subscriber in self.channels.values_mut() {
             let sender = subscriber.get(&addrs.to_string()).unwrap();
@@ -198,17 +196,17 @@ impl Server {
         }
     }
 
+    /// Desuscribe la dirección addrs del canal
+    /// Elimina la dirección del hashmap de suscriptores de dicho canal
     pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr) {
         let subscribers = self.channels.get_mut(&channel).unwrap();
         let sender = subscribers.get(&addrs.ip().to_string()).unwrap();
         sender.send(String::from("UNSUBSCRIBE")).unwrap();
-        // println!("envio un unsubscribe");
-        sender.send(String::from("QUIT")).unwrap();
-        // println!("envio un QUIT");
-        // drop(sender);
+        sender.send(String::from("QUIT")).unwrap(); //esto deberia pasar si la direccion no tiene ninguna suscripcion
         subscribers.remove(&addrs.ip().to_string());
     }
 
+    /// Envia el mensaje msg a todas las direcciones asociadas al canal dado
     pub fn send_message_to_channel(&mut self, channel: String, msg: String) -> usize {
         let mut sent = 0;
         let subscribers = self.channels.get_mut(&channel).unwrap();
@@ -220,257 +218,7 @@ impl Server {
         }
         sent
     }
-
-    // pub fn init(self, db: Database, config: Config) {
-    //     let (sender_server, receiver_server) = mpsc::channel();
-    //     let port: String = self.port.clone();
-    //     let dir: String = self.dir.clone();
-    //     // let threadpool_size: usize = *server.get_threadpool_size();
-    //     // let pool = ThreadPool::new(threadpool_size);
-    
-    //     // let handle: thread::JoinHandle<()> = thread::spawn(move || {
-    //         let database = Arc::new(RwLock::new(db));
-    //         let conf = Arc::new(RwLock::new(config));
-    //         let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
-    
-    //         match TcpListener::bind(format!("{}:{}", dir, port)) {
-    //             Ok(listener) => {
-    //                 for stream in listener.incoming() {
-    //                     match stream {
-    //                         Ok(stream) => {
-    //                             let tx = sender_server.clone();
-    //                             let conf_lock = conf.clone();
-    //                             let cloned_database = database.clone();
-    //                             let stop = stop_signal_sender.clone();
-    //                             self.threadpool.spawn(|| {
-    //                                 handle_connection(stream, tx, cloned_database, conf_lock, stop);
-    //                             });
-    //                             if let Ok(drop) = stop_signal_receiver.recv() {
-    //                                 if drop {
-    //                                     save_database(database);
-    //                                     //stop server listener
-    //                                     break;
-    //                                 }
-    //                             }
-    //                         }
-    //                         Err(_) => {
-    //                             println!("Couldn't get stream");
-    //                             continue;
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //             Err(_) => {
-    //                 println!("Listener couldn't be created");
-    //             }
-    //         }
-    //     // });
-    //     // listen_server_messages(receiver_server, server);
-    //     println!("Shutting down.");
-    //     // handle.join().unwrap();
-    // }
 }
-
-// pub struct ServerImpl {
-//     port: String,
-//     verbose: String,
-//     logger: Logger,
-//     clients_operations: HashMap<String, OperationRegister>,
-//     dir: String
-// }
-
-// impl ServerImpl {
-//     pub fn new(port: String, logfile: String, verb: String) -> Result<Self, Error> {
-//         let dir = "127.0.0.1".to_string();
-//         let port = port;
-//         let verbose = verb;
-//         let logger_path = &logfile;
-//         let logger = Logger::new(logger_path)?;
-//         let clients_operations = HashMap::new();
-
-//         Ok(ServerImpl {
-//             port,
-//             verbose,
-//             logger,
-//             clients_operations,
-//             dir
-//         })
-//     }
-
-//     pub fn get_port(&self) -> &String {
-//         &self.port
-//     }
-
-//     pub fn get_dir(&self) -> &String {
-//         &self.dir
-//     }
-
-//     pub fn get_verbose(&self) -> &String {
-//         &self.verbose
-//     }
-
-//     pub fn log(&mut self, msg: String) -> Result<(), Error> {
-//         self.logger.log(msg.as_bytes())?;
-//         Ok(())
-//     }
-
-//     pub fn verbose(&self, msg: String) {
-//         if self.parse_verbose(self.get_verbose()) == 1 {
-//             println!("{}", msg);
-//         }
-//     }
-
-//     fn parse_verbose(&self, string: &str) -> usize {
-//         let mut verbose: usize = 1;
-//         let verb_aux = string.parse::<usize>();
-//         match verb_aux {
-//             Ok(verb) => verbose = verb,
-//             Err(_) => println!("parsing error"),
-//         }
-//         verbose
-//     }
-
-//     pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
-//         let last_operations = self
-//             .clients_operations
-//             .entry(addrs.to_string())
-//             .or_insert_with(|| OperationRegister::new(100));
-//         last_operations.store_operation(operation);
-//     }
-
-//     pub fn print_last_operations_by_client(&self, addrs: String) {
-//         if let Some(operations) = self.clients_operations.get(&addrs) {
-//             for operation in operations.get_operations() {
-//                 println!("{:?}", operation)
-//             }
-//         }
-//     }
-// }
-
-
-// fn handle_connection(
-//     mut stream: TcpStream,
-//     tx: Sender<WorkerMessage>,
-//     database: Arc<RwLock<Database>>,
-//     config: Arc<RwLock<Config>>,
-//     stop: Sender<bool>,
-// ) {
-//     let client_addrs = stream.peer_addr().unwrap();
-//     log(
-//         format!("Connection to address {} established\r\n", client_addrs),
-//         &tx,
-//     );
-
-//     // stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
-//     loop {
-//         let mut buf = [0u8; 512];
-//         match stream.read(&mut buf) {
-//             Ok(0) => {
-//                 break;
-//             }
-//             Ok(size) => {
-//                 log(
-//                     format!(
-//                         "Reading new message from {}. Message: {:?}\r\n",
-//                         client_addrs,
-//                         String::from_utf8_lossy(&buf[..size])
-//                     ),
-//                     &tx,
-//                 );
-
-//                 match parse_request(&buf[..size]) {
-//                     Ok(parsed_request) => {
-//                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
-
-//                         tx.send(WorkerMessage::NewOperation(
-//                             parsed_request.clone(),
-//                             client_addrs,
-//                         ))
-//                         .unwrap();
-
-//                         if check_shutdown(&parsed_request) {
-//                             // stop.send(true).unwrap();
-//                             tx.send(WorkerMessage::Stop(true)).unwrap();
-//                             break;
-//                         }
-
-//                         if let Some(res) =
-//                             handle_command(parsed_request, &tx, client_addrs, &database, &config)
-//                         {
-//                             let response = parse_response(res);
-//                             log(
-//                                 format!(
-//                                     "Response for {}. Message: {:?}. Response: {}\r\n",
-//                                     client_addrs,
-//                                     String::from_utf8_lossy(&buf[..size]),
-//                                     response
-//                                 ),
-//                                 &tx,
-//                             );
-
-//                             stream.write_all(response.as_bytes()).unwrap();
-//                             stream.flush().unwrap();
-//                             // stop.send(false).unwrap();
-//                             tx.send(WorkerMessage::Stop(false)).unwrap();
-//                         }
-//                     }
-//                     Err(e) => {
-//                         println!("Error trying to parse request: {:?}", e);
-//                         continue;
-//                     }
-//                 }
-//             }
-//             // Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
-//             Err(e) => {
-//                 println!("Closing connection: {:?}", e);
-//                 break;
-//             }
-//         }
-//     }
-// }
-
-// /// Recibe una base de datos de tipo Database protegida por un RwLock
-// /// y guarda la información en su correspondiente archivo
-// fn save_database(database: Arc<RwLock<Database>>) {
-//     println!("Saving dump before shutting down");
-//     let x = Arc::try_unwrap(database);
-//     match x {
-//         Ok(t) => {
-//             match t.try_read() {
-//                 Ok(n) => n._save_items_to_file(),
-//                 Err(_) => unreachable!(),
-//             };
-//         }
-//         Err(_) => {
-//             println!("Database couldn't be saved into file");
-//         }
-//     }
-// }
-
-// /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-// /// El sender envia el mensaje Log
-// fn log(msg: String, tx: &Sender<WorkerMessage>) {
-//     tx.send(WorkerMessage::Log(msg)).unwrap();
-// }
-
-// /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-// /// El sender envia el mensaje Verbose
-// fn _verbose(msg: String, tx: &Sender<WorkerMessage>) {
-//     tx.send(WorkerMessage::Verb(msg)).unwrap();
-// }
-
-// /// Recibe una solicitud request de tipo &RespType y valida si es el comando "SHUTDOWN"
-// /// Devuelve true si lo es, false si no
-// fn check_shutdown(request: &RespType) -> bool {
-//     if let RespType::RArray(array) = request {
-//         if let RespType::RBulkString(cmd) = &array[0] {
-//             if cmd == "shutdown" {
-//                 return true;
-//             }
-//         }
-//     }
-//     false
-// }
 
 
 

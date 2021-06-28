@@ -1,8 +1,8 @@
-use std::{net::{SocketAddr, TcpStream}, sync::{Arc, RwLock, mpsc::Sender}};
+use std::{net::{SocketAddr}, sync::{mpsc::Sender}};
 
-use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
+use crate::{services::utils::resp_type::RespType};
 
-use super::config::Config;
+// use super::config::Config;
 
 pub enum Message {
     NewJob(Job),
