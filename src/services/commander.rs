@@ -82,6 +82,9 @@ pub fn handle_command(
                 "expire" => {
                     return Some(command_key::expire(&array, database));
                 }
+                "expireat" => {
+                    return Some(command_key::expireat(&array, database));
+                }
                 "sort" => {
                     return Some(command_key::sort(&array, database));
                     //let sorted_list = command_key::sort(&array, database);
