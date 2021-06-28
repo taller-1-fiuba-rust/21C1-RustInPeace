@@ -435,7 +435,7 @@ mod tests {
         // db.get_values_of_external_keys_that_match_a_pattern("banana");
         let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
         assert_eq!(vec_filtered.len(), 4);
-        std::fs::remove_file("./src/dummy.txt").unwrap();
+        let _ = std::fs::remove_file("./src/dummy.txt");
     }
 
     #[test]
@@ -556,109 +556,84 @@ mod tests {
     }
 
      #[test]
-     fn size_in_memory_is_correct() {
+     fn add_item() {
          let mut db = Database {
              dbfilename: "file".to_string(),
              items: HashMap::new(),
          };
-         db.items.insert(
-             String::from("123"),
-             ValueTimeItem{
-                 value: ValueType::StringType(String::from("222")),
-                 last_access_time: KeyAccessTime::Persistent
-             }
-         );
-         db.items.insert(
-             String::from("1234"),
-             ValueTimeItem{
-                 value: ValueType::StringType(String::from("222")),
-                 last_access_time: KeyAccessTime::Persistent
-             }
-         );
+         db.add(String::from("nueva_key"),ValueTimeItem{
+             value: (ValueType::StringType(String::from("222"))),
+             last_access_time: KeyAccessTime::Persistent
+         });
 
-         assert_eq!(db.get_size(), 2);
+         assert_eq!(
+             db.items.get("nueva_key").unwrap().value.to_string(),
+             String::from("222")
+         );
+         assert_eq!(db.items.len(), 1)
      }
 
-    // #[test]
-    // fn add_item() {
-    //     let added_item = KeyValueItem::new(
-    //         String::from("nueva_key"),
-    //         ValueType::StringType(String::from("222")),
-    //     );
-    //     let mut db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![],
-    //     };
-    //     db.add(added_item);
+     #[test]
+     fn delete_item() {
+         let mut db = Database {
+             dbfilename: "file".to_string(),
+             items: HashMap::new(),
+         };
+         db.items.insert(String::from("nueva_key"), ValueTimeItem{
+             value: ValueType::StringType(String::from ("222")),
+             last_access_time: KeyAccessTime::Persistent
+         });
 
-    //     assert_eq!(db.items.first().unwrap().key, String::from("nueva_key"));
-    //     assert_eq!(
-    //         db.items.first().unwrap().value.to_string(),
-    //         String::from("222")
-    //     );
-    //     assert_eq!(db.items.len(), 1)
-    // }
+         assert_eq!(db.items.len(), 1);
+         db.delete_key(String::from("nueva_key"));
+         assert_eq!(db.items.len(), 0);
+     }
 
-    // #[test]
-    // fn delete_item() {
-    //     let added_item = KeyValueItem::new(
-    //         String::from("nueva_key"),
-    //         ValueType::StringType(String::from("222")),
-    //     );
-    //     let mut db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![added_item],
-    //     };
-    //     assert_eq!(db.items.len(), 1);
-    //     db._delete_by_index(0);
-    //     assert_eq!(db.items.len(), 0);
-    // }
+     #[test]
+     fn filename_is_correct() {
+         let db = Database {
+             dbfilename: "file".to_string(),
+             items: HashMap::new()
+         };
+         assert_eq!(db._get_filename(), "file".to_string());
+     }
 
-    // #[test]
-    // fn filename_is_correct() {
-    //     let db = Database {
-    //         dbfilename: "file".to_string(),
-    //         items: vec![],
-    //     };
-    //     assert_eq!(db._get_filename(), "file".to_string());
-    // }
+     #[test]
+     fn load_items_from_file() {
+         let mut file = File::create("file_5".to_string()).expect("Unable to open");
+         file.write_all(b"123key;;string;value\n").unwrap();
+         file.write_all(b"124key;1623433677;string;value2\n")
+             .unwrap();
 
-    // #[test]
-    // fn load_items_from_file() {
-    //     let mut file = File::create("file_5".to_string()).expect("Unable to open");
-    //     file.write_all(b"123key;;string;value\n").unwrap();
-    //     file.write_all(b"124key;1623433677;string;value2\n")
-    //         .unwrap();
+         let db = Database::new("file_5".to_string());
+         assert_eq!(db.items.len(), 2);
+         let mut iter = db.items.iter();
+         let kvi = iter.next().unwrap();
 
-    //     let db = Database::new("file_5".to_string());
-    //     assert_eq!(db.items.len(), 2);
-    //     let mut iter = db.items.iter();
-    //     let kvi = iter.next().unwrap();
+         assert_eq!(kvi.0, "123key");
+         assert_eq!(kvi.1.value.to_string(), String::from("value"));
+         match kvi.1.last_access_time {
+             KeyAccessTime::Persistent => assert!(true),
+             KeyAccessTime::Volatile(_) => assert!(false),
+         }
 
-    //     assert_eq!(kvi.key.to_owned(), "123key");
-    //     assert_eq!(kvi.value.to_string(), String::from("value"));
-    //     match kvi.last_access_time {
-    //         KeyAccessTime::Persistent => assert!(true),
-    //         KeyAccessTime::Volatile(_) => assert!(false),
-    //     }
+         let kvi2 = iter.next().unwrap();
+         assert_eq!(kvi2.0, "124key");
+         assert_eq!(kvi2.1.value.to_string(), String::from("value2"));
+         match kvi2.1.last_access_time {
+             KeyAccessTime::Volatile(1623433677) => assert!(true),
+             _ => assert!(false),
+         }
+         let _ = std::fs::remove_file("file_5");
+     }
 
-    //     let kvi2 = iter.next().unwrap();
-    //     assert_eq!(kvi2.key.to_owned(), "124key");
-    //     assert_eq!(kvi2.value.to_string(), String::from("value2"));
-    //     match kvi2.last_access_time {
-    //         KeyAccessTime::Volatile(1623433677) => assert!(true),
-    //         _ => assert!(false),
-    //     }
-    //     std::fs::remove_file("file_5").unwrap();
-    // }
-
-    // #[test]
-    // fn create_database_file() {
-    //     assert!(!std::path::Path::new("new_file").exists());
-    //     let _db = Database::new("new_file".to_string());
-    //     assert!(std::path::Path::new("new_file").exists());
-    //     std::fs::remove_file("new_file").unwrap();
-    // }
+     #[test]
+     fn create_database_file() {
+         assert!(!std::path::Path::new("new_file").exists());
+         let _db = Database::new("new_file".to_string());
+         assert!(std::path::Path::new("new_file").exists());
+         let _ = std::fs::remove_file("new_file");
+     }
 
     // #[test]
     // fn save_items_to_file() {
@@ -700,47 +675,6 @@ mod tests {
     //     std::fs::remove_file("file").unwrap();
     // }
 
-    // #[test]
-    // fn test_01_database_copies_value_to_new_key() {
-    //     let mut db = Database::new(String::from("./src/dummy_copy_1.txt"));
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("valor_1".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-
-    //     let source = String::from("clave_1");
-    //     let destination = String::from("clone");
-    //     assert_eq!(db.copy(source, destination, false).unwrap(), ());
-
-    //     let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    //     if let ValueType::StringType(str) = new_item._get_value() {
-    //         assert_eq!(str, &String::from("valor_1"));
-    //     }
-    //     std::fs::remove_file("./src/dummy_copy_1.txt").unwrap();
-    // }
-
-    // #[test]
-    // fn test_02_database_copy_replaces_key_with_new_value() {
-    //     let mut db = Database::new(String::from("./src/dummy_copy.txt"));
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("valor_1".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-
-    //     let source = String::from("clave_1");
-    //     let destination = String::from("clone");
-    //     assert_eq!(db.copy(source, destination, false).unwrap(), ());
-
-    //     let new_item = db.search_item_by_key(&String::from("clone")).unwrap();
-    //     if let ValueType::StringType(str) = new_item._get_value() {
-    //         assert_eq!(str, &String::from("valor_1"));
-    //     }
-    //     std::fs::remove_file("./src/dummy_copy.txt").unwrap();
-    //}
-    //------------------------------
-
     #[test]
     fn test_08_size_in_memory_is_correct() {
         let mut db = Database::new("file1".to_string());
@@ -757,41 +691,6 @@ mod tests {
         db.items.insert("apples_weight".to_string(), vt_2);
         std::fs::remove_file("file1").unwrap();
     }
-
-    // fn test_03_clean_items_deletes_all_items() {
-    //     let mut db = Database::new(String::from("./src/database_1.txt"));
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("value".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("value".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-    //     assert_eq!(db.get_size(), 2);
-    //     db.clean_items();
-    //     assert_eq!(db.get_size(), 0);
-    //     std::fs::remove_file("./src/database_1.txt").unwrap();
-    // }
-
-    // #[test]
-    // fn test_02_deletes_an_item_succesfully() {
-    //     //let _file = File::create("./src/database.txt");
-    //     let mut db = Database::new(String::from("./src/database.txt"));
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("value".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-
-    //     println!("{:?}", db._get_items());
-    //     db.delete_key("clave_1".to_string());
-    //     println!("{:?}", db._get_items());
-    //     assert_eq!(db.get_size(), 0);
-    //     std::fs::remove_file("./src/database.txt".to_string()).unwrap();
-    // }
 
     #[test]
     fn test_09_persist_changes_type_of_access_time() {
@@ -812,7 +711,6 @@ mod tests {
         }
         std::fs::remove_file("./src/dummy_persist.txt".to_string()).unwrap();
     }
-
 
     #[test]
     fn test_10_append_adds_string_to_end_of_existing_value() {
