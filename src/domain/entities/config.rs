@@ -34,12 +34,21 @@ impl Config {
         }
     }
 
+    /// Recibe un atributo configurable attribute y un valor value
+    /// Si el atributo ya existe en la configuración, entonces lo actualiza con el valor "value"
+    /// si no existe, lo agrega con el valor value
     pub fn set_attribute(&mut self, attribute: String, value: String) -> Result<(), Error> {
-        if self.config.contains_key(&attribute) {
-            self.config.insert(attribute, value);
+        let entry = self.config.entry(attribute.clone());
+        if let std::collections::hash_map::Entry::Occupied(mut e) = entry {
+            e.insert(value);
         } else {
             self.config.entry(attribute).or_insert(value);
         }
+        // if self.config.contains_key(&attribute) {
+        //     self.config.insert(attribute, value);
+        // } else {
+        //     self.config.entry(attribute).or_insert(value);
+        // }
         self.update_file()?;
         Ok(())
     }

@@ -111,7 +111,7 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
     // let timeout = 0;
     let port = "8080".to_string();
     let verbose = "1".to_string();
-    let logfile = "./src/dummy.log".to_string();
+    let logfile = "./src/dummy_1.log".to_string();
 
     let mut server = Server::new(port, logfile, verbose).unwrap();
     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
@@ -126,7 +126,7 @@ fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
         operation_register.get_operations()
     );
 
-    std::fs::remove_file("./src/dummy.log").unwrap();
+    std::fs::remove_file("./src/dummy_1.log").unwrap();
 }
 
 #[test]
