@@ -401,7 +401,9 @@ impl Database {
         matches!(self.items.remove(&key), Some(_key))
     }
 
-    /// le setea una clave de expiración a una determinada key
+    /// le setea un timestamp de expiración a una determinada key a partir del timeout (en segundos)
+    /// enviado por parámetro.
+    /// Si la key no existe, devuelve false. Si el update fue correctamente generado devuelve true.
     pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -1097,6 +1099,28 @@ mod tests {
         //let algo = tuplas.unwrap();
         for key in matching_keys {
             println!("{:?}", key)
+        }
+        let _ = std::fs::remove_file("file10".to_string());
+    }
+
+    #[test]
+    fn test_21_expire_key(){
+        let mut db = Database::new("file100".to_string());
+        let vt_1 = ValueTimeItem {
+            value: ValueType::StringType("1".to_string()),
+            timeout: KeyAccessTime::Volatile(12123120),
+        };
+        db.items.insert("key123".to_string(), vt_1);
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH).unwrap();
+        let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
+        db.expire_key("key123","10");
+        let new_item = db.items.get("key123");
+        match new_item {
+            Some(vti) => {
+                assert_eq!(vti.get_timeout().to_string(),new_timeout.to_string());
+            }
+            None => assert!(false)
         }
         let _ = std::fs::remove_file("file10".to_string());
     }

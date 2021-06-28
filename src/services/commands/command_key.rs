@@ -114,8 +114,7 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
         RespType::RInteger(0);
-    } else {
-        if let RespType::RBulkString(key) = &cmd[1] {
+    } else if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
             if let RespType::RBulkString(timeout) = &cmd[2] {
                 let result = db.expire_key(key, timeout);
@@ -125,7 +124,7 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     return RespType::RInteger(0);
                 }
             }
-        }
+
     }
     RespType::RInteger(0)
 }
