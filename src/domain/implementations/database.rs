@@ -1137,7 +1137,6 @@ fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes(
         println!("{:?}", key)
     }
     let _removed = std::fs::remove_file("file10".to_string());
-
 }
 
 #[test]

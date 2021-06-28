@@ -268,7 +268,6 @@ fn test_007_sort_ascending() {
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
     let _ = std::fs::remove_file("filename_7".to_string());
-
 }
 
 #[test]
