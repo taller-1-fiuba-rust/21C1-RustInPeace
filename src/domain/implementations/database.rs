@@ -415,6 +415,7 @@ mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
     use std::io::BufReader;
+    use std::time::SystemTime;
 
     #[test]
     fn test_00_filter_keys_by_pattern() {
