@@ -411,10 +411,8 @@ impl Database {
         let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
         let kvi = self.items.get_mut(key);
         match kvi {
-            Some(k) => {
-                k.set_timeout(KeyAccessTime::Volatile(new_time))
-            }
-            None => false
+            Some(k) => k.set_timeout(KeyAccessTime::Volatile(new_time)),
+            None => false,
         }
     }
 }
@@ -1104,7 +1102,7 @@ mod tests {
     }
 
     #[test]
-    fn test_21_expire_key(){
+    fn test_21_expire_key() {
         let mut db = Database::new("file100".to_string());
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -1112,15 +1110,16 @@ mod tests {
         };
         db.items.insert("key123".to_string(), vt_1);
         let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH).unwrap();
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
         let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
-        db.expire_key("key123","10");
+        db.expire_key("key123", "10");
         let new_item = db.items.get("key123");
         match new_item {
             Some(vti) => {
-                assert_eq!(vti.get_timeout().to_string(),new_timeout.to_string());
+                assert_eq!(vti.get_timeout().to_string(), new_timeout.to_string());
             }
-            None => assert!(false)
+            None => assert!(false),
         }
         let _ = std::fs::remove_file("file10".to_string());
     }
