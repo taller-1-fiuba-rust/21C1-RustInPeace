@@ -13,7 +13,13 @@ use proyecto_taller_1::{
 };
 use redis::Commands;
 
-use std::{error::Error, fmt, sync::{Arc, Mutex, mpsc}, thread::{self, sleep}, time::Duration};
+use std::{
+    error::Error,
+    fmt,
+    sync::{mpsc, Arc, Mutex},
+    thread::{self, sleep},
+    time::Duration,
+};
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
 
@@ -541,9 +547,8 @@ fn test_pubsub() -> TestResult {
         pubsub.subscribe("channel_1").unwrap();
 
         let msg = pubsub.get_message().unwrap();
-        let payload : String = msg.get_payload().unwrap();
+        let payload: String = msg.get_payload().unwrap();
         println!("CHANNEL '{}': {}", msg.get_channel_name(), payload);
-
     });
 
     thread::sleep(Duration::from_secs(1));
@@ -555,11 +560,11 @@ fn test_pubsub() -> TestResult {
     let mut con = connect()?;
     let mut pubsub = con.as_pubsub();
     pubsub.unsubscribe("channel_1")?;
-    
+
     h.join().unwrap();
 
     // if receivers == 1 {
-        return Ok(());
+    return Ok(());
     // } else {
     //     return Err(Box::new(ReturnError {
     //         expected: String::from("1"),

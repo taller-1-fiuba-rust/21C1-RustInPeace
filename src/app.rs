@@ -1,13 +1,13 @@
 use crate::domain::entities::config::Config;
-use crate::domain::entities::server;
+// use crate::domain::entities::server;
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services;
 
 use std::env::args;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::mpsc;
 use std::thread;
 
 static SERVER_ARGS: usize = 2;
@@ -37,13 +37,13 @@ pub fn run() {
         server.listen();
     });
     // match &mut Server::new(port, logfile, verbose) {
-        // Ok(server) => {
-            services::server_service::init(db, config, port, dir, server_sender);
-        // }
-        // Err(e) => {
-        //     println!("Error al crear el server");
-        //     println!("Mensaje de error: {:?}", e);
-        // }
+    // Ok(server) => {
+    services::server_service::init(db, config, port, dir, server_sender);
+    // }
+    // Err(e) => {
+    //     println!("Error al crear el server");
+    //     println!("Mensaje de error: {:?}", e);
+    // }
     // }
     t.join().unwrap();
 }

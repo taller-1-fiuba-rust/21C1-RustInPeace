@@ -17,47 +17,52 @@ use std::sync::{Arc, RwLock};
 /// Recibe una refencia mutable de tipo Server, la base de datos Database y la configuración Config
 /// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
 /// que va a escuchar mensajes hasta que se le envíe una señal de "shutdown".
-pub fn init(db: Database, config: Config, port: String, dir: String, server_sender: Sender<WorkerMessage>) {
+pub fn init(
+    db: Database,
+    config: Config,
+    port: String,
+    dir: String,
+    server_sender: Sender<WorkerMessage>,
+) {
     let pool = ThreadPool::new(4);
 
-        let database = Arc::new(RwLock::new(db));
-        let conf = Arc::new(RwLock::new(config));
-        let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
+    let database = Arc::new(RwLock::new(db));
+    let conf = Arc::new(RwLock::new(config));
+    let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
 
-        match TcpListener::bind(format!("{}:{}", dir, port)) {
-            Ok(listener) => {
-                for stream in listener.incoming() {
-                    match stream {
-                        Ok(stream) => {
-                            let tx = server_sender.clone();
-                            let conf_lock = conf.clone();
-                            let cloned_database = database.clone();
-                            let stop = stop_signal_sender.clone();
-                            pool.spawn(|| {
-                                handle_connection(stream, tx, cloned_database, conf_lock, stop)
-                            });
-                            
-                            if let Ok(drop) = stop_signal_receiver.recv() {
-                                if drop {
-                                    save_database(database);
-                                    break;
-                                }
+    match TcpListener::bind(format!("{}:{}", dir, port)) {
+        Ok(listener) => {
+            for stream in listener.incoming() {
+                match stream {
+                    Ok(stream) => {
+                        let tx = server_sender.clone();
+                        let conf_lock = conf.clone();
+                        let cloned_database = database.clone();
+                        let stop = stop_signal_sender.clone();
+                        pool.spawn(|| {
+                            handle_connection(stream, tx, cloned_database, conf_lock, stop)
+                        });
+
+                        if let Ok(drop) = stop_signal_receiver.recv() {
+                            if drop {
+                                save_database(database);
+                                break;
                             }
                         }
-                        Err(_) => {
-                            println!("Couldn't get stream");
-                            continue;
-                        }
+                    }
+                    Err(_) => {
+                        println!("Couldn't get stream");
+                        continue;
                     }
                 }
             }
-            Err(_) => {
-                println!("Listener couldn't be created");
-            }
         }
+        Err(_) => {
+            println!("Listener couldn't be created");
+        }
+    }
     println!("Shutting down.");
 }
-
 
 /// Recibe una base de datos de tipo Database protegida por un RwLock
 /// y guarda la información en su correspondiente archivo
@@ -129,9 +134,14 @@ pub fn handle_connection(
                             break;
                         }
                         stop.send(false).unwrap();
-                        if let Some(res) =
-                            handle_command(parsed_request, &tx, client_addrs, &database, &config, &stream)
-                        {
+                        if let Some(res) = handle_command(
+                            parsed_request,
+                            &tx,
+                            client_addrs,
+                            &database,
+                            &config,
+                            &stream,
+                        ) {
                             let response = parse_response(res);
                             log(
                                 format!(
@@ -145,7 +155,6 @@ pub fn handle_connection(
                             stream.write_all(response.as_bytes()).unwrap();
                             stream.flush().unwrap();
                         }
-
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);

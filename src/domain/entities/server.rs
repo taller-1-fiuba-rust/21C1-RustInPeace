@@ -38,11 +38,16 @@ pub struct Server {
     clients_operations: HashMap<String, OperationRegister>,
     channels: HashMap<String, HashMap<String, Sender<String>>>,
     // threadpool: ThreadPool,
-    receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
+    receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
 }
 
 impl Server {
-    pub fn new(port: String, logfile: String, verb: String, receiver: Arc<Mutex<Receiver<WorkerMessage>>>) -> Result<Self, Error> {
+    pub fn new(
+        port: String,
+        logfile: String,
+        verb: String,
+        receiver: Arc<Mutex<Receiver<WorkerMessage>>>,
+    ) -> Result<Self, Error> {
         let dir = "127.0.0.1".to_string();
         // let threadpool_size = 4;
         let port = port;
@@ -60,7 +65,7 @@ impl Server {
             logger,
             clients_operations,
             channels,
-            receiver
+            receiver,
         })
     }
 
@@ -71,14 +76,12 @@ impl Server {
         loop {
             let msg = self.receiver.lock().unwrap().recv().unwrap();
             match msg {
-                WorkerMessage::Log(log_msg) => {
-                    match self.log(log_msg) {
-                        Ok(_) => (),
-                        Err(e) => {
-                            println!("Logging error: {}", e);
-                        }
+                WorkerMessage::Log(log_msg) => match self.log(log_msg) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Logging error: {}", e);
                     }
-                }
+                },
                 WorkerMessage::MonitorOp(addrs) => {
                     self.print_last_operations_by_client(addrs);
                 }
@@ -159,11 +162,11 @@ impl Server {
         let last_operations = self
             .clients_operations
             .entry(addrs.to_string())
-            .or_insert(OperationRegister::new(100));
+            .or_insert_with(|| OperationRegister::new(100));
         last_operations.store_operation(operation);
     }
 
-    // 
+    //
     pub fn print_last_operations_by_client(&self, addrs: String) {
         if let Some(operations) = self.clients_operations.get(&addrs) {
             for operation in operations.get_operations() {
@@ -175,7 +178,12 @@ impl Server {
     /// Suscribe un cliente al channel
     /// Primero chequea si el channel ya existe, si existe agrega al cliente
     /// Sino lo crea y agrega al cliente y su sender
-    pub fn subscribe_to_channel(&mut self, channel: String, addrs: SocketAddr, sender: Sender<String>) {
+    pub fn subscribe_to_channel(
+        &mut self,
+        channel: String,
+        addrs: SocketAddr,
+        sender: Sender<String>,
+    ) {
         if let Some(subscribers) = self.channels.get_mut(&channel) {
             subscribers.insert(addrs.ip().to_string(), sender);
         } else {
@@ -212,16 +220,13 @@ impl Server {
         let subscribers = self.channels.get_mut(&channel).unwrap();
         for sender in subscribers.values() {
             match sender.send(msg.clone()) {
-                Ok(()) => {sent += 1}
-                Err(_) => continue
+                Ok(()) => sent += 1,
+                Err(_) => continue,
             }
         }
         sent
     }
 }
-
-
-
 
 // #[test]
 // fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {

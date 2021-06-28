@@ -25,7 +25,7 @@ pub fn handle_command(
     addrs: SocketAddr,
     database: &Arc<RwLock<Database>>,
     config: &Arc<RwLock<Config>>,
-    stream: &TcpStream
+    stream: &TcpStream,
 ) -> Option<RespType> {
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
