@@ -112,6 +112,12 @@ pub fn handle_command(
                 "strlen" => {
                     return Some(command_string::strlen(&array, database));
                 }
+                "mget" => {
+                    return Some(command_string::mget(&array, database));
+                }
+                "mset" => {
+                    return Some(command_string::mset(&array, database));
+                }
                 _ => {}
             }
         }
@@ -123,6 +129,14 @@ pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: Val
     if let Ok(write_guard) = database.write() {
         let mut db = write_guard;
         db.add(key, value)
+    }
+}
+
+pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
+    if let Ok(write_guard) = database.read() {
+        write_guard.get_size()
+    } else {
+        0
     }
 }
 
@@ -433,7 +447,6 @@ fn test_011_sort_by_external_key_value_using_pattern_ascending() {
         last_access_time: KeyAccessTime::Volatile(0),
     };
     let vt_5 = ValueTimeItem {
-        // value: ValueType::ListType(vec!["1".to_string()]),
         value: ValueType::StringType("50".to_string()),
         last_access_time: KeyAccessTime::Volatile(0),
     };
@@ -629,4 +642,106 @@ fn test_014_gets_value_type_string() {
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_015_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+    use std::collections::HashSet;
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_13".to_string());
+    let db = Database::new("filename_13".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("hola".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("chau".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem {
+        value: ValueType::SetType(this_set),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "saludo".to_string(), vt_1);
+    load_data_in_db(&database, "despido".to_string(), vt_2);
+    load_data_in_db(&database, "saludo_despido".to_string(), vt_3);
+    load_data_in_db(&database, "valores".to_string(), vt_4);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("mget".to_string()),
+        RespType::RBulkString("despido".to_string()),
+        RespType::RBulkString("saludo".to_string()),
+        RespType::RBulkString("valores".to_string()),
+        RespType::RBulkString("saludo_despido".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+}
+
+#[test]
+fn test_016_se_setean_multiples_keys_de_tipo_string() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+    use std::collections::HashSet;
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_13".to_string());
+    let db = Database::new("filename_13".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("hola".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("chau".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem {
+        value: ValueType::SetType(this_set),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "saludo".to_string(), vt_1);
+    load_data_in_db(&database, "despido".to_string(), vt_2);
+    load_data_in_db(&database, "saludo_despido".to_string(), vt_3);
+    load_data_in_db(&database, "valores".to_string(), vt_4);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("mset".to_string()),
+        RespType::RBulkString("amigo_1".to_string()),
+        RespType::RBulkString("juan".to_string()),
+        RespType::RBulkString("amigo_2".to_string()),
+        RespType::RBulkString("diana".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+    println!("{:?}", get_database_size(&database));
+    // for (key,value) in &database.into_iter() {
+    //     println! ("{:?} : {:?} ", key, value)
+    // }
 }

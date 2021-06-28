@@ -117,6 +117,15 @@ impl Database {
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
     }
+
+    /// permite agregar *clave* y *valor* a la base de datos
+    // pub fn add_or_replace(&mut self, key: String, value: ValueTimeItem) {
+    //     if self.key_exists(key) {
+    //         let old_key_
+    //     }
+    //     self.items.insert(key, value);
+    // }
+
     /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
     /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
     pub fn get_values_of_external_keys_that_match_a_pattern(
@@ -354,7 +363,7 @@ impl Database {
         // Ok(new_value)
     }
 
-    /// REVISAR: NO ES LO MISMO QUE search_item_by_key?
+    /// Devuelve la clave si el valor asociado es un string
     pub fn get_value_by_key(&self, key: &str) -> Option<String> {
         let item = self.items.get(&key.to_string());
         if let Some(item) = item {
@@ -363,6 +372,20 @@ impl Database {
                 Some(str)
             } else {
                 None
+            }
+        } else {
+            None
+        }
+    }
+    /// Devuelve la clave si el valor asociado es un string, sino devuelve nil
+    pub fn get_value_by_key_or_nil(&self, key: &str) -> Option<String> {
+        let item = self.items.get(&key.to_string());
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                Some(str)
+            } else {
+                Some("(nil)".to_string())
             }
         } else {
             None
@@ -1293,4 +1316,72 @@ fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
     for key in matching_keys {
         println!("{:?}", key)
     }
+}
+
+#[test]
+fn test_21_se_obtienen_las_claves_que_contienen_solo_string_values() {
+    use std::collections::HashSet;
+
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("hola".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("chau".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem {
+        value: ValueType::SetType(this_set),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("saludo".to_string(), vt_1);
+    db.items.insert("despido".to_string(), vt_2);
+    db.items.insert("saludo_despido".to_string(), vt_3);
+    db.items.insert("valores".to_string(), vt_4);
+
+    let aux = db.get_value_by_key_or_nil("saludo").unwrap();
+    println!("{:?}", aux)
+}
+
+#[test]
+fn test_22_no_se_obtiene_la_clave_porque_tiene_value_tipo_list() {
+    use std::collections::HashSet;
+
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("hola".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("chau".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem {
+        value: ValueType::SetType(this_set),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("saludo".to_string(), vt_1);
+    db.items.insert("despido".to_string(), vt_2);
+    db.items.insert("saludo_despido".to_string(), vt_3);
+    db.items.insert("valores".to_string(), vt_4);
+
+    let aux = db.get_value_by_key_or_nil("saludo_despido").unwrap();
+    println!("{:?}", aux)
 }
