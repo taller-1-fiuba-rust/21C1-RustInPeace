@@ -14,6 +14,8 @@ use std::io::Write;
 use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
+use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -126,7 +128,7 @@ impl Database {
         }
         let vt = ValueTimeItem {
             value: ValueType::ListType(vec_aux),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         self.items.insert(key, vt);
     }
@@ -351,7 +353,7 @@ impl Database {
     }
     /*
       Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
-      Formato: key;last_access_time;type;value1,value,2
+      Formato: key;timeout;type;value1,value,2
     */
     pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
@@ -371,7 +373,7 @@ impl Database {
                 file,
                 "{};{};{};{}",
                 kvi.0,
-                kvi.1.get_last_access_time().to_string(),
+                kvi.1.get_timeout().to_string(),
                 kvi_type,
                 kvi.1.get_value().to_string()
             )
@@ -398,8 +400,22 @@ impl Database {
     pub fn delete_key(&mut self, key: String) -> bool {
         matches!(self.items.remove(&key), Some(_key))
     }
-}
 
+    /// le setea un timestamp de expiración a una determinada key a partir del timeout (en segundos)
+    /// enviado por parámetro.
+    /// Si la key no existe, devuelve false. Si el update fue correctamente generado devuelve true.
+    pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+        let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
+        let kvi = self.items.get_mut(key);
+        match kvi {
+            Some(k) => k.set_timeout(KeyAccessTime::Volatile(new_time)),
+            None => false,
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -411,19 +427,19 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy.txt"));
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("valor_1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("valor_2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("valor_3".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("valor_4".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
@@ -454,7 +470,7 @@ mod tests {
             "clave_1".to_string(),
             ValueTimeItem {
                 value: (ValueType::StringType("valor_1".to_string())),
-                last_access_time: KeyAccessTime::Persistent,
+                timeout: KeyAccessTime::Persistent,
             },
         );
 
@@ -476,14 +492,14 @@ mod tests {
             "clave_1".to_string(),
             ValueTimeItem {
                 value: (ValueType::StringType("valor_1".to_string())),
-                last_access_time: KeyAccessTime::Persistent,
+                timeout: KeyAccessTime::Persistent,
             },
         );
         db.add(
             "clave_2".to_string(),
             ValueTimeItem {
                 value: (ValueType::StringType("valor_2".to_string())),
-                last_access_time: KeyAccessTime::Persistent,
+                timeout: KeyAccessTime::Persistent,
             },
         );
 
@@ -521,11 +537,11 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("valor_1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("valor_2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
@@ -543,11 +559,11 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("valor_1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("valor_2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
@@ -555,7 +571,7 @@ mod tests {
         let _res = db.persist("weight_bananas".to_string());
 
         let item = db.items.get(&"weight_bananas".to_string()).unwrap();
-        match *item.get_last_access_time() {
+        match *item.get_timeout() {
             KeyAccessTime::Persistent => assert!(true),
             KeyAccessTime::Volatile(_tmt) => assert!(false),
         }
@@ -573,7 +589,7 @@ mod tests {
             String::from("nueva_key"),
             ValueTimeItem {
                 value: (ValueType::StringType(String::from("222"))),
-                last_access_time: KeyAccessTime::Persistent,
+                timeout: KeyAccessTime::Persistent,
             },
         );
 
@@ -594,7 +610,7 @@ mod tests {
             String::from("nueva_key"),
             ValueTimeItem {
                 value: ValueType::StringType(String::from("222")),
-                last_access_time: KeyAccessTime::Persistent,
+                timeout: KeyAccessTime::Persistent,
             },
         );
 
@@ -625,7 +641,7 @@ mod tests {
 
         assert_eq!(kvi.0, "124key");
         assert_eq!(kvi.1.value.to_string(), String::from("value2"));
-        match kvi.1.last_access_time {
+        match kvi.1.timeout {
             KeyAccessTime::Volatile(1623433677) => assert!(true),
             _ => assert!(false),
         }
@@ -653,7 +669,7 @@ mod tests {
             "clave_2".to_string(),
             ValueTimeItem {
                 value: ValueType::ListType(list),
-                last_access_time: KeyAccessTime::Volatile(1231230),
+                timeout: KeyAccessTime::Volatile(1231230),
             },
         );
 
@@ -680,11 +696,11 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("valor_1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("valor_2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
@@ -704,7 +720,7 @@ mod tests {
         );
 
         let item = db.items.get("clave_1").unwrap();
-        match *item.get_last_access_time() {
+        match *item.get_timeout() {
             KeyAccessTime::Persistent => assert!(true),
             KeyAccessTime::Volatile(_tmt) => assert!(false),
         }
@@ -784,19 +800,19 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("weight_apples".to_string(), vt_2);
@@ -821,35 +837,35 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_5 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_6 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_7 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_8 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("pablo".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
@@ -875,35 +891,35 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_5 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_6 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_7 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_8 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
@@ -928,35 +944,35 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_5 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_6 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_7 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_8 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
@@ -983,35 +999,35 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_5 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_6 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_7 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_8 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
@@ -1037,35 +1053,35 @@ mod tests {
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_2 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_3 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_4 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_5 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_6 = ValueTimeItem {
             value: ValueType::StringType("2".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_7 = ValueTimeItem {
             value: ValueType::StringType("11".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let vt_8 = ValueTimeItem {
             value: ValueType::StringType("5".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("jose".to_string(), vt_2);
@@ -1081,6 +1097,29 @@ mod tests {
         //let algo = tuplas.unwrap();
         for key in matching_keys {
             println!("{:?}", key)
+        }
+        let _ = std::fs::remove_file("file10".to_string());
+    }
+
+    #[test]
+    fn test_21_expire_key() {
+        let mut db = Database::new("file100".to_string());
+        let vt_1 = ValueTimeItem {
+            value: ValueType::StringType("1".to_string()),
+            timeout: KeyAccessTime::Volatile(12123120),
+        };
+        db.items.insert("key123".to_string(), vt_1);
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+        let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
+        db.expire_key("key123", "10");
+        let new_item = db.items.get("key123");
+        match new_item {
+            Some(vti) => {
+                assert_eq!(vti.get_timeout().to_string(), new_timeout.to_string());
+            }
+            None => assert!(false),
         }
         let _ = std::fs::remove_file("file10".to_string());
     }
