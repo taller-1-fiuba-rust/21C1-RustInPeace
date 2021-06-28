@@ -406,6 +406,7 @@ impl Database {
 mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+    use std::io::BufReader;
 
     #[test]
     fn test_00_filter_keys_by_pattern() {
@@ -635,45 +636,40 @@ mod tests {
          let _ = std::fs::remove_file("new_file");
      }
 
-    // #[test]
-    // fn save_items_to_file() {
-    //     let mut _file = File::create("file".to_string()).expect("Unable to open");
+     #[test]
+     fn save_items_to_file() {
+         let mut db = Database::new("file".to_string());
+         db.items.insert("clave_1".to_string(), ValueTimeItem{
+             value: ValueType::StringType("valor_1".to_string()),
+             last_access_time: KeyAccessTime::Persistent
+         });
 
-    //     let mut db = Database::new("file".to_string());
-    //     db.add(KeyValueItem {
-    //         key: "clave_1".to_string(),
-    //         value: ValueType::StringType("valor_1".to_string()),
-    //         last_access_time: KeyAccessTime::Persistent,
-    //     });
-    //     let mut un_list = LinkedList::new();
-    //     un_list.push_back("un_item_string".to_string());
-    //     un_list.push_back("segundo_item_list_string".to_string());
+         let list = vec!["un_item_string".to_string(),"segundo_item_list_string".to_string()];
 
-    //     db.add(KeyValueItem {
-    //         key: "clave_2".to_string(),
-    //         value: ValueType::ListType(un_list),
-    //         last_access_time: KeyAccessTime::Volatile(1231230),
-    //     });
+         db.items.insert("clave_2".to_string(), ValueTimeItem{
+             value: ValueType::ListType(list),
+             last_access_time: KeyAccessTime::Volatile(1231230)
+         });
 
-    //     db._save_items_to_file();
+         db.save_items_to_file();
 
-    //     let file = File::open(&db.dbfilename);
-    //     let reader = BufReader::new(file.unwrap());
-    //     let mut it = reader.lines();
-    //     match it.next().unwrap() {
-    //         Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
-    //         _ => assert!(false),
-    //     }
-    //     match it.next().unwrap() {
-    //         Ok(t) => assert_eq!(
-    //             t,
-    //             "clave_2;1231230;list;un_item_string,segundo_item_list_string"
-    //         ),
-    //         _ => assert!(false),
-    //     }
+         let file = File::open(&db.dbfilename);
+         let reader = BufReader::new(file.unwrap());
+         let mut it = reader.lines();
+         match it.next().unwrap() {
+             Ok(t) => assert_eq!(t, "clave_1;;string;valor_1"),
+             _ => assert!(false),
+         }
+         match it.next().unwrap() {
+             Ok(t) => assert_eq!(
+                 t,
+                 "clave_2;1231230;list;un_item_string,segundo_item_list_string"
+             ),
+             _ => assert!(false),
+         }
 
-    //     std::fs::remove_file("file").unwrap();
-    // }
+         let _ = std::fs::remove_file("file");
+     }
 
     #[test]
     fn test_08_size_in_memory_is_correct() {
