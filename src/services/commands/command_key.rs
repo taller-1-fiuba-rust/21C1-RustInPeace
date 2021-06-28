@@ -112,20 +112,21 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// El comando recibe 2 parámetros: la key y el tiempo de expiración (en segundos)
 /// Devuele 1 si pudo ser seteado, o 0 en caso contrario.
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    if cmd.len() != 3{
+    if cmd.len() != 3 {
         RespType::RInteger(0);
-    }else{
-    if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
-        if let RespType::RBulkString(timeout) = &cmd[2] {
-            let result = db.expire_key(key, timeout);
-            if result{
-                return RespType::RInteger(1)
-            }else{
-                return RespType::RInteger(0)
+    } else {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            if let RespType::RBulkString(timeout) = &cmd[2] {
+                let result = db.expire_key(key, timeout);
+                if result {
+                    return RespType::RInteger(1);
+                } else {
+                    return RespType::RInteger(0);
+                }
             }
         }
-    }}
+    }
     RespType::RInteger(0)
 }
 

@@ -83,7 +83,7 @@ impl ValueTimeItem {
     pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
         kvis.transform_to_item()
     }
-    pub fn set_timeout(&mut self, timeout: KeyAccessTime) -> bool{
+    pub fn set_timeout(&mut self, timeout: KeyAccessTime) -> bool {
         match timeout {
             KeyAccessTime::Persistent => false,
             KeyAccessTime::Volatile(_) => {
