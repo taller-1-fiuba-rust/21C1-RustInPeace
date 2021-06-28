@@ -64,8 +64,8 @@ mod tests {
         let kvis = KeyValueItemSerialized::_new("123key;1623427130;string;value".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
-        assert_eq!(kvi.1._get_value().to_string(), "value");
-        assert_eq!(kvi.1._get_last_access_time().to_string(), "1623427130");
+        assert_eq!(kvi.1.get_value().to_string(), "value");
+        assert_eq!(kvi.1.get_last_access_time().to_string(), "1623427130");
     }
 
     #[test]
@@ -73,7 +73,7 @@ mod tests {
         let kvis = KeyValueItemSerialized::_new("123key;1623427130;set;3,2,4".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
-        match kvi.1._get_value() {
+        match kvi.1.get_value() {
             ValueType::SetType(hs) => {
                 assert_eq!(hs.len(), 3);
                 assert!(hs.contains("2"));
@@ -82,7 +82,7 @@ mod tests {
             }
             _ => assert!(false),
         }
-        assert_eq!(kvi.1._get_last_access_time().to_string(), "1623427130");
+        assert_eq!(kvi.1.get_last_access_time().to_string(), "1623427130");
     }
 
     #[test]
@@ -90,7 +90,7 @@ mod tests {
         let kvis = KeyValueItemSerialized::_new("123key;1623427130;list;1,2,3".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
-        match kvi.1._get_value() {
+        match kvi.1.get_value() {
             ValueType::ListType(l) => {
                 assert_eq!(l.len(), 3);
                 let mut iter = l.iter();
@@ -100,7 +100,7 @@ mod tests {
             }
             _ => assert!(false),
         }
-        assert_eq!(kvi.1._get_last_access_time().to_string(), "1623427130");
+        assert_eq!(kvi.1.get_last_access_time().to_string(), "1623427130");
     }
 
     #[test]
@@ -108,8 +108,8 @@ mod tests {
         let kvis = KeyValueItemSerialized::_new("123key;;string;value".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
-        assert_eq!(kvi.1._get_value().to_string(), "value");
-        match kvi.1._get_last_access_time() {
+        assert_eq!(kvi.1.get_value().to_string(), "value");
+        match kvi.1.get_last_access_time() {
             KeyAccessTime::Persistent => assert!(true),
             _ => assert!(false),
         }

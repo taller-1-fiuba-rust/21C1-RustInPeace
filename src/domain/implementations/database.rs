@@ -455,8 +455,11 @@ impl Database {
             }
         }
     }
-
-    pub fn _save_items_to_file(&self) {
+    /*
+       Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
+       Formato: key;last_access_time;type;value1,value,2
+     */
+    pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
@@ -465,7 +468,7 @@ impl Database {
             .unwrap();
 
         for kvi in &self.items {
-            let kvi_type = match kvi.1._get_value() {
+            let kvi_type = match kvi.1.get_value() {
                 ValueType::StringType(_) => "string",
                 ValueType::SetType(_) => "set",
                 ValueType::ListType(_) => "list",
@@ -474,9 +477,9 @@ impl Database {
                 file,
                 "{};{};{};{}",
                 kvi.0,
-                kvi.1._get_last_access_time().to_string(),
+                kvi.1.get_last_access_time().to_string(),
                 kvi_type,
-                kvi.1._get_value().to_string()
+                kvi.1.get_value().to_string()
             )
             .unwrap();
         }
@@ -648,7 +651,7 @@ mod tests {
         let _res = db.persist("weight_bananas".to_string());
 
         let item = db.items.get(&"weight_bananas".to_string()).unwrap();
-        match *item._get_last_access_time() {
+        match *item.get_last_access_time() {
             KeyAccessTime::Persistent => assert!(true),
             KeyAccessTime::Volatile(_tmt) => assert!(false),
         }
@@ -916,7 +919,7 @@ mod tests {
         );
 
         let item = db.items.get("clave_1").unwrap();
-        match *item._get_last_access_time() {
+        match *item.get_last_access_time() {
             KeyAccessTime::Persistent => assert!(true),
             KeyAccessTime::Volatile(_tmt) => assert!(false),
         }

@@ -98,7 +98,7 @@ impl ValueTimeItem {
     //     &self.key
     // }
 
-    pub fn _get_last_access_time(&self) -> &KeyAccessTime {
+    pub fn get_last_access_time(&self) -> &KeyAccessTime {
         &self.last_access_time
     }
 
@@ -112,7 +112,7 @@ impl ValueTimeItem {
         }
     }
 
-    pub fn _get_value(&self) -> &ValueType {
+    pub fn get_value(&self) -> &ValueType {
         &self.value
     }
 
