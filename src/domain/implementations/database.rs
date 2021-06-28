@@ -15,7 +15,6 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
-use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
