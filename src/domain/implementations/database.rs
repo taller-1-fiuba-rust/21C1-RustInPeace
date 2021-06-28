@@ -1082,6 +1082,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _ = std::fs::remove_file("file10".to_string());
+
     }
-    let _ = std::fs::remove_file("file10".to_string());
 }
