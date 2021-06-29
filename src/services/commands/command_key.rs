@@ -1,8 +1,8 @@
+use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use crate::domain::entities::key_value_item::{KeyAccessTime};
 
 /// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
 /// Elimina las claves recibidas en el comando
@@ -279,18 +279,18 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
-     if let RespType::RBulkString(key) = &cmd[1] {
-        let db = database.write().unwrap();
-         match db._get_items().get(key) {
-             None => return RespType::RNegative(-2),
-             Some(item) => {
-                 return match item.get_timeout() {
-                     KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                     KeyAccessTime::Persistent => RespType::RInteger(0)
-                 }
-             }
-         }
-    }
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let db = database.write().unwrap();
+            match db._get_items().get(key) {
+                None => return RespType::RNegative(-2),
+                Some(item) => {
+                    return match item.get_timeout() {
+                        KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                        KeyAccessTime::Persistent => RespType::RInteger(0),
+                    }
+                }
+            }
+        }
     }
     RespType::RInteger(0)
 }
