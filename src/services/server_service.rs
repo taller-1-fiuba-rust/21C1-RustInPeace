@@ -105,7 +105,6 @@ pub fn handle_connection(
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
             Ok(0) => {
-                println!("cero");
                 break;
             }
             Ok(size) => {
