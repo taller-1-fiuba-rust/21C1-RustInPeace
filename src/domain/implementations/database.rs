@@ -15,7 +15,6 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
-use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -401,17 +400,12 @@ impl Database {
         matches!(self.items.remove(&key), Some(_key))
     }
 
-    /// le setea un timestamp de expiración a una determinada key a partir del timeout (en segundos)
-    /// enviado por parámetro.
+    /// le setea un timestamp de expiración a una determinada key
     /// Si la key no existe, devuelve false. Si el update fue correctamente generado devuelve true.
     pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap();
-        let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
         let kvi = self.items.get_mut(key);
         match kvi {
-            Some(k) => k.set_timeout(KeyAccessTime::Volatile(new_time)),
+            Some(k) => k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap())),
             None => false,
         }
     }
@@ -421,6 +415,7 @@ mod tests {
     use super::*;
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
     use std::io::BufReader;
+    use std::time::SystemTime;
 
     #[test]
     fn test_00_filter_keys_by_pattern() {
@@ -1113,7 +1108,7 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap();
         let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
-        db.expire_key("key123", "10");
+        db.expire_key("key123", &new_timeout.to_string());
         let new_item = db.items.get("key123");
         match new_item {
             Some(vti) => {

@@ -2,7 +2,9 @@ use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
 
 /// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
 /// Elimina las claves recibidas en el comando
@@ -113,6 +115,30 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// El comando recibe 2 parámetros: la key y el tiempo de expiración (en segundos)
 /// Devuele 1 si pudo ser seteado, o 0 en caso contrario.
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() != 3 {
+    } else if let RespType::RBulkString(key) = &cmd[1] {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(timeout) = &cmd[2] {
+            let now = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap();
+            let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
+            let result = db.expire_key(key, &new_time.to_string());
+            if result {
+                return RespType::RInteger(1);
+            } else {
+                return RespType::RInteger(0);
+            }
+        }
+    }
+    RespType::RInteger(0)
+}
+
+/// GRUPO [KEYS]:  Configura un tiempo de expiracion sobre una clave (la clave se dice que
+/// es volatil). Luego de ese tiempo de expiracion, la clave es automaticamente eliminada.
+/// El comando recibe 2 parámetros: la key y el nuevo timestamp
+/// Devuele 1 si pudo ser seteado, o 0 en caso contrario.
+pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
         let mut db = database.write().unwrap();
