@@ -416,7 +416,7 @@ mod tests {
 
     #[test]
     fn test_00_filter_keys_by_pattern() {
-        let mut db = Database::new(String::from("./src/dummy.txt"));
+        let mut db = Database::new(String::from("./src/dummy_00.txt"));
 
         let vt_1 = ValueTimeItem::new(
             ValueType::StringType("valor_1".to_string()),
@@ -444,7 +444,7 @@ mod tests {
         // db.get_values_of_external_keys_that_match_a_pattern("banana");
         let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
         assert_eq!(vec_filtered.len(), 4);
-        let _ = std::fs::remove_file("./src/dummy.txt");
+        let _ = std::fs::remove_file("./src/dummy_00.txt");
     }
 
     #[test]
@@ -588,7 +588,7 @@ mod tests {
         );
 
         assert_eq!(
-            db.items.get("nueva_key").unwrap().value.to_string(),
+            db.items.get("nueva_key").unwrap().get_value().to_string(),
             String::from("222")
         );
         assert_eq!(db.items.len(), 1)
@@ -634,8 +634,8 @@ mod tests {
         let kvi = iter.next().unwrap();
 
         assert_eq!(kvi.0, "124key");
-        assert_eq!(kvi.1.value.to_string(), String::from("value2"));
-        match kvi.1.timeout {
+        assert_eq!(kvi.1.get_value().to_string(), String::from("value2"));
+        match kvi.1.get_timeout() {
             KeyAccessTime::Volatile(1623433677) => assert!(true),
             _ => assert!(false),
         }

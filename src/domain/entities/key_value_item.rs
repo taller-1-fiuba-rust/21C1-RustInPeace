@@ -69,8 +69,8 @@ impl FromStr for KeyAccessTime {
 
 #[derive(Debug)]
 pub struct ValueTimeItem {
-    pub(crate) value: ValueType,
-    pub(crate) timeout: KeyAccessTime,
+    value: ValueType,
+    timeout: KeyAccessTime,
     last_acess_time: u64,
 }
 
