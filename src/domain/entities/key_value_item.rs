@@ -112,6 +112,10 @@ impl ValueTimeItem {
         &self.timeout
     }
 
+    pub fn get_last_access_time(&self) -> &u64 {
+        &self.last_access_time
+    }
+
     pub fn make_persistent(&mut self) -> bool {
         match self.timeout {
             KeyAccessTime::Persistent => false,

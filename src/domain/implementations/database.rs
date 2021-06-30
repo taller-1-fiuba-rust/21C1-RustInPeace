@@ -349,7 +349,7 @@ impl Database {
     }
     /*
       Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
-      Formato: key;timeout;type;value1,value,2
+      Formato: key;last_access_time;timeout;type;value1,value,2
     */
     pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
@@ -367,8 +367,9 @@ impl Database {
             };
             writeln!(
                 file,
-                "{};{};{};{}",
+                "{};{};{};{};{}",
                 kvi.0,
+                kvi.1.get_last_access_time().to_string(),
                 kvi.1.get_timeout().to_string(),
                 kvi_type,
                 kvi.1.get_value().to_string()
@@ -663,6 +664,12 @@ mod tests {
             "clave_2".to_string(),
             ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Volatile(1231230)),
         );
+        let last_access_time = db
+            .items
+            .get("clave_2")
+            .unwrap()
+            .get_last_access_time()
+            .to_string();
 
         db.save_items_to_file();
 
@@ -670,11 +677,12 @@ mod tests {
         let reader = BufReader::new(file.unwrap());
         let mut it = reader.lines();
 
+        let line_serialized = "clave_2;".to_owned()
+            + last_access_time.as_str()
+            + ";1231230;list;un_item_string,segundo_item_list_string";
+
         match it.next().unwrap() {
-            Ok(t) => assert_eq!(
-                t,
-                "clave_2;1231230;list;un_item_string,segundo_item_list_string"
-            ),
+            Ok(t) => assert_eq!(t, line_serialized),
             _ => assert!(false),
         }
 
