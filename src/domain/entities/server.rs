@@ -197,10 +197,14 @@ impl Server {
     /// Por el sender asociado envia mensaje para dejar de aceptar
     pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr) {
         for subscriber in self.channels.values_mut() {
-            let sender = subscriber.get(&addrs.to_string()).unwrap();
-            sender.send(String::from("UNSUBSCRIBE")).unwrap();
-            sender.send(String::from("QUIT")).unwrap();
-            subscriber.remove(&addrs.ip().to_string());
+            match subscriber.get(&addrs.ip().to_string()) {
+                Some(sender) => {
+                    sender.send(String::from("UNSUBSCRIBE")).unwrap();
+                    sender.send(String::from("QUIT")).unwrap();
+                    subscriber.remove(&addrs.ip().to_string());
+                }
+                None => break,
+            }
         }
     }
 

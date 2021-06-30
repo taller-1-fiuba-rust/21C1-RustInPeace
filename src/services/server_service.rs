@@ -11,8 +11,6 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
-// use std::thread;
-// use std::time::Duration;
 
 /// Recibe una refencia mutable de tipo Server, la base de datos Database y la configuración Config
 /// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
@@ -72,7 +70,7 @@ fn save_database(database: Arc<RwLock<Database>>) {
     match x {
         Ok(t) => {
             match t.try_read() {
-                Ok(n) => n._save_items_to_file(),
+                Ok(n) => n.save_items_to_file(),
                 Err(_) => unreachable!(),
             };
         }

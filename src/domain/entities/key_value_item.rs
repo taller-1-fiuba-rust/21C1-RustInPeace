@@ -1,13 +1,8 @@
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::collections::HashSet;
 use std::fmt;
 use std::num::ParseIntError;
-use std::str::FromStr; //, usize};
-                       //use crate::services::utils::resp_type::RespType;
-                       // use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
-                       // use std::collections::{HashSet, LinkedList};
-                       // use std::fmt;
-                       // use std::num::ParseIntError;
-                       // use std::str::FromStr;
+use std::str::FromStr;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -74,45 +69,45 @@ impl FromStr for KeyAccessTime {
 #[derive(Debug)]
 pub struct ValueTimeItem {
     pub(crate) value: ValueType,
-    pub(crate) last_access_time: KeyAccessTime,
+    pub(crate) timeout: KeyAccessTime,
 }
 
 impl ValueTimeItem {
     pub fn new(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
         ValueTimeItem {
-            // #[allow(dead_code)]
-            // impl KeyValueItem {
-            //     pub fn new(key: String, value: ValueType) -> KeyValueItem {
-            //         KeyValueItem {
-            //             key,
             value,
-            last_access_time: time, //KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
+            timeout: time, //KeyAccessTime::Volatile(1622657604), //TODO Esto debería calcularse
         }
     }
 
-    // pub fn _from_file(kvis: KeyValueItemSerialized) -> KeyValueItem {
-    //     kvis.transform_to_item()
-    // }
-
-    // pub fn get_key(&self) -> &String {
-    //     &self.key
-    // }
-
-    pub fn _get_last_access_time(&self) -> &KeyAccessTime {
-        &self.last_access_time
+    pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
+        kvis.transform_to_item()
     }
-
-    pub fn make_persistent(&mut self) -> bool {
-        match self.last_access_time {
+    pub fn set_timeout(&mut self, timeout: KeyAccessTime) -> bool {
+        match timeout {
             KeyAccessTime::Persistent => false,
-            KeyAccessTime::Volatile(_timeout) => {
-                self.last_access_time = KeyAccessTime::Persistent;
+            KeyAccessTime::Volatile(_) => {
+                self.timeout = timeout;
                 true
             }
         }
     }
 
-    pub fn _get_value(&self) -> &ValueType {
+    pub fn get_timeout(&self) -> &KeyAccessTime {
+        &self.timeout
+    }
+
+    pub fn make_persistent(&mut self) -> bool {
+        match self.timeout {
+            KeyAccessTime::Persistent => false,
+            KeyAccessTime::Volatile(_timeout) => {
+                self.timeout = KeyAccessTime::Persistent;
+                true
+            }
+        }
+    }
+
+    pub fn get_value(&self) -> &ValueType {
         &self.value
     }
 
@@ -178,6 +173,23 @@ impl ValueTimeItem {
             }
         }
     }
+
+    pub fn get_value_type(&self) -> String {
+        let value_type; // = "none".to_string();//String::from("none");
+        let current_value = &self.value;
+        match current_value {
+            ValueType::ListType(_current_list) => {
+                value_type = "list".to_string();
+            }
+            ValueType::SetType(_current_set) => {
+                value_type = "set".to_string();
+            }
+            ValueType::StringType(_current_string) => {
+                value_type = "string".to_string();
+            }
+        }
+        value_type
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -188,15 +200,16 @@ mod tests {
     fn test_001_key_value_item_string_created() {
         let kv_item = ValueTimeItem {
             value: ValueType::StringType("un_string".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_string");
-        match kv_item.last_access_time {
+
+        match kv_item.timeout {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
-        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
+        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
     }
 
     #[test]
@@ -206,15 +219,16 @@ mod tests {
 
         let kv_item = ValueTimeItem {
             value: ValueType::SetType(un_set),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_set_string");
-        match kv_item.last_access_time {
+
+        match kv_item.timeout {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
-        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
+        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
     }
 
     #[test]
@@ -225,31 +239,32 @@ mod tests {
 
         let kv_item = ValueTimeItem {
             value: ValueType::ListType(un_list),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
-        match kv_item.last_access_time {
+
+        match kv_item.timeout {
             KeyAccessTime::Persistent => assert!(false),
             KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
         }
-        assert_eq!(kv_item.last_access_time.to_string(), "0".to_string());
+        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
     }
 
     #[test]
     fn test_004_key_value_item_changes_to_persist() {
         let mut kv_item = ValueTimeItem {
             value: ValueType::StringType("un_string".to_string()),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
 
         let res = kv_item.make_persistent();
         assert_eq!(res, true);
-        match kv_item.last_access_time {
+        match kv_item.timeout {
             KeyAccessTime::Volatile(_t) => assert!(false),
             KeyAccessTime::Persistent => assert!(true),
         }
-        assert_eq!(kv_item.last_access_time.to_string(), "".to_string());
+        assert_eq!(kv_item.timeout.to_string(), "".to_string());
     }
 
     #[test]
@@ -261,7 +276,7 @@ mod tests {
                 1.to_string(),
                 34.to_string(),
             ]),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let lista_ordenada = kv_item.sort().unwrap();
         println!("{:?}", lista_ordenada)
@@ -276,7 +291,7 @@ mod tests {
                 1.to_string(),
                 34.to_string(),
             ]),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
         println!("{:?}", lista_ordenada_inversamente)
@@ -291,7 +306,7 @@ mod tests {
                 "irma".to_string(),
                 "dominga".to_string(),
             ]),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
         println!("{:?}", lista_ordenada_inversamente)
@@ -306,7 +321,7 @@ mod tests {
                 "irma".to_string(),
                 "dominga".to_string(),
             ]),
-            last_access_time: KeyAccessTime::Volatile(0),
+            timeout: KeyAccessTime::Volatile(0),
         };
         let lista_ordenada = kv_item.sort().unwrap();
         println!("{:?}", lista_ordenada)

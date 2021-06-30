@@ -254,10 +254,10 @@ const TESTS: &[Test] = &[
         name: "string command: strlen key_1",
         func: test_string_strlen,
     },
-    Test {
-        name: "pubsub command: subscribe channel_1 channel_2 ",
-        func: test_pubsub,
-    },
+    // Test {
+    //     name: "pubsub command: subscribe channel_1 channel_2 ",
+    //     func: test_pubsub,
+    // },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -540,7 +540,7 @@ fn test_string_getset() -> TestResult {
     }
 }
 
-fn test_pubsub() -> TestResult {
+fn _test_pubsub() -> TestResult {
     let h = thread::spawn(|| {
         let mut con = connect().unwrap();
         let mut pubsub = con.as_pubsub();
