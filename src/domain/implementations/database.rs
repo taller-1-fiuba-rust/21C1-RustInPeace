@@ -1121,6 +1121,6 @@ mod tests {
             }
             None => assert!(false),
         }
-        let _ = std::fs::remove_file("file10".to_string());
+        let _ = std::fs::remove_file("file100".to_string());
     }
 }

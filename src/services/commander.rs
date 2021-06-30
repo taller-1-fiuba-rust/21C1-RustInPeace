@@ -115,6 +115,9 @@ pub fn handle_command(
                 "strlen" => {
                     return Some(command_string::strlen(&array, database));
                 }
+                "ttl" => {
+                    return Some(command_key::get_ttl(&array, database));
+                }
                 _ => {}
             }
         }
