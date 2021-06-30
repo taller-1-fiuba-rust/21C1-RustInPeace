@@ -832,7 +832,7 @@ mod tests {
 
     #[test]
     fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file016".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
@@ -881,7 +881,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _removed = std::fs::remove_file("file10".to_string());
+        let _removed = std::fs::remove_file("file016".to_string());
     }
 
     #[test]
