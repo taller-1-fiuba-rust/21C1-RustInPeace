@@ -125,10 +125,7 @@ impl Database {
         for elemento in cv {
             vec_aux.push(elemento.to_string());
         }
-        let vt = ValueTimeItem {
-            value: ValueType::ListType(vec_aux),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt = ValueTimeItem::new(ValueType::ListType(vec_aux), KeyAccessTime::Volatile(0));
         self.items.insert(key, vt);
     }
 
@@ -420,22 +417,24 @@ mod tests {
     #[test]
     fn test_00_filter_keys_by_pattern() {
         let mut db = Database::new(String::from("./src/dummy.txt"));
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("valor_1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("valor_2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("valor_3".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("valor_4".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("valor_2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("valor_3".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("valor_4".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         db.items
@@ -463,10 +462,10 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy.txt"));
         db.add(
             "clave_1".to_string(),
-            ValueTimeItem {
-                value: (ValueType::StringType("valor_1".to_string())),
-                timeout: KeyAccessTime::Persistent,
-            },
+            ValueTimeItem::new(
+                ValueType::StringType("valor_1".to_string()),
+                KeyAccessTime::Persistent,
+            ),
         );
 
         let source = String::from("clave_1");
@@ -485,17 +484,17 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy2.txt"));
         db.add(
             "clave_1".to_string(),
-            ValueTimeItem {
-                value: (ValueType::StringType("valor_1".to_string())),
-                timeout: KeyAccessTime::Persistent,
-            },
+            ValueTimeItem::new(
+                ValueType::StringType("valor_1".to_string()),
+                KeyAccessTime::Persistent,
+            ),
         );
         db.add(
             "clave_2".to_string(),
-            ValueTimeItem {
-                value: (ValueType::StringType("valor_2".to_string())),
-                timeout: KeyAccessTime::Persistent,
-            },
+            ValueTimeItem::new(
+                ValueType::StringType("valor_2".to_string()),
+                KeyAccessTime::Persistent,
+            ),
         );
 
         let source = String::from("clave_1");
@@ -530,14 +529,14 @@ mod tests {
     fn test_04_deletes_an_item_succesfully() {
         let mut db = Database::new("file2".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("valor_1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("valor_2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("valor_2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
 
@@ -552,14 +551,14 @@ mod tests {
         use crate::domain::entities::key_value_item::KeyAccessTime;
         let mut db = Database::new("file".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("valor_1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("valor_2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("valor_2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         //--------
@@ -582,10 +581,10 @@ mod tests {
         };
         db.add(
             String::from("nueva_key"),
-            ValueTimeItem {
-                value: (ValueType::StringType(String::from("222"))),
-                timeout: KeyAccessTime::Persistent,
-            },
+            ValueTimeItem::new(
+                ValueType::StringType(String::from("222")),
+                KeyAccessTime::Persistent,
+            ),
         );
 
         assert_eq!(
@@ -603,10 +602,10 @@ mod tests {
         };
         db.items.insert(
             String::from("nueva_key"),
-            ValueTimeItem {
-                value: ValueType::StringType(String::from("222")),
-                timeout: KeyAccessTime::Persistent,
-            },
+            ValueTimeItem::new(
+                ValueType::StringType(String::from("222")),
+                KeyAccessTime::Persistent,
+            ),
         );
 
         assert_eq!(db.items.len(), 1);
@@ -662,10 +661,7 @@ mod tests {
 
         db.items.insert(
             "clave_2".to_string(),
-            ValueTimeItem {
-                value: ValueType::ListType(list),
-                timeout: KeyAccessTime::Volatile(1231230),
-            },
+            ValueTimeItem::new(ValueType::ListType(list), KeyAccessTime::Volatile(1231230)),
         );
 
         db.save_items_to_file();
@@ -689,14 +685,14 @@ mod tests {
     fn test_08_size_in_memory_is_correct() {
         let mut db = Database::new("file1".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("valor_1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("valor_2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("valor_2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         std::fs::remove_file("file1").unwrap();
@@ -793,22 +789,22 @@ mod tests {
     ) {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("weight_apples".to_string(), vt_2);
         db.items.insert("weight_kiwi".to_string(), vt_3);
@@ -830,38 +826,38 @@ mod tests {
     fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_5 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_6 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_7 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_8 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_5 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_6 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_7 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_8 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("pablo".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -882,40 +878,40 @@ mod tests {
 
     #[test]
     fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file109".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_5 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_6 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_7 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_8 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_5 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_6 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_7 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_8 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -931,44 +927,45 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _removed = std::fs::remove_file("file109".to_string());
     }
 
     #[test]
     fn test_18_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_5 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_6 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_7 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_8 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_5 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_6 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_7 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_8 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -992,38 +989,38 @@ mod tests {
     ) {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_5 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_6 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_7 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_8 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_5 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_6 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_7 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_8 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1046,38 +1043,38 @@ mod tests {
     fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_2 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_3 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_4 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_5 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_6 = ValueTimeItem {
-            value: ValueType::StringType("2".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_7 = ValueTimeItem {
-            value: ValueType::StringType("11".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
-        let vt_8 = ValueTimeItem {
-            value: ValueType::StringType("5".to_string()),
-            timeout: KeyAccessTime::Volatile(0),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_2 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_3 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_4 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_5 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_6 = ValueTimeItem::new(
+            ValueType::StringType("2".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_7 = ValueTimeItem::new(
+            ValueType::StringType("11".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let vt_8 = ValueTimeItem::new(
+            ValueType::StringType("5".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("jose".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1099,10 +1096,10 @@ mod tests {
     #[test]
     fn test_21_expire_key() {
         let mut db = Database::new("file100".to_string());
-        let vt_1 = ValueTimeItem {
-            value: ValueType::StringType("1".to_string()),
-            timeout: KeyAccessTime::Volatile(12123120),
-        };
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(12123120),
+        );
         db.items.insert("key123".to_string(), vt_1);
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
