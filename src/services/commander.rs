@@ -85,6 +85,9 @@ pub fn handle_command(
                 "expire" => {
                     return Some(command_key::expire(&array, database));
                 }
+                "expireat" => {
+                    return Some(command_key::expireat(&array, database));
+                }
                 "sort" => {
                     return Some(command_key::sort(&array, database));
                 }
@@ -123,6 +126,9 @@ pub fn handle_command(
                 }
                 "publish" => {
                     return Some(command_pubsub::publish(&array, tx));
+                }
+                "ttl" => {
+                    return Some(command_key::get_ttl(&array, database));
                 }
                 _ => {}
             }
@@ -392,9 +398,8 @@ pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: Val
 // fn test_010_sort_descending_first_4_elements() {
 //     use crate::domain::entities::key_value_item::KeyAccessTime;
 //     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
 //     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_7".to_string());
+//     let db = Database::new("filename_701".to_string());
 //     let database = Arc::new(RwLock::new(db));
 //     //se rellena la database
 //     let vt_1 = ValueTimeItem {
@@ -428,9 +433,8 @@ pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: Val
 //     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
 //     let config = Config::new(String::from("./src/redis.conf"));
 //     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _removed = std::fs::remove_file("filename_7".to_string());
+//     handle_command(operation, &tx, addrs, &database, &conf);
+//     let _removed = std::fs::remove_file("filename_701".to_string());
 // }
 
 // #[test]

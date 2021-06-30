@@ -13,6 +13,9 @@ pub fn parse_response(response: RespType) -> String {
         RespType::RInteger(integer) => {
             format!(":{}\r\n", integer)
         }
+        RespType::RNegative(negative) => {
+            format!(":{}\r\n", negative)
+        }
         RespType::RSimpleString(string) => {
             format!("+{}\r\n", string)
         }
