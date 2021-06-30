@@ -71,20 +71,27 @@ impl FromStr for KeyAccessTime {
 pub struct ValueTimeItem {
     value: ValueType,
     timeout: KeyAccessTime,
-    last_acess_time: u64,
+    last_access_time: u64,
 }
 
 impl ValueTimeItem {
-    pub fn new(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
+    pub fn new_now(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
         ValueTimeItem {
             value,
             timeout: time,
-            last_acess_time: {
+            last_access_time: {
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_secs()
             },
+        }
+    }
+    pub fn new(value: ValueType, time: KeyAccessTime, last_access_time: u64) -> ValueTimeItem {
+        ValueTimeItem {
+            value,
+            timeout: time,
+            last_access_time,
         }
     }
 
@@ -199,6 +206,7 @@ impl ValueTimeItem {
         value_type
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
@@ -206,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_001_key_value_item_string_created() {
-        let kv_item = ValueTimeItem::new(
+        let kv_item = ValueTimeItem::new_now(
             ValueType::StringType("un_string".to_string()),
             KeyAccessTime::Volatile(0),
         );
@@ -225,7 +233,8 @@ mod tests {
         let mut un_set = HashSet::new();
         un_set.insert("un_set_string".to_string());
 
-        let kv_item = ValueTimeItem::new(ValueType::SetType(un_set), KeyAccessTime::Volatile(0));
+        let kv_item =
+            ValueTimeItem::new_now(ValueType::SetType(un_set), KeyAccessTime::Volatile(0));
         assert_eq!(kv_item.value.to_string(), "un_set_string");
 
         match kv_item.timeout {
@@ -241,7 +250,8 @@ mod tests {
         un_list.push("un_list_string".to_string());
         un_list.push("otro_list_string".to_string());
 
-        let kv_item = ValueTimeItem::new(ValueType::ListType(un_list), KeyAccessTime::Volatile(0));
+        let kv_item =
+            ValueTimeItem::new_now(ValueType::ListType(un_list), KeyAccessTime::Volatile(0));
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
 
@@ -254,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_004_key_value_item_changes_to_persist() {
-        let mut kv_item = ValueTimeItem::new(
+        let mut kv_item = ValueTimeItem::new_now(
             ValueType::StringType("un_string".to_string()),
             KeyAccessTime::Volatile(0),
         );
@@ -270,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_005_list_of_numbers_is_sorted_ascending() {
-        let kv_item = ValueTimeItem::new(
+        let kv_item = ValueTimeItem::new_now(
             ValueType::ListType(vec![
                 20.to_string(),
                 65.to_string(),
@@ -286,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_006_list_of_numbers_is_sorted_descending() {
-        let kv_item = ValueTimeItem::new(
+        let kv_item = ValueTimeItem::new_now(
             ValueType::ListType(vec![
                 20.to_string(),
                 65.to_string(),
@@ -301,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_007_list_of_words_is_sorted_inverse_abc() {
-        let kv_item = ValueTimeItem::new(
+        let kv_item = ValueTimeItem::new_now(
             ValueType::ListType(vec![
                 "juan".to_string(),
                 "domingo".to_string(),
@@ -316,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_008_list_of_words_is_sorted_abc() {
-        let kv_item = ValueTimeItem::new(
+        let kv_item = ValueTimeItem::new_now(
             ValueType::ListType(vec![
                 "juan".to_string(),
                 "domingo".to_string(),

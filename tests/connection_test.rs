@@ -78,55 +78,55 @@ fn test_main() {
 
         let mut database = Database::new(db_file);
 
-        let added_item_1 = ValueTimeItem::new(
+        let added_item_1 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("value_key_1")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_1"), added_item_1);
 
-        let added_item_2 = ValueTimeItem::new(
+        let added_item_2 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("value_key_2")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_2"), added_item_2);
 
-        let added_item_3 = ValueTimeItem::new(
+        let added_item_3 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("value_key_3")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_3"), added_item_3);
 
-        let added_item_4 = ValueTimeItem::new(
+        let added_item_4 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("value_key_4")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_4"), added_item_4);
 
-        let added_item_5 = ValueTimeItem::new(
+        let added_item_5 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("Hello")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("mykey"), added_item_5);
 
-        let added_item_6 = ValueTimeItem::new(
+        let added_item_6 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("10")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_to_decr"), added_item_6);
 
-        let added_item_7 = ValueTimeItem::new(
+        let added_item_7 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("10")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_to_incr"), added_item_7);
 
-        let added_item_8 = ValueTimeItem::new(
+        let added_item_8 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("Hello")),
             KeyAccessTime::Volatile(4234234),
         );
         database.add(String::from("key_getdel"), added_item_8);
 
-        let added_item_9 = ValueTimeItem::new(
+        let added_item_9 = ValueTimeItem::new_now(
             ValueType::StringType(String::from("OldValue")),
             KeyAccessTime::Volatile(4234234),
         );

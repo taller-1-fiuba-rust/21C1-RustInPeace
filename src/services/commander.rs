@@ -248,7 +248,7 @@ fn test_007_sort_ascending() {
     let db = Database::new("filename_7".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -260,7 +260,7 @@ fn test_007_sort_ascending() {
         //value: ValueType::StringType("1".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("2".to_string()),
         KeyAccessTime::Volatile(0),
     );
@@ -285,10 +285,10 @@ fn test_008_sort_descending() {
     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 
     use std::net::{IpAddr, Ipv4Addr};
-    let db = Database::new("filename_7".to_string());
+    let db = Database::new("filename_008".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -300,7 +300,7 @@ fn test_008_sort_descending() {
         //value: ValueType::StringType("1".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("2".to_string()),
         KeyAccessTime::Volatile(0),
     );
@@ -317,7 +317,7 @@ fn test_008_sort_descending() {
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
-    let _removed = std::fs::remove_file("filename_7".to_string());
+    let _removed = std::fs::remove_file("filename_008".to_string());
 }
 
 #[test]
@@ -329,7 +329,7 @@ fn test_009_sort_ascending_first_4_elements() {
     let db = Database::new("filename_101".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -341,7 +341,7 @@ fn test_009_sort_ascending_first_4_elements() {
         //value: ValueType::StringType("1".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("2".to_string()),
         KeyAccessTime::Volatile(0),
     );
@@ -372,7 +372,7 @@ fn test_010_sort_descending_first_4_elements() {
     let db = Database::new("filename_701".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -384,7 +384,7 @@ fn test_010_sort_descending_first_4_elements() {
         //value: ValueType::StringType("1".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("2".to_string()),
         KeyAccessTime::Volatile(0),
     );
@@ -416,34 +416,34 @@ fn test_011_sort_by_external_key_value_using_pattern_ascending() {
     let db = Database::new("filename_706".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["15".to_string()]),
         ValueType::StringType("10".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("20".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_3 = ValueTimeItem::new(
+    let vt_3 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["11".to_string()]),
         ValueType::StringType("10".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_4 = ValueTimeItem::new(
+    let vt_4 = ValueTimeItem::new_now(
         ValueType::StringType("40".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_5 = ValueTimeItem::new(
+    let vt_5 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["1".to_string()]),
         ValueType::StringType("50".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_6 = ValueTimeItem::new(
+    let vt_6 = ValueTimeItem::new_now(
         ValueType::StringType("60".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_7 = ValueTimeItem::new(
+    let vt_7 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "ignacio".to_string(),
             "pepo".to_string(),
@@ -484,34 +484,34 @@ fn test_012_sort_by_external_key_value_using_pattern_descending() {
     let db = Database::new("filename_7".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["15".to_string()]),
         ValueType::StringType("10".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("20".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_3 = ValueTimeItem::new(
+    let vt_3 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["11".to_string()]),
         ValueType::StringType("30".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_4 = ValueTimeItem::new(
+    let vt_4 = ValueTimeItem::new_now(
         ValueType::StringType("40".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_5 = ValueTimeItem::new(
+    let vt_5 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["1".to_string()]),
         ValueType::StringType("50".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_6 = ValueTimeItem::new(
+    let vt_6 = ValueTimeItem::new_now(
         ValueType::StringType("60".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_7 = ValueTimeItem::new(
+    let vt_7 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "ignacio".to_string(),
             "pepo".to_string(),
@@ -554,17 +554,17 @@ fn test_013_gets_value_type_list() {
     let db = Database::new("filename_13".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["15".to_string()]),
         ValueType::StringType("10".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("20".to_string()),
         KeyAccessTime::Volatile(0),
     );
 
-    let vt_7 = ValueTimeItem::new(
+    let vt_7 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "ignacio".to_string(),
             "pepo".to_string(),
@@ -599,17 +599,17 @@ fn test_014_gets_value_type_string() {
     let db = Database::new("filename_13".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
-    let vt_1 = ValueTimeItem::new(
+    let vt_1 = ValueTimeItem::new_now(
         // value: ValueType::ListType(vec!["15".to_string()]),
         ValueType::StringType("10".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new(
+    let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("20".to_string()),
         KeyAccessTime::Volatile(0),
     );
 
-    let vt_7 = ValueTimeItem::new(
+    let vt_7 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "ignacio".to_string(),
             "pepo".to_string(),
