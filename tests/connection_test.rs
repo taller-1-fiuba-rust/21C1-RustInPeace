@@ -201,6 +201,18 @@ const TESTS: &[Test] = &[
         func: test_keys_persist,
     },
     Test {
+        name: "keys command: expire",
+        func: test_keys_expire,
+    },
+    Test {
+        name: "keys command: expireat",
+        func: test_keys_expireat,
+    },
+    Test {
+        name: "keys command: ttl",
+        func: test_keys_ttl,
+    },
+    Test {
         name: "keys command: rename",
         func: test_keys_rename,
     },
@@ -358,6 +370,50 @@ fn test_keys_persist() -> TestResult {
             got: ret.to_string(),
         }));
     }
+}
+
+fn test_keys_expire() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIRE")
+        .arg("key_1")
+        .arg(4234230)
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_expireat() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIREAT").arg("key_1").arg(5).query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+fn test_keys_ttl() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TTL").arg("key_1").query(&mut con)?;
+
+    return if ret > 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Positive number"),
+            got: ret.to_string(),
+        }))
+    };
 }
 
 fn test_keys_rename() -> TestResult {

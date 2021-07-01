@@ -596,7 +596,7 @@ fn test_014_gets_value_type_string() {
     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 
     use std::net::{IpAddr, Ipv4Addr};
-    let db = Database::new("filename_13".to_string());
+    let db = Database::new("filename_014".to_string());
     let database = Arc::new(RwLock::new(db));
     //se rellena la database
     let vt_1 = ValueTimeItem::new_now(
@@ -632,5 +632,5 @@ fn test_014_gets_value_type_string() {
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
-    let _ = std::fs::remove_file("filename_13".to_string());
+    let _ = std::fs::remove_file("filename_014".to_string());
 }
