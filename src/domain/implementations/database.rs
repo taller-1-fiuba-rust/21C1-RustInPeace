@@ -419,7 +419,7 @@ mod tests {
 
     #[test]
     fn test_00_filter_keys_by_pattern() {
-        let mut db = Database::new(String::from("./src/dummy.txt"));
+        let mut db = Database::new(String::from("./src/dummy1.txt"));
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("valor_1".to_string()),
             timeout: KeyAccessTime::Volatile(0),
@@ -445,7 +445,7 @@ mod tests {
         // db.get_values_of_external_keys_that_match_a_pattern("banana");
         let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
         assert_eq!(vec_filtered.len(), 4);
-        let _ = std::fs::remove_file("./src/dummy.txt");
+        let _ = std::fs::remove_file("./src/dummy1.txt");
     }
 
     #[test]
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file11".to_string());
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -877,12 +877,12 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _removed = std::fs::remove_file("file10".to_string());
+        let _removed = std::fs::remove_file("file11".to_string());
     }
 
     #[test]
     fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file12".to_string());
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -931,11 +931,12 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
+        let _removed = std::fs::remove_file("file12".to_string());
     }
 
     #[test]
     fn test_18_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file13".to_string());
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -984,13 +985,13 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _removed = std::fs::remove_file("file10".to_string());
+        let _removed = std::fs::remove_file("file13".to_string());
     }
 
     #[test]
     fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango(
     ) {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file14".to_string());
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -1039,12 +1040,12 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _ = std::fs::remove_file("file10".to_string());
+        let _ = std::fs::remove_file("file14".to_string());
     }
 
     #[test]
     fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
-        let mut db = Database::new("file10".to_string());
+        let mut db = Database::new("file15".to_string());
 
         let vt_1 = ValueTimeItem {
             value: ValueType::StringType("1".to_string()),
@@ -1093,7 +1094,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _ = std::fs::remove_file("file10".to_string());
+        let _ = std::fs::remove_file("file15".to_string());
     }
 
     #[test]
