@@ -118,6 +118,9 @@ pub fn handle_command(
                 "mset" => {
                     return Some(command_string::mset(&array, database));
                 }
+                "set" => {
+                    return Some(command_string::set(&array, database));
+                }
                 _ => {}
             }
         }
@@ -690,11 +693,18 @@ fn test_015_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() 
     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
-    handle_command(operation, &tx, addrs, &database, &conf);
+    let res = handle_command(operation, &tx, addrs, &database, &conf).unwrap();
+    let mut vec_aux_2 = vec![];
+    if let RespType::RArray(vec) = res {
+        for elemento in vec {
+            vec_aux_2.push(elemento);
+        }
+    }
+    assert_eq!(4, vec_aux_2.len());
 }
 
 #[test]
-fn test_016_se_setean_multiples_keys_de_tipo_string() {
+fn test_016_se_setean_multiples_keys_de_tipo_string_ninguna_de_las_keys_existen_en_la_db() {
     use crate::domain::entities::key_value_item::KeyAccessTime;
     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
     use std::collections::HashSet;
@@ -740,8 +750,55 @@ fn test_016_se_setean_multiples_keys_de_tipo_string() {
     let config = Config::new(String::from("./src/redis.conf"));
     let conf = Arc::new(RwLock::new(config));
     handle_command(operation, &tx, addrs, &database, &conf);
-    println!("{:?}", get_database_size(&database));
-    // for (key,value) in &database.into_iter() {
-    //     println! ("{:?} : {:?} ", key, value)
-    // }
+    assert_eq!(get_database_size(&database), 6);
+}
+
+#[test]
+fn test_017_se_setean_multiples_keys_de_tipo_string_una_de_las_keys_existen_en_la_db() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+    use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+    use std::collections::HashSet;
+
+    use std::net::{IpAddr, Ipv4Addr};
+    let _file = File::create("filename_13".to_string());
+    let db = Database::new("filename_13".to_string());
+    let database = Arc::new(RwLock::new(db));
+    //se rellena la database
+    let vt_1 = ValueTimeItem {
+        value: ValueType::StringType("hola".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem {
+        value: ValueType::StringType("chau".to_string()),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem {
+        value: ValueType::SetType(this_set),
+        last_access_time: KeyAccessTime::Volatile(0),
+    };
+    load_data_in_db(&database, "saludo".to_string(), vt_1);
+    load_data_in_db(&database, "despido".to_string(), vt_2);
+    load_data_in_db(&database, "saludo_despido".to_string(), vt_3);
+    load_data_in_db(&database, "valores".to_string(), vt_4);
+    //se relleno la database
+    let operation = RespType::RArray(vec![
+        RespType::RBulkString("mset".to_string()),
+        RespType::RBulkString("saludo".to_string()),
+        RespType::RBulkString("juan".to_string()),
+        RespType::RBulkString("amigo_2".to_string()),
+        RespType::RBulkString("diana".to_string()),
+    ]);
+    let (tx, _sx) = std::sync::mpsc::channel();
+    let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    let config = Config::new(String::from("./src/redis.conf"));
+    let conf = Arc::new(RwLock::new(config));
+    handle_command(operation, &tx, addrs, &database, &conf);
+    assert_eq!(get_database_size(&database), 5);
 }

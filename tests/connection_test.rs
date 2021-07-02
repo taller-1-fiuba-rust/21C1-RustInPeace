@@ -132,6 +132,18 @@ fn test_main() {
         );
         database.add(String::from("key_getset"), added_item_9);
 
+        let added_item_10 = ValueTimeItem::new(
+            ValueType::StringType("hola".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+        let added_item_11 = ValueTimeItem::new(
+            ValueType::StringType("chau".to_string()),
+            KeyAccessTime::Volatile(0),
+        );
+
+        database.add(String::from("mget_1"), added_item_10);
+        database.add(String::from("mget_2"), added_item_11);
+
         match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
             Ok(server) => server_service::init(server, database, config),
             Err(e) => println!("Error on server: {:?}", e),
@@ -239,6 +251,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: strlen key_1",
         func: test_string_strlen,
+    },
+    Test {
+        name: "string command: mget key_1 mykey",
+        func: test_string_mget,
     },
 ];
 
@@ -518,6 +534,23 @@ fn test_string_getset() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("OldValue"),
             got: ret,
+        }));
+    }
+}
+
+fn test_string_mget() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("MGET")
+        .arg("mget_1")
+        .arg("mget_2")
+        .query(&mut con)?;
+    println!("RES MGET: {:?}", ret);
+    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("hola chau"),
+            got: format!("{} {}", ret[0], ret[1]),
         }));
     }
 }
