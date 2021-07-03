@@ -35,7 +35,7 @@ impl Database {
         self.dbfilename.clone()
     }
     /// devuelve el hashmap donde se almacenan los datos
-    pub fn _get_items(&self) -> &HashMap<String, ValueTimeItem> {
+    pub fn get_items(&self) -> &HashMap<String, ValueTimeItem> {
         &self.items
     }
     /// borra todos las claves (y sus valores asociados) de la base de datos
