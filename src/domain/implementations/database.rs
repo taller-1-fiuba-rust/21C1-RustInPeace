@@ -119,14 +119,10 @@ impl Database {
     // VER EL TEMA DE LOS TIPOS DE DATOS GUARDADOS EN VALUE (SIN ITEM) PORQUE PUEDE SER CUALQUIERA DE 3 TIPOS
     /// Resetea el tiempo de acceso **KeyAccessTime** de una clave
     pub fn reboot_time(&mut self, key: String) {
-        let current_value = self.items.remove(&key).unwrap();
-        let cv = current_value.get_value_version_2().unwrap();
-        let mut vec_aux = vec![];
-        for elemento in cv {
-            vec_aux.push(elemento.to_string());
+        let mut item = self.items.get_mut(&key);
+        if let Some(item) = &mut item {
+            item.reboot_last_access_time();
         }
-        let vt = ValueTimeItem::new_now(ValueType::ListType(vec_aux), KeyAccessTime::Volatile(0));
-        self.items.insert(key, vt);
     }
 
     pub fn get_type_of_value(&self, key: String) -> String {
@@ -1124,5 +1120,31 @@ mod tests {
             None => assert!(false),
         }
         let _ = std::fs::remove_file("file100".to_string());
+    }
+
+    #[test]
+    fn test_22_reboot_time() {
+        let mut db = Database::new("file022".to_string());
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(12123120),
+            u64::from_str("1211111").unwrap()
+        );
+        db.items.insert("key123".to_string(), vt_1);
+        let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
+        assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap().as_secs();
+
+        db.reboot_time("key123".to_string());
+        let new_item = db.items.get("key123");
+        match new_item {
+            Some(vti) => {
+                assert!(vti.get_last_access_time().ge(&now));
+            }
+            None => assert!(false),
+        }
+        let _ = std::fs::remove_file("file022".to_string());
     }
 }
