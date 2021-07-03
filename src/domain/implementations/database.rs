@@ -442,7 +442,6 @@ mod tests {
         let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
         assert_eq!(vec_filtered.len(), 4);
         let _ = std::fs::remove_file("./src/dummy_00.txt");
-
     }
 
     #[test]
@@ -933,7 +932,6 @@ mod tests {
             println!("{:?}", key)
         }
         let _removed = std::fs::remove_file("file017".to_string());
-
     }
 
     #[test]
@@ -1128,14 +1126,15 @@ mod tests {
         let vt_1 = ValueTimeItem::new(
             ValueType::StringType("1".to_string()),
             KeyAccessTime::Volatile(12123120),
-            u64::from_str("1211111").unwrap()
+            u64::from_str("1211111").unwrap(),
         );
         db.items.insert("key123".to_string(), vt_1);
         let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
         assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap().as_secs();
+            .unwrap()
+            .as_secs();
 
         db.reboot_time("key123".to_string());
         let new_item = db.items.get("key123");

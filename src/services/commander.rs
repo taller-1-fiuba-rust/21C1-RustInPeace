@@ -308,7 +308,6 @@ pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: Val
 //     let _ = std::fs::remove_file("filename_7".to_string());
 // }
 
-
 // #[test]
 // fn test_008_sort_descending() {
 //     use crate::domain::entities::key_value_item::KeyAccessTime;

@@ -116,13 +116,13 @@ impl ValueTimeItem {
         &self.last_access_time
     }
 
-    pub fn reboot_last_access_time(&mut self){
+    pub fn reboot_last_access_time(&mut self) {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap().as_secs();
+            .unwrap()
+            .as_secs();
         self.last_access_time = now;
     }
-
 
     pub fn make_persistent(&mut self) -> bool {
         match self.timeout {
