@@ -109,23 +109,12 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn bajar_resptype_a_vec_string(cmd: &[RespType]) -> Vec<String> {
-    //println!("{:?}", cmd);
     let mut vec_aux = vec![];
     for elemento in cmd.into_iter() {
         if let RespType::RBulkString(current_elemento) = elemento {
             vec_aux.push(current_elemento.to_string());
         }
     }
-    // for i in &cmd[1..] {
-    //     println!("bs: {:?}", i);
-    // }
-
-    // for elemento in cmd.iter() {
-    //     println!("elem: {:?}", elemento);
-    //     if let RespType::RBulkString(current_elemento) = elemento {
-    //         vec_aux.push(current_elemento.to_string());
-    //     }
-    // }
     vec_aux
 }
 
