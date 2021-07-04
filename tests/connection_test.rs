@@ -11,11 +11,12 @@ use proyecto_taller_1::{
     },
     services::{server_service, worker_service::ThreadPool},
 };
+use redis::Commands;
 
 use std::{
     error::Error,
     fmt,
-    sync::mpsc,
+    sync::{mpsc, Arc, Mutex},
     thread::{self, sleep},
     time::Duration,
 };
@@ -55,102 +56,122 @@ impl Error for ReturnError {}
 
 fn test_main() {
     let pool = ThreadPool::new(4);
+    let config_file = String::from("./src/dummy_config.txt");
+    let db_file = String::from("./src/dummy_database.txt");
+    let log_file = String::from("./src/dummy_log.txt");
+
+    match std::fs::File::create(&config_file) {
+        Ok(_) => {}
+        Err(e) => println!("Error creating config {:?}", e),
+    }
+
+    match std::fs::File::create(&log_file) {
+        Ok(_) => {}
+        Err(e) => println!("Error creating log {:?}", e),
+    }
+
+    let mut config = Config::new(config_file);
+    config
+        .set_attribute(String::from("verbose"), String::from("1"))
+        .unwrap();
+
+    let mut database = Database::new(db_file);
+
+    let added_item_1 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_1")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_1"), added_item_1);
+
+    let added_item_2 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_2")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_2"), added_item_2);
+
+    let added_item_3 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_3")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_3"), added_item_3);
+
+    let added_item_4 = ValueTimeItem::new(
+        ValueType::StringType(String::from("value_key_4")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_4"), added_item_4);
+
+    let added_item_5 = ValueTimeItem::new(
+        ValueType::StringType(String::from("Hello")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("mykey"), added_item_5);
+
+    let added_item_6 = ValueTimeItem::new(
+        ValueType::StringType(String::from("10")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_to_decr"), added_item_6);
+
+    let added_item_7 = ValueTimeItem::new(
+        ValueType::StringType(String::from("10")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_to_incr"), added_item_7);
+
+    let added_item_8 = ValueTimeItem::new(
+        ValueType::StringType(String::from("Hello")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    database.add(String::from("key_getdel"), added_item_8);
+
+    let added_item_9 = ValueTimeItem::new(
+        ValueType::StringType(String::from("OldValue")),
+        KeyAccessTime::Volatile(4234234),
+    );
+    let added_item_10 = ValueTimeItem::new(
+        ValueType::StringType("hola".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let added_item_11 = ValueTimeItem::new(
+        ValueType::StringType("chau".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    
+    database.add(String::from("key_getset"), added_item_9);
+    database.add(String::from("mget_1"), added_item_10);
+    database.add(String::from("mget_2"), added_item_11);
+
+    let (server_sender, server_receiver) = mpsc::channel();
+    let server_receiver = Arc::new(Mutex::new(server_receiver));
+    let port = String::from("8080");
+    let verbose = String::from("0");
+    let port_2 = port.clone();
+    let dir = String::from("127.0.0.1");
+
+
+    //------
+    match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
+        Ok(server) => server_service::init(server, database, config),
+        Err(e) => println!("Error on server: {:?}", e),
+    }
+    std::fs::remove_file("./src/dummy_config.txt").unwrap();
+    std::fs::remove_file("./src/dummy_log.txt").unwrap();
+    std::fs::remove_file("./src/dummy_database.txt").unwrap();
+    //------
 
     let handle: thread::JoinHandle<()> = thread::spawn(|| {
-        let config_file = String::from("./src/dummy_config.txt");
-        let db_file = String::from("./src/dummy_database.txt");
-        let log_file = String::from("./src/dummy_log.txt");
+        let h = thread::spawn(|| {
+            let mut server = Server::new(port_2, log_file, verbose, server_receiver).unwrap();
+            server.listen();
+        });
 
-        match std::fs::File::create(&config_file) {
-            Ok(_) => {}
-            Err(e) => println!("Error creating config {:?}", e),
-        }
-
-        match std::fs::File::create(&log_file) {
-            Ok(_) => {}
-            Err(e) => println!("Error creating log {:?}", e),
-        }
-
-        let mut config = Config::new(config_file);
-        config
-            .set_attribute(String::from("verbose"), String::from("1"))
-            .unwrap();
-
-        let mut database = Database::new(db_file);
-
-        let added_item_1 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_1")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_1"), added_item_1);
-
-        let added_item_2 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_2")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_2"), added_item_2);
-
-        let added_item_3 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_3")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_3"), added_item_3);
-
-        let added_item_4 = ValueTimeItem::new(
-            ValueType::StringType(String::from("value_key_4")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_4"), added_item_4);
-
-        let added_item_5 = ValueTimeItem::new(
-            ValueType::StringType(String::from("Hello")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("mykey"), added_item_5);
-
-        let added_item_6 = ValueTimeItem::new(
-            ValueType::StringType(String::from("10")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_to_decr"), added_item_6);
-
-        let added_item_7 = ValueTimeItem::new(
-            ValueType::StringType(String::from("10")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_to_incr"), added_item_7);
-
-        let added_item_8 = ValueTimeItem::new(
-            ValueType::StringType(String::from("Hello")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_getdel"), added_item_8);
-
-        let added_item_9 = ValueTimeItem::new(
-            ValueType::StringType(String::from("OldValue")),
-            KeyAccessTime::Volatile(4234234),
-        );
-        database.add(String::from("key_getset"), added_item_9);
-
-        let added_item_10 = ValueTimeItem::new(
-            ValueType::StringType("hola".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let added_item_11 = ValueTimeItem::new(
-            ValueType::StringType("chau".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-
-        database.add(String::from("mget_1"), added_item_10);
-        database.add(String::from("mget_2"), added_item_11);
-
-        match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
-            Ok(server) => server_service::init(server, database, config),
-            Err(e) => println!("Error on server: {:?}", e),
-        }
-        std::fs::remove_file("./src/dummy_config.txt").unwrap();
-        std::fs::remove_file("./src/dummy_log.txt").unwrap();
-        std::fs::remove_file("./src/dummy_database.txt").unwrap();
+        server_service::init(database, config, port, dir, server_sender);
+        h.join().unwrap();
+        // match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
+        //     Ok(server) => server_service::init(server, database, config),
+        //     Err(e) => println!("Error on server: {:?}", e),
+        // }
     });
 
     sleep(Duration::from_secs(5));
@@ -175,12 +196,15 @@ fn test_main() {
         }
     }
 
-    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(10)) {
+    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(20)) {
         panic!("{}", err);
     }
 
     pool.spawn(shutdown);
     let _ = handle.join().expect("Couldnt join");
+    std::fs::remove_file("./src/dummy_config.txt").unwrap();
+    // std::fs::remove_file("./src/dummy_log.txt").unwrap();
+    std::fs::remove_file("./src/dummy_database.txt").unwrap();
 }
 
 const TESTS: &[Test] = &[
@@ -252,10 +276,16 @@ const TESTS: &[Test] = &[
         name: "string command: strlen key_1",
         func: test_string_strlen,
     },
+
     Test {
         name: "string command: mget key_1 mykey",
         func: test_string_mget,
     },
+
+    // Test {
+    //     name: "pubsub command: subscribe channel_1 channel_2 ",
+    //     func: test_pubsub,
+    // },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -538,6 +568,7 @@ fn test_string_getset() -> TestResult {
     }
 }
 
+
 fn test_string_mget() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("MGET")
@@ -553,4 +584,37 @@ fn test_string_mget() -> TestResult {
             got: format!("{} {}", ret[0], ret[1]),
         }));
     }
+}
+
+fn _test_pubsub() -> TestResult {
+    let h = thread::spawn(|| {
+        let mut con = connect().unwrap();
+        let mut pubsub = con.as_pubsub();
+        pubsub.subscribe("channel_1").unwrap();
+
+        let msg = pubsub.get_message().unwrap();
+        let payload: String = msg.get_payload().unwrap();
+        println!("CHANNEL '{}': {}", msg.get_channel_name(), payload);
+    });
+
+    thread::sleep(Duration::from_secs(1));
+    let mut con = connect().unwrap();
+    let receivers: usize = con.publish("channel_1", "Hello channel_1")?;
+    println!("rec {}", receivers);
+
+    thread::sleep(Duration::from_secs(10));
+    let mut con = connect()?;
+    let mut pubsub = con.as_pubsub();
+    pubsub.unsubscribe("channel_1")?;
+
+    h.join().unwrap();
+
+    // if receivers == 1 {
+    return Ok(());
+    // } else {
+    //     return Err(Box::new(ReturnError {
+    //         expected: String::from("1"),
+    //         got: receivers.to_string(),
+    //     }));
+    // }
 }

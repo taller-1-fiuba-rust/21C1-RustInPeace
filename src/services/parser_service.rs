@@ -13,6 +13,9 @@ pub fn parse_response(response: RespType) -> String {
         RespType::RInteger(integer) => {
             format!(":{}\r\n", integer)
         }
+        RespType::RNegative(negative) => {
+            format!(":{}\r\n", negative)
+        }
         RespType::RSimpleString(string) => {
             format!("+{}\r\n", string)
         }
@@ -37,7 +40,6 @@ pub fn parse_response(response: RespType) -> String {
 /// Recibe una request, la traduce segun el protocolo RESP a un tipo de dato RespType
 /// Verifica que sea un array de bulkstrings, si no lo es arroja error InvalidRequest
 /// -ejemplos-
-//Agregar str_to_lower a lo que llega
 pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
     // println!("request: {:?}", request);
     if request.is_empty() {
