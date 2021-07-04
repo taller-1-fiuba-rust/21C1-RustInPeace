@@ -102,7 +102,7 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 }
             }
         }
-        return RespType::RArray(vec_keys_with_string_values);
+        RespType::RArray(vec_keys_with_string_values)
     } else {
         RespType::RError(String::from("Invalid command get"))
     }
@@ -110,7 +110,7 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 
 pub fn bajar_resptype_a_vec_string(cmd: &[RespType]) -> Vec<String> {
     let mut vec_aux = vec![];
-    for elemento in cmd.into_iter() {
+    for elemento in cmd.iter() {
         if let RespType::RBulkString(current_elemento) = elemento {
             vec_aux.push(current_elemento.to_string());
         }
@@ -261,13 +261,35 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
             } else if key == "NX" || key == "XX" {
                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-            } else {
-                aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
             }
+            // else {
+            //     aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+            // }
         }
     }
     aux_hash_map
 }
+
+// fn generate_hashmap_2(cmd: &[RespType]) -> HashMap<String, &RespType> {
+//     let mut aux_hash_map = HashMap::new();
+//     let mut posicion = 1;
+//     for argumento in cmd.iter().skip(1) {
+//         if let RespType::RBulkString(arg) = argumento {
+//             if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
+//                 aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+//             } else if (arg == "by") || (arg == "store") {
+//                 aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+//             } else if arg == "limit" {
+//                 aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
+//                 aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
+//             } else {
+//                 aux_hash_map.insert("key".to_string(), argumento);
+//             }
+//         }
+//         posicion += 1;
+//     }
+//     aux_hash_map
+// }
 
 pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
     if let Ok(write_guard) = database.write() {
@@ -283,7 +305,6 @@ pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
         0
     }
 }
-
 
 //VER LOS PARAMETROS QUE SE PASAN A VALUETIMEITEM.. TODO HA CAMBIADO
 // #[test]

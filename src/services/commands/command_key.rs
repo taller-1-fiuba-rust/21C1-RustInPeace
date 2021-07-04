@@ -288,59 +288,58 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     for argumento in cmd.iter().skip(1) {
         if let RespType::RBulkString(arg) = argumento {
             if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
-                    aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
             } else if (arg == "by") || (arg == "store") {
-            aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
             } else if arg == "limit" {
-            aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
-            aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
+                aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
+                aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
             } else {
                 aux_hash_map.insert("key".to_string(), argumento);
-
             }
         }
-        posicion+=1;
+        posicion += 1;
     }
     aux_hash_map
 }
 
-        // }
-        // if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
-        //     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
-        // } else if (argumento == "BY") || (argumento == "STORE") {
-        //     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
-        // } else if key == "LIMIT" {
-        //     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-        //     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-        // }
-        //println!("{:?}",poca);
-    //}
-    ///////////////
-    // for key in keys {
-    //     current_position = cmd
-    //         .iter()
-    //         .position(|x| x == &RespType::RBulkString(key.to_string()));
-    //         println!("VAMOS A IMPRIMIR");
-    //         println!("{:?}",current_position);
+// }
+// if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
+//     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
+// } else if (argumento == "BY") || (argumento == "STORE") {
+//     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
+// } else if key == "LIMIT" {
+//     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
+//     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+// }
+//println!("{:?}",poca);
+//}
+///////////////
+// for key in keys {
+//     current_position = cmd
+//         .iter()
+//         .position(|x| x == &RespType::RBulkString(key.to_string()));
+//         println!("VAMOS A IMPRIMIR");
+//         println!("{:?}",current_position);
 
-    //     if current_position != None {
-    //         println!("ENTRE A CMD DISTINTO DE NONE");
-    //         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-    //             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-    //         } else if (key == "BY") || (key == "STORE") {
-    //             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-    //         } else if key == "LIMIT" {
-    //             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-    //             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-    //         }
-    //         // } else if (key == "GET") {
-    //         // }
-    //     }
-    // }
-    // println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
-    // for (key,value) in &aux_hash_map {
-    //     println!("{:?} {:?}",key,value);
-    // }
+//     if current_position != None {
+//         println!("ENTRE A CMD DISTINTO DE NONE");
+//         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
+//             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
+//         } else if (key == "BY") || (key == "STORE") {
+//             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+//         } else if key == "LIMIT" {
+//             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
+//             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+//         }
+//         // } else if (key == "GET") {
+//         // }
+//     }
+// }
+// println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
+// for (key,value) in &aux_hash_map {
+//     println!("{:?} {:?}",key,value);
+// }
 //     aux_hash_map
 // }
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)

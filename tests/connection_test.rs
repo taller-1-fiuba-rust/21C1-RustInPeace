@@ -180,11 +180,11 @@ fn test_main() {
 
     let added_item_17 = ValueTimeItem::new(
         ValueType::ListType(vec![
-                        "clara".to_string(),
-                        "maria".to_string(),
-                        "luz".to_string(),
-                        "josefina".to_string(),
-                    ]),
+            "clara".to_string(),
+            "maria".to_string(),
+            "luz".to_string(),
+            "josefina".to_string(),
+        ]),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("grupo_amigas"), added_item_17);
@@ -194,7 +194,6 @@ fn test_main() {
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_mariana"), added_item_18);
-
 
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
@@ -323,20 +322,14 @@ const TESTS: &[Test] = &[
         name: "keys command: get value type list",
         func: test_gets_value_type_string,
     },
-    
-    
     Test {
         name: "string command: get only string value else nil",
         func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil,
     },
-
     Test {
         name: "string command: set multiple keys never fails",
         func: test_se_setean_multiples_claves_nunca_falla,
     },
-
-    
-
     Test {
         name: "string command: append mykey newvalue",
         func: test_string_append,
@@ -596,7 +589,12 @@ fn test_keys_sort_descending() -> TestResult {
 
 fn test_keys_sort_ascending_first_four_elements() -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("SORT").arg("edades_amigos").arg("LIMIT").arg("0").arg("4").query(&mut con)?;
+    let ret: Vec<String> = redis::cmd("SORT")
+        .arg("edades_amigos")
+        .arg("LIMIT")
+        .arg("0")
+        .arg("4")
+        .query(&mut con)?;
     if ret.len() == 4 {
         return Ok(());
     } else {
@@ -609,7 +607,13 @@ fn test_keys_sort_ascending_first_four_elements() -> TestResult {
 
 fn test_keys_sort_descending_first_four_elements() -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("SORT").arg("edades_amigos").arg("LIMIT").arg("0").arg("4").arg("DESC").query(&mut con)?;
+    let ret: Vec<String> = redis::cmd("SORT")
+        .arg("edades_amigos")
+        .arg("LIMIT")
+        .arg("0")
+        .arg("4")
+        .arg("DESC")
+        .query(&mut con)?;
     if ret.len() == 4 {
         return Ok(());
     } else {
@@ -622,7 +626,11 @@ fn test_keys_sort_descending_first_four_elements() -> TestResult {
 
 fn test_sort_by_external_key_value_using_pattern_ascending() -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("SORT").arg("grupo_amigas").arg("BY").arg("edad_").query(&mut con)?;
+    let ret: Vec<String> = redis::cmd("SORT")
+        .arg("grupo_amigas")
+        .arg("BY")
+        .arg("edad_")
+        .query(&mut con)?;
     if &ret[0] == &String::from("maria")
         && &ret[1] == &String::from("clara")
         && &ret[2] == &String::from("josefina")
@@ -632,17 +640,19 @@ fn test_sort_by_external_key_value_using_pattern_ascending() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("maria clara josefina luz"),
-            got: format!(
-                "{} {} {} {}",
-                ret[0], ret[1], ret[2], ret[3]
-            ),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
         }));
     }
 }
 
 fn test_sort_by_external_key_value_using_pattern_descending() -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("SORT").arg("grupo_amigas").arg("BY").arg("edad_").arg("DESC").query(&mut con)?;
+    let ret: Vec<String> = redis::cmd("SORT")
+        .arg("grupo_amigas")
+        .arg("BY")
+        .arg("edad_")
+        .arg("DESC")
+        .query(&mut con)?;
     if &ret[0] == &String::from("luz")
         && &ret[1] == &String::from("josefina")
         && &ret[2] == &String::from("clara")
@@ -652,10 +662,7 @@ fn test_sort_by_external_key_value_using_pattern_descending() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("luz josefina clara maria"),
-            got: format!(
-                "{} {} {} {}",
-                ret[0], ret[1], ret[2], ret[3]
-            ),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
         }));
     }
 }
@@ -688,29 +695,36 @@ fn test_gets_value_type_string() -> TestResult {
 
 fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("MGET").arg("edad_luz").arg("edad_maria").arg("edades_amigos").arg("grupo_amigas").query(&mut con)?;
-    
+    let ret: Vec<String> = redis::cmd("MGET")
+        .arg("edad_luz")
+        .arg("edad_maria")
+        .arg("edades_amigos")
+        .arg("grupo_amigas")
+        .query(&mut con)?;
+
     if &ret[0] == &String::from("13")
-    && &ret[1] == &String::from("10")
-    && &ret[2] == &String::from("(nil)")
-    && &ret[3] == &String::from("(nil)")
-{
-    return Ok(());
-} else {
-    return Err(Box::new(ReturnError {
-        expected: String::from("13 10 (nil) (nil)"),
-        got: format!(
-            "{} {} {} {}",
-            ret[0], ret[1], ret[2], ret[3]
-        ),
-    }));
-}
+        && &ret[1] == &String::from("10")
+        && &ret[2] == &String::from("(nil)")
+        && &ret[3] == &String::from("(nil)")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("13 10 (nil) (nil)"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
 }
 
 fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("MSET").arg("comandante_1").arg("luciano").arg("edad_mariana").arg("34").query(&mut con)?;
-    
+    let ret: String = redis::cmd("MSET")
+        .arg("comandante_1")
+        .arg("luciano")
+        .arg("edad_mariana")
+        .arg("34")
+        .query(&mut con)?;
+
     if ret == "Ok" {
         return Ok(());
     } else {
@@ -720,7 +734,6 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
         }));
     }
 }
-
 
 fn test_string_append() -> TestResult {
     let mut con = connect()?;
