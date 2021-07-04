@@ -237,59 +237,66 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 
 //--------------------------------------------------------------------
 /// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
+// fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
+//     let mut aux_hash_map = HashMap::new();
+//     let keys = vec![
+//         "SET", "EX", "PX", "EXAT", "PXAT", "KEEPTTL", "NX", "XX ", "GET",
+//     ];
+//     let mut current_position;
+//     for key in keys {
+//         current_position = cmd
+//             .iter()
+//             .position(|x| x == &RespType::RBulkString(key.to_string()));
+//         if current_position != None {
+//             if key == "SET" {
+//                 aux_hash_map.insert("key".to_string(), &cmd[current_position.unwrap() + 1]);
+//                 aux_hash_map.insert("value".to_string(), &cmd[current_position.unwrap() + 2]);
+//                 aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
+//             } else if key == "EX"
+//                 || key == "PX"
+//                 || key == "EXAT"
+//                 || key == "PXAT"
+//                 || key == "KEEPTLL"
+//             {
+//                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+//             } else if key == "NX" || key == "XX" {
+//                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+//             }
+//             // else {
+//             //     aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+//             // }
+//         }
+//     }
+//     aux_hash_map
+//}
+
 fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     let mut aux_hash_map = HashMap::new();
-    let keys = vec![
-        "SET", "EX", "PX", "EXAT", "PXAT", "KEEPTTL", "NX", "XX ", "GET",
-    ];
-    let mut current_position;
-    for key in keys {
-        current_position = cmd
-            .iter()
-            .position(|x| x == &RespType::RBulkString(key.to_string()));
-        if current_position != None {
-            if key == "SET" {
-                aux_hash_map.insert("key".to_string(), &cmd[current_position.unwrap() + 1]);
-                aux_hash_map.insert("value".to_string(), &cmd[current_position.unwrap() + 2]);
-                aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-            } else if key == "EX"
-                || key == "PX"
-                || key == "EXAT"
-                || key == "PXAT"
-                || key == "KEEPTLL"
+    let mut posicion = 1;
+    for argumento in cmd.iter().skip(1) {
+        if let RespType::RBulkString(arg) = argumento {
+            if (arg == "ex")
+                || (arg == "px")
+                || (arg == "exat")
+                || (arg == "pxat")
+                || (arg == "keeptll")
             {
-                aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-            } else if key == "NX" || key == "XX" {
-                aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+            } else if (arg == "nx") || (arg == "xx") {
+                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+            } else if arg == "set" {
+                aux_hash_map.insert("key".to_string(), &cmd[posicion + 1]);
+                aux_hash_map.insert("value".to_string(), &cmd[posicion + 2]);
+                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
             }
             // else {
-            //     aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+            //     aux_hash_map.insert("key".to_string(), argumento);
             // }
         }
+        posicion += 1;
     }
     aux_hash_map
 }
-
-// fn generate_hashmap_2(cmd: &[RespType]) -> HashMap<String, &RespType> {
-//     let mut aux_hash_map = HashMap::new();
-//     let mut posicion = 1;
-//     for argumento in cmd.iter().skip(1) {
-//         if let RespType::RBulkString(arg) = argumento {
-//             if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
-//                 aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
-//             } else if (arg == "by") || (arg == "store") {
-//                 aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
-//             } else if arg == "limit" {
-//                 aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
-//                 aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
-//             } else {
-//                 aux_hash_map.insert("key".to_string(), argumento);
-//             }
-//         }
-//         posicion += 1;
-//     }
-//     aux_hash_map
-// }
 
 pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
     if let Ok(write_guard) = database.write() {
