@@ -1,5 +1,6 @@
 use super::parser_service::{parse_request, parse_response};
 use super::worker_service::ThreadPool;
+use crate::domain::entities::client::Client;
 use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 // use crate::domain::entities::server::Server;
@@ -8,9 +9,13 @@ use crate::services::commander::handle_command;
 // use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
+use std::thread;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+// static drop: AtomicBool = AtomicBool::new(false);
 
 /// Recibe una refencia mutable de tipo Server, la base de datos Database y la configuración Config
 /// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
@@ -23,11 +28,12 @@ pub fn init(
     server_sender: Sender<WorkerMessage>,
 ) {
     let pool = ThreadPool::new(4);
+    // let drop = Arc::new(AtomicBool::new(false));
 
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
     let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
-
+    
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
             for stream in listener.incoming() {
@@ -38,11 +44,12 @@ pub fn init(
                         let cloned_database = database.clone();
                         let stop = stop_signal_sender.clone();
                         pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock, stop)
+                            handle_connection(stream, tx, cloned_database, conf_lock, stop);
                         });
-
+                    
                         if let Ok(drop) = stop_signal_receiver.recv() {
                             if drop {
+                                println!("DROP");
                                 save_database(database);
                                 break;
                             }
@@ -91,8 +98,10 @@ pub fn handle_connection(
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
     stop: Sender<bool>,
+    // drop: Arc<AtomicBool>
 ) {
     let client_addrs = stream.peer_addr().unwrap();
+    let client = Client::new(client_addrs, stream.try_clone().unwrap());
     log(
         format!("Connection to address {} established\r\n", client_addrs),
         &tx,
@@ -103,6 +112,7 @@ pub fn handle_connection(
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
             Ok(0) => {
+                println!("CERO");
                 break;
             }
             Ok(size) => {
@@ -114,7 +124,7 @@ pub fn handle_connection(
                     ),
                     &tx,
                 );
-
+                // stop.send(false).unwrap();
                 match parse_request(&buf[..size]) {
                     Ok(parsed_request) => {
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
@@ -124,20 +134,24 @@ pub fn handle_connection(
                             client_addrs,
                         ))
                         .unwrap();
-
+                        println!("{:?}", parsed_request);
                         if check_shutdown(&parsed_request) {
+                            println!("soy shutdown");
+                            // drop.store(true, Ordering::Relaxed);
+                            // println!("{:?}", drop.load(Ordering::Relaxed));
                             stop.send(true).unwrap();
                             tx.send(WorkerMessage::Stop(true)).unwrap();
-                            break;
+                            println!("break server service");
+                            return;
                         }
-                        stop.send(false).unwrap();
+                        // stop.send(false).unwrap();
                         if let Some(res) = handle_command(
                             parsed_request,
                             &tx,
                             client_addrs,
                             &database,
                             &config,
-                            &stream,
+                            stream.try_clone().unwrap(),
                         ) {
                             let response = parse_response(res);
                             log(
@@ -158,6 +172,7 @@ pub fn handle_connection(
                         continue;
                     }
                 }
+                stop.send(false).unwrap();
             }
             Err(e) => {
                 println!("Closing connection: {:?}", e);
@@ -165,6 +180,8 @@ pub fn handle_connection(
             }
         }
     }
+    // stop.send(false).unwrap();
+    println!("salgo de handle_connection");
 }
 
 /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage

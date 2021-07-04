@@ -26,7 +26,7 @@ pub fn handle_command(
     addrs: SocketAddr,
     database: &Arc<RwLock<Database>>,
     config: &Arc<RwLock<Config>>,
-    stream: &TcpStream,
+    stream: TcpStream,
 ) -> Option<RespType> {
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
@@ -119,10 +119,14 @@ pub fn handle_command(
                 }
                 "subscribe" => {
                     command_pubsub::subscribe(&array, tx, addrs, stream);
+                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("subscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(1)]));
                 }
                 "unsubscribe" => {
                     command_pubsub::unsubscribe(&array, tx, addrs);
-                    return Some(RespType::RNullBulkString());
+                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(1)]));
+                }
+                "punsubscribe" => {
+                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(0)]));
                 }
                 "publish" => {
                     return Some(command_pubsub::publish(&array, tx));

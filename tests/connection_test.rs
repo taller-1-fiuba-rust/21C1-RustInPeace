@@ -11,12 +11,11 @@ use proyecto_taller_1::{
     },
     services::{server_service, worker_service::ThreadPool},
 };
-use redis::Commands;
 
 use std::{
     error::Error,
     fmt,
-    sync::{mpsc, Arc, Mutex},
+    sync::{mpsc, Arc, Mutex, Barrier},
     thread::{self, sleep},
     time::Duration,
 };
@@ -174,11 +173,12 @@ fn test_main() {
         }
     }
 
-    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(20)) {
+    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(10)) {
         panic!("{}", err);
     }
 
     pool.spawn(shutdown);
+    println!("join test");
     let _ = handle.join().expect("Couldnt join");
     std::fs::remove_file("./src/dummy_config.txt").unwrap();
     // std::fs::remove_file("./src/dummy_log.txt").unwrap();
@@ -186,14 +186,14 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
-    Test {
-        name: "server command: config get verbose",
-        func: test_config_get_verbose,
-    },
-    Test {
-        name: "server command: config set maxmemory",
-        func: test_config_set_maxmemory,
-    },
+    // Test {
+    //     name: "server command: config get verbose",
+    //     func: test_config_get_verbose,
+    // },
+    // Test {
+    //     name: "server command: config set maxmemory",
+    //     func: test_config_set_maxmemory,
+    // },
     // Test {
     //     name: "server command: dbsize",
     //     func: test_dbsize,
@@ -202,62 +202,62 @@ const TESTS: &[Test] = &[
     //     name: "server command: flushdb",
     //     func: test_flushdb,
     // },
-    Test {
-        name: "keys command: del",
-        func: test_keys_del,
-    },
-    Test {
-        name: "keys command: exists",
-        func: test_keys_exists,
-    },
-    Test {
-        name: "keys command: persist",
-        func: test_keys_persist,
-    },
-    Test {
-        name: "keys command: rename",
-        func: test_keys_rename,
-    },
-    Test {
-        name: "keys command: copy",
-        func: test_keys_copy,
-    },
-    Test {
-        name: "keys command: copy replace",
-        func: test_keys_copy_with_replace,
-    },
-    Test {
-        name: "string command: append mykey newvalue",
-        func: test_string_append,
-    },
-    Test {
-        name: "string command: decrby mykey 3",
-        func: test_string_decrby,
-    },
-    Test {
-        name: "string command: incrby mykey 3",
-        func: test_string_incrby,
-    },
-    Test {
-        name: "string command: get key_1",
-        func: test_string_get,
-    },
-    Test {
-        name: "string command: getdel key_getdel",
-        func: test_string_getdel,
-    },
-    Test {
-        name: "string command: getset key_getset",
-        func: test_string_getset,
-    },
-    Test {
-        name: "string command: strlen key_1",
-        func: test_string_strlen,
-    },
     // Test {
-    //     name: "pubsub command: subscribe channel_1 channel_2 ",
-    //     func: test_pubsub,
+    //     name: "keys command: del",
+    //     func: test_keys_del,
     // },
+    // Test {
+    //     name: "keys command: exists",
+    //     func: test_keys_exists,
+    // },
+    // Test {
+    //     name: "keys command: persist",
+    //     func: test_keys_persist,
+    // },
+    // Test {
+    //     name: "keys command: rename",
+    //     func: test_keys_rename,
+    // },
+    // Test {
+    //     name: "keys command: copy",
+    //     func: test_keys_copy,
+    // },
+    // Test {
+    //     name: "keys command: copy replace",
+    //     func: test_keys_copy_with_replace,
+    // },
+    // Test {
+    //     name: "string command: append mykey newvalue",
+    //     func: test_string_append,
+    // },
+    // Test {
+    //     name: "string command: decrby mykey 3",
+    //     func: test_string_decrby,
+    // },
+    // Test {
+    //     name: "string command: incrby mykey 3",
+    //     func: test_string_incrby,
+    // },
+    // Test {
+    //     name: "string command: get key_1",
+    //     func: test_string_get,
+    // },
+    // Test {
+    //     name: "string command: getdel key_getdel",
+    //     func: test_string_getdel,
+    // },
+    // Test {
+    //     name: "string command: getset key_getset",
+    //     func: test_string_getset,
+    // },
+    // Test {
+    //     name: "string command: strlen key_1",
+    //     func: test_string_strlen,
+    // },
+    Test {
+        name: "pubsub command: subscribe channel_1 channel_2 ",
+        func: test_pubsub,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -540,35 +540,37 @@ fn test_string_getset() -> TestResult {
     }
 }
 
-fn _test_pubsub() -> TestResult {
-    let h = thread::spawn(|| {
-        let mut con = connect().unwrap();
-        let mut pubsub = con.as_pubsub();
-        pubsub.subscribe("channel_1").unwrap();
+fn test_pubsub() -> TestResult {
+    // Connection for subscriber api
+    let mut pubsub_con = connect().unwrap();
+
+    // Barrier is used to make test thread wait to publish
+    // until after the pubsub thread has subscribed.
+    let barrier = Arc::new(Barrier::new(2));
+    let pubsub_barrier = barrier.clone();
+
+    let thread = thread::spawn(move || {
+        let mut pubsub = pubsub_con.as_pubsub();
+        pubsub.subscribe("foo").unwrap();
+
+        let _ = pubsub_barrier.wait();
 
         let msg = pubsub.get_message().unwrap();
-        let payload: String = msg.get_payload().unwrap();
-        println!("CHANNEL '{}': {}", msg.get_channel_name(), payload);
+        assert_eq!(msg.get_channel(), Ok("foo".to_string()));
+        assert_eq!(msg.get_payload(), Ok(42));
     });
-
-    thread::sleep(Duration::from_secs(1));
+    let _ = barrier.wait();
     let mut con = connect().unwrap();
-    let receivers: usize = con.publish("channel_1", "Hello channel_1")?;
-    println!("rec {}", receivers);
+    let receivers: usize = redis::cmd("PUBLISH").arg("foo").arg(42).query(&mut con).unwrap();
 
-    thread::sleep(Duration::from_secs(10));
-    let mut con = connect()?;
-    let mut pubsub = con.as_pubsub();
-    pubsub.unsubscribe("channel_1")?;
+    thread.join().expect("Something went wrong");
 
-    h.join().unwrap();
-
-    // if receivers == 1 {
-    return Ok(());
-    // } else {
-    //     return Err(Box::new(ReturnError {
-    //         expected: String::from("1"),
-    //         got: receivers.to_string(),
-    //     }));
-    // }
+    if receivers == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: receivers.to_string(),
+        }));
+    }
 }

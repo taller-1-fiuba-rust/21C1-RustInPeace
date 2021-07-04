@@ -1,8 +1,4 @@
-use std::{
-    io::Write,
-    net::{SocketAddr, TcpStream},
-    sync::mpsc::{self, Sender},
-};
+use std::{io::Write, net::{SocketAddr, TcpStream}, sync::mpsc::{self, Sender}, thread};
 
 use crate::{
     domain::entities::message::WorkerMessage,
@@ -19,7 +15,7 @@ pub fn subscribe(
     cmd: &[RespType],
     tx: &Sender<WorkerMessage>,
     addrs: SocketAddr,
-    mut stream: &TcpStream,
+    mut stream: TcpStream,
 ) {
     //creo channel para comunicar
     let (messages_sender, messages_receiver) = mpsc::channel();
@@ -30,33 +26,39 @@ pub fn subscribe(
                 channel.to_string(),
                 addrs,
                 messages_sender.clone(),
+                stream.try_clone().unwrap()
             ))
             .unwrap();
         }
     }
-
-    println!("Reading messages...");
-    //QUIT temporal
-    //se tiene que cerrar con CTRL-C
-    for message in messages_receiver {
-        if message == "QUIT" {
-            break;
-        }
-        println!("{}", message);
-        stream
-            .write_all(parser_service::parse_response(RespType::RBulkString(message)).as_bytes())
-            .unwrap();
-        stream.flush().unwrap();
-    }
+    // let mut cloned_stream = stream.try_clone().unwrap();
+    // let h = thread::spawn(move || {
+    //     println!("Reading messages...");
+    //     println!("cloned addrs: {:?}", cloned_stream.peer_addr());
+    //     //QUIT temporal
+    //     //se tiene que cerrar con CTRL-C
+    //     for message in messages_receiver {
+    //         if message == "QUIT" {
+    //             break;
+    //         }
+    //         println!("{}", message);
+    //         // let res = parser_service::parse_response(RespType::RArray(vec![RespType::RBulkString(message)]));
+    //         // println!("RES: {:?}", res);
+    //         // cloned_stream
+    //         //     .write_all(res.as_bytes()).unwrap();
+    //         // cloned_stream.flush().unwrap();
+    //     }
+    // });
+    return;
 }
 
 //Unsubscribes the client from the given channels, or from all of them if none is given.
 //When no channels are specified, the client is unsubscribed from all the previously subscribed channels.
 //In this case, a message for every unsubscribed channel will be sent to the client.
 pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr) {
+    println!("cmd unsubs: {:?}", cmd);
     if cmd.len() > 1 {
         for channel in &cmd[1..] {
-            println!("{:?}", &cmd[1..]);
             if let RespType::RBulkString(channel) = channel {
                 tx.send(WorkerMessage::Unsubscribe(channel.to_string(), addrs))
                     .unwrap();
@@ -65,6 +67,7 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
     } else {
         tx.send(WorkerMessage::UnsubscribeAll(addrs)).unwrap();
     }
+    return;
 }
 
 ///Posts a message to the given channel.

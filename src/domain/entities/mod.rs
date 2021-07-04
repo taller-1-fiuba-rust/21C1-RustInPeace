@@ -4,3 +4,4 @@ pub mod key_value_item_serialized;
 pub mod message;
 pub mod server;
 pub mod worker;
+pub mod client;

@@ -1,9 +1,12 @@
 // use crate::domain::implementations::database::Database;
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
+use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
 // use crate::services::worker_service::ThreadPool;
 use std::collections::HashMap;
+use std::io::Write;
+use std::net::TcpStream;
 // use std::io::Read;
 // use std::io::Write;
 // use std::net::TcpListener;
@@ -36,7 +39,7 @@ pub struct Server {
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    channels: HashMap<String, HashMap<String, Sender<String>>>,
+    channels: HashMap<String, HashMap<String, (Sender<String>, TcpStream)>>,
     // threadpool: ThreadPool,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
 }
@@ -89,13 +92,14 @@ impl Server {
                     self.update_clients_operations(operation, addrs);
                 }
                 WorkerMessage::Stop(_) => {
+                    println!("mmm");
                     break;
                 }
                 WorkerMessage::Verb(verbose_txt) => {
                     self.verbose(verbose_txt);
                 }
-                WorkerMessage::Subscribe(channel, addrs, message_sender) => {
-                    self.subscribe_to_channel(channel, addrs, message_sender);
+                WorkerMessage::Subscribe(channel, addrs, message_sender, stream) => {
+                    self.subscribe_to_channel(channel, addrs, message_sender, stream);
                 }
                 WorkerMessage::Unsubscribe(channel, addrs) => {
                     self.unsubscribe(channel, addrs);
@@ -109,6 +113,7 @@ impl Server {
                 }
             }
         }
+        println!("salgo de loop server");
     }
 
     /// Retorna el puerto donde escucha el server
@@ -183,12 +188,13 @@ impl Server {
         channel: String,
         addrs: SocketAddr,
         sender: Sender<String>,
+        stream: TcpStream
     ) {
         if let Some(subscribers) = self.channels.get_mut(&channel) {
-            subscribers.insert(addrs.ip().to_string(), sender);
+            subscribers.insert(addrs.ip().to_string(), (sender, stream));
         } else {
             let mut inner_map = HashMap::new();
-            inner_map.insert(addrs.ip().to_string(), sender);
+            inner_map.insert(addrs.ip().to_string(), (sender, stream));
             self.channels.entry(channel).or_insert(inner_map);
         }
     }
@@ -199,8 +205,8 @@ impl Server {
         for subscriber in self.channels.values_mut() {
             match subscriber.get(&addrs.ip().to_string()) {
                 Some(sender) => {
-                    sender.send(String::from("UNSUBSCRIBE")).unwrap();
-                    sender.send(String::from("QUIT")).unwrap();
+                    // sender.0.send(String::from("UNSUBSCRIBE")).unwrap();
+                    // sender.0.send(String::from("QUIT")).unwrap();
                     subscriber.remove(&addrs.ip().to_string());
                 }
                 None => break,
@@ -213,8 +219,8 @@ impl Server {
     pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr) {
         let subscribers = self.channels.get_mut(&channel).unwrap();
         let sender = subscribers.get(&addrs.ip().to_string()).unwrap();
-        sender.send(String::from("UNSUBSCRIBE")).unwrap();
-        sender.send(String::from("QUIT")).unwrap(); //esto deberia pasar si la direccion no tiene ninguna suscripcion
+        // sender.0.send(String::from("UNSUBSCRIBE")).unwrap();
+        // sender.0.send(String::from("QUIT")).unwrap(); //esto deberia pasar si la direccion no tiene ninguna suscripcion
         subscribers.remove(&addrs.ip().to_string());
     }
 
@@ -222,11 +228,14 @@ impl Server {
     pub fn send_message_to_channel(&mut self, channel: String, msg: String) -> usize {
         let mut sent = 0;
         let subscribers = self.channels.get_mut(&channel).unwrap();
-        for sender in subscribers.values() {
-            match sender.send(msg.clone()) {
-                Ok(()) => sent += 1,
-                Err(_) => continue,
-            }
+        for sender in subscribers.values_mut() {
+            sender.1.write_all(parser_service::parse_response(RespType::RArray(vec![RespType::RBulkString(String::from("message")), RespType::RBulkString(channel.clone()), RespType::RBulkString(msg.clone())])).as_bytes()).unwrap();
+            sender.1.flush().unwrap();
+            // match sender.send(msg.clone()) {
+            //     Ok(()) => sent += 1,
+            //     Err(_) => continue,
+            // }
+            sent += 1
         }
         sent
     }
