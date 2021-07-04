@@ -48,14 +48,14 @@ impl Database {
                             .as_secs();
                         if timeout > &now {
                             Some(item)
-                        }else{
+                        } else {
                             None // expired
                         }
-                    },
-                    KeyAccessTime::Persistent => Some(item)
+                    }
+                    KeyAccessTime::Persistent => Some(item),
                 };
-            },
-            None => None
+            }
+            None => None,
         };
     }
     /// borra todos las claves (y sus valores asociados) de la base de datos
@@ -1172,11 +1172,11 @@ mod tests {
         let mut db = Database::new("file023".to_string());
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1625326138)
+            KeyAccessTime::Volatile(1625326138),
         );
         db.items.insert("key123".to_string(), vt_1);
 
-       assert!(db.items.get("key123").is_some());
+        assert!(db.items.get("key123").is_some());
         let item_expired = db.get_live_item(&"key123".to_string());
         match item_expired {
             Some(_) => assert!(false),
@@ -1192,7 +1192,7 @@ mod tests {
         let mut db = Database::new("file024".to_string());
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1665326138)
+            KeyAccessTime::Volatile(1665326138),
         );
         db.items.insert("key123".to_string(), vt_1);
 
