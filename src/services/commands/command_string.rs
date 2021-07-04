@@ -201,31 +201,31 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut _new_database = database.write().unwrap();
     if let RespType::RBulkString(_current_key) = aux_hash_map.get("key").unwrap() {
         if let RespType::RBulkString(_current_value) = aux_hash_map.get("value").unwrap() {
-            if aux_hash_map.contains_key("EX") {
+            if aux_hash_map.contains_key("ex") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("EX").unwrap() {
                     //set "key":"value" con EX valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("PX") {
+            } else if aux_hash_map.contains_key("px") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("PX").unwrap() {
                     //set "key":"value" con PX valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("EXAT") {
+            } else if aux_hash_map.contains_key("exat") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("EXAT").unwrap() {
                     //set "key":"value" con EXAT valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("PXAT") {
+            } else if aux_hash_map.contains_key("pxat") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("PXAT").unwrap() {
                     //set "key":"value" con PXAT valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("KEEPTTL") {
+            } else if aux_hash_map.contains_key("keepttl") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("KEEPTTL").unwrap() {
                     //set "key":"value" con KEEPTTL valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("NX") {
+            } else if aux_hash_map.contains_key("nx") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("NX").unwrap() {
                     //set "key":"value" con NX valor desde el hashmap
                 }
-            } else if aux_hash_map.contains_key("XX") {
+            } else if aux_hash_map.contains_key("xx") {
                 if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("XX").unwrap() {
                     //set "key":"value" con XX valor desde el hashmap
                 }
