@@ -1182,6 +1182,28 @@ mod tests {
             Some(_) => assert!(false),
             None => assert!(true),
         }
+        assert!(db.items.get("key123").is_none());
+
         let _ = std::fs::remove_file("file023".to_string());
+    }
+
+    #[test]
+    fn test_24_retrieve_live_keys() {
+        let mut db = Database::new("file024".to_string());
+        let vt_1 = ValueTimeItem::new_now(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(1665326138)
+        );
+        db.items.insert("key123".to_string(), vt_1);
+
+        assert!(db.items.get("key123").is_some());
+        let item_expired = db.get_live_item(&"key123".to_string());
+        match item_expired {
+            Some(_) => assert!(true),
+            None => assert!(false),
+        }
+        assert!(db.items.get("key123").is_some());
+
+        let _ = std::fs::remove_file("file024".to_string());
     }
 }
