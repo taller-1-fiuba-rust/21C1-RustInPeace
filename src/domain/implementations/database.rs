@@ -15,6 +15,7 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -34,9 +35,28 @@ impl Database {
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
-    /// devuelve el hashmap donde se almacenan los datos
-    pub fn get_items(&self) -> &HashMap<String, ValueTimeItem> {
-        &self.items
+
+    pub fn get_live_item(&mut self, key: &String) -> Option<&ValueTimeItem> {
+        let option_item = self.items.get(key);
+        return match option_item {
+            Some(item) => {
+                return match item.get_timeout() {
+                    KeyAccessTime::Volatile(timeout) => {
+                        let now = SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
+                        if timeout > &now {
+                            Some(item)
+                        }else{
+                            None // expired
+                        }
+                    },
+                    KeyAccessTime::Persistent => Some(item)
+                };
+            },
+            None => None
+        };
     }
     /// borra todos las claves (y sus valores asociados) de la base de datos
     pub fn clean_items(&mut self) -> &HashMap<String, ValueTimeItem> {
@@ -1145,5 +1165,23 @@ mod tests {
             None => assert!(false),
         }
         let _ = std::fs::remove_file("file022".to_string());
+    }
+
+    #[test]
+    fn test_23_expired_passive_keys() {
+        let mut db = Database::new("file023".to_string());
+        let vt_1 = ValueTimeItem::new_now(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(1625326138)
+        );
+        db.items.insert("key123".to_string(), vt_1);
+
+       assert!(db.items.get("key123").is_some());
+        let item_expired = db.get_live_item(&"key123".to_string());
+        match item_expired {
+            Some(_) => assert!(false),
+            None => assert!(true),
+        }
+        let _ = std::fs::remove_file("file023".to_string());
     }
 }

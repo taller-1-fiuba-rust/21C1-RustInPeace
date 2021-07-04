@@ -306,8 +306,8 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.write().unwrap();
-            match db.get_items().get(key) {
+            let mut db = database.write().unwrap();
+            match db.get_live_item(key) {
                 None => return RespType::RNegative(-2),
                 Some(item) => {
                     return match item.get_timeout() {
