@@ -280,9 +280,9 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
                 || (arg == "exat")
                 || (arg == "pxat")
                 || (arg == "keeptll")
+                || (arg == "nx")
+                || (arg == "xx")
             {
-                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
-            } else if (arg == "nx") || (arg == "xx") {
                 aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
             } else if arg == "set" {
                 aux_hash_map.insert("key".to_string(), &cmd[posicion + 1]);
