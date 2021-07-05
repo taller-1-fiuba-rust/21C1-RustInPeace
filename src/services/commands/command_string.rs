@@ -183,10 +183,10 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         for (pos, e) in vec_aux.iter().enumerate().step_by(2) {
-            let vt_item = ValueTimeItem {
-                value: ValueType::StringType(vec_aux[pos + 1].to_string()),
-                timeout: KeyAccessTime::Volatile(0),
-            };
+            let vt_item = ValueTimeItem::new_now(
+                ValueType::StringType(vec_aux[pos + 1].to_string()),
+                KeyAccessTime::Volatile(0),
+            );
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())

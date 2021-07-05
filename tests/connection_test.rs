@@ -77,71 +77,71 @@ fn test_main() {
 
     let mut database = Database::new(db_file);
 
-    let added_item_1 = ValueTimeItem::new(
+    let added_item_1 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_1")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1925487534),
     );
     database.add(String::from("key_1"), added_item_1);
 
-    let added_item_2 = ValueTimeItem::new(
+    let added_item_2 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_2")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_2"), added_item_2);
 
-    let added_item_3 = ValueTimeItem::new(
+    let added_item_3 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_3")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_3"), added_item_3);
 
-    let added_item_4 = ValueTimeItem::new(
+    let added_item_4 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_4")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_4"), added_item_4);
 
-    let added_item_5 = ValueTimeItem::new(
+    let added_item_5 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("Hello")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("mykey"), added_item_5);
 
-    let added_item_6 = ValueTimeItem::new(
+    let added_item_6 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_to_decr"), added_item_6);
 
-    let added_item_7 = ValueTimeItem::new(
+    let added_item_7 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_to_incr"), added_item_7);
 
-    let added_item_8 = ValueTimeItem::new(
+    let added_item_8 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("Hello")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_getdel"), added_item_8);
 
-    let added_item_9 = ValueTimeItem::new(
+    let added_item_9 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("OldValue")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_getset"), added_item_9);
-    let added_item_10 = ValueTimeItem::new(
+    let added_item_10 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
         KeyAccessTime::Volatile(0),
     );
     database.add(String::from("mget_1"), added_item_10);
-    let added_item_11 = ValueTimeItem::new(
+    let added_item_11 = ValueTimeItem::new_now(
         ValueType::StringType("chau".to_string()),
         KeyAccessTime::Volatile(0),
     );
     database.add(String::from("mget_2"), added_item_11);
 
-    let added_item_12 = ValueTimeItem::new(
+    let added_item_12 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -154,31 +154,31 @@ fn test_main() {
     );
     database.add(String::from("edades_amigos"), added_item_12);
 
-    let added_item_13 = ValueTimeItem::new(
+    let added_item_13 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_maria"), added_item_13);
 
-    let added_item_14 = ValueTimeItem::new(
+    let added_item_14 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("11")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_clara"), added_item_14);
 
-    let added_item_15 = ValueTimeItem::new(
+    let added_item_15 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("12")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_josefina"), added_item_15);
 
-    let added_item_16 = ValueTimeItem::new(
+    let added_item_16 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("13")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_luz"), added_item_16);
 
-    let added_item_17 = ValueTimeItem::new(
+    let added_item_17 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "clara".to_string(),
             "maria".to_string(),
@@ -189,7 +189,7 @@ fn test_main() {
     );
     database.add(String::from("grupo_amigas"), added_item_17);
 
-    let added_item_18 = ValueTimeItem::new(
+    let added_item_18 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("55")),
         KeyAccessTime::Volatile(4234234),
     );
@@ -277,6 +277,18 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: persist",
         func: test_keys_persist,
+    },
+    Test {
+        name: "keys command: expire",
+        func: test_keys_expire,
+    },
+    Test {
+        name: "keys command: expireat",
+        func: test_keys_expireat,
+    },
+    Test {
+        name: "keys command: ttl",
+        func: test_keys_ttl,
     },
     Test {
         name: "keys command: rename",
@@ -484,6 +496,50 @@ fn test_keys_persist() -> TestResult {
             got: ret.to_string(),
         }));
     }
+}
+
+fn test_keys_expire() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIRE").arg("key_1").arg(15).query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_expireat() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIREAT")
+        .arg("key_1")
+        .arg(1725487534)
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+fn test_keys_ttl() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TTL").arg("key_1").query(&mut con)?;
+
+    return if ret > 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Positive number"),
+            got: ret.to_string(),
+        }))
+    };
 }
 
 fn test_keys_rename() -> TestResult {
