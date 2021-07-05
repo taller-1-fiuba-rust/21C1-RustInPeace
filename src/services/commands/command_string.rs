@@ -186,7 +186,7 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             let vt_item = ValueTimeItem::new_now(
                 ValueType::StringType(vec_aux[pos + 1].to_string()),
                 KeyAccessTime::Volatile(0),
-                );
+            );
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())
