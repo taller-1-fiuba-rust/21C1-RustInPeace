@@ -119,6 +119,5 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
             }
         }
     }
-    print!("{}", cmd.len().to_string());
-    return RespType::RError(String::from("Invalid command lindex"));
+    RespType::RError(String::from("Invalid command lindex"))
 }

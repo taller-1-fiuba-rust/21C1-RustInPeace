@@ -196,7 +196,12 @@ fn test_main() {
     database.add(String::from("edad_mariana"), added_item_18);
 
     let added_item_list_1 = ValueTimeItem::new_now(
-        ValueType::ListType(vec!["pomelo".to_string(), "sandia".to_string(), "kiwi".to_string(), "mandarina".to_string()]),
+        ValueType::ListType(vec![
+            "pomelo".to_string(),
+            "sandia".to_string(),
+            "kiwi".to_string(),
+            "mandarina".to_string(),
+        ]),
         KeyAccessTime::Persistent,
     );
     database.add(String::from("frutas"), added_item_list_1);
@@ -387,7 +392,7 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lindex",
         func: test_list_index,
-    }
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -977,19 +982,15 @@ pub fn test_list_index() -> TestResult {
         return if ret == String::from("mandarina") {
             Ok(())
         } else {
-            Err(
-                Box::new(ReturnError {
-                    expected: String::from("mandarina"),
-                    got: ret,
-                }))
-        }
+            Err(Box::new(ReturnError {
+                expected: String::from("mandarina"),
+                got: ret,
+            }))
+        };
     } else {
-        Err(
-            Box::new(ReturnError {
+        Err(Box::new(ReturnError {
             expected: String::from("pomelo"),
             got: ret,
         }))
-    }
-
-
+    };
 }
