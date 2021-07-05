@@ -171,8 +171,11 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         let my_list_value = database_lock
             .search_item_by_key(current_key.to_string())
             .unwrap();
-        if aux_hash_map.contains_key("BY") {
-            if let RespType::RBulkString(pat) = aux_hash_map.get("BY").unwrap() {
+        if aux_hash_map.contains_key("by") {
+            // for (key,value) in &aux_hash_map {
+            //     println!("{:?} {:?}",key,value);
+            // }
+            if let RespType::RBulkString(pat) = aux_hash_map.get("by").unwrap() {
                 let elements = my_list_value.get_value_version_2().unwrap();
                 //genero un vec_aux para guardar los "values" guardados en myList
                 //(la que se pide ordenar) como String. Facilita la comparacion para
@@ -192,13 +195,13 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 for j in &auxiliary_vec {
                     sorted_list.push(j)
                 }
-                if aux_hash_map.contains_key("DESC") {
+                if aux_hash_map.contains_key("desc") {
                     sorted_list.reverse()
                 }
-                if (aux_hash_map.contains_key("LOWER")) || (aux_hash_map.contains_key("UPPER")) {
-                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("LOWER").unwrap() {
+                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
+                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
                         if let RespType::RBulkString(upper_bound) =
-                            aux_hash_map.get("UPPER").unwrap()
+                            aux_hash_map.get("upper").unwrap()
                         {
                             let min = lower_bound.parse::<usize>().unwrap();
                             let max = upper_bound.parse::<usize>().unwrap();
@@ -208,16 +211,17 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 }
             }
         } else {
-            if aux_hash_map.contains_key("DESC") {
+            if aux_hash_map.contains_key("desc") {
                 //ordeno descendentemente
+
                 sorted_list = my_list_value.sort_descending().unwrap();
             } else {
                 //ordeno ascendentemente
                 sorted_list = my_list_value.sort().unwrap();
             }
-            if (aux_hash_map.contains_key("LOWER")) || (aux_hash_map.contains_key("UPPER")) {
-                if let RespType::RBulkString(lower_bound) = aux_hash_map.get("LOWER").unwrap() {
-                    if let RespType::RBulkString(upper_bound) = aux_hash_map.get("UPPER").unwrap() {
+            if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
+                if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
+                    if let RespType::RBulkString(upper_bound) = aux_hash_map.get("upper").unwrap() {
                         let min = lower_bound.parse::<usize>().unwrap();
                         let max = upper_bound.parse::<usize>().unwrap();
                         sorted_list = sorted_list[min..max].to_vec();
@@ -280,27 +284,64 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
 fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     let mut aux_hash_map = HashMap::new();
-    let keys = vec!["BY", "LIMIT", "GET", "ASC", "DESC", "ALPHA", "STORE"];
-    let mut current_position;
-    for key in keys {
-        current_position = cmd
-            .iter()
-            .position(|x| x == &RespType::RBulkString(key.to_string()));
-        if current_position != None {
-            if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-                aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-            } else if (key == "BY") || (key == "STORE") {
-                aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-            } else if key == "LIMIT" {
-                aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-                aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+    let mut posicion = 1;
+    for argumento in cmd.iter().skip(1) {
+        if let RespType::RBulkString(arg) = argumento {
+            if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
+                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+            } else if (arg == "by") || (arg == "store") {
+                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+            } else if arg == "limit" {
+                aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
+                aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
+            } else {
+                aux_hash_map.insert("key".to_string(), argumento);
             }
-            // } else if (key == "GET") {
-            // }
         }
+        posicion += 1;
     }
     aux_hash_map
 }
+
+// }
+// if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
+//     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
+// } else if (argumento == "BY") || (argumento == "STORE") {
+//     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
+// } else if key == "LIMIT" {
+//     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
+//     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+// }
+//println!("{:?}",poca);
+//}
+///////////////
+// for key in keys {
+//     current_position = cmd
+//         .iter()
+//         .position(|x| x == &RespType::RBulkString(key.to_string()));
+//         println!("VAMOS A IMPRIMIR");
+//         println!("{:?}",current_position);
+
+//     if current_position != None {
+//         println!("ENTRE A CMD DISTINTO DE NONE");
+//         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
+//             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
+//         } else if (key == "BY") || (key == "STORE") {
+//             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
+//         } else if key == "LIMIT" {
+//             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
+//             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+//         }
+//         // } else if (key == "GET") {
+//         // }
+//     }
+// }
+// println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
+// for (key,value) in &aux_hash_map {
+//     println!("{:?} {:?}",key,value);
+// }
+//     aux_hash_map
+// }
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -354,6 +395,37 @@ fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
         println!("{:?}: {:?}", key, value)
     }
 }
+
+// #[test]
+// fn test_004_sort_descending_succesfully() {
+//     let vt_1 = ValueTimeItem {
+//         value: ValueType::ListType(vec![
+//             "15".to_string(),
+//             "18".to_string(),
+//             "12".to_string(),
+//             "54".to_string(),
+//             "22".to_string(),
+//             "45".to_string(),
+//         ]),
+//         //value: ValueType::StringType("1".to_string()),
+//         timeout: KeyAccessTime::Volatile(0),
+//     };
+//     let vt_2 = ValueTimeItem {
+//         value: ValueType::StringType("2".to_string()),
+//         timeout: KeyAccessTime::Volatile(0),
+//     };
+//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
+//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
+//     let operation = vec![
+//         RespType::RBulkString("SORT".to_string()),
+//         RespType::RBulkString("edades_amigos".to_string()),
+//         RespType::RBulkString("DESC".to_string()),
+//     ];
+//     let hm = generate_hashmap(&operation);
+//     for (key, value) in hm {
+//         println!("{:?}: {:?}", key, value)
+//     }
+// }
 
 //--------------------------------------------------------------------
 //let mut vector = Vec::new();
