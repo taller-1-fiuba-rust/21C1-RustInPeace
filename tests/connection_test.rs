@@ -79,7 +79,7 @@ fn test_main() {
 
     let added_item_1 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_1")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1925487534),
     );
     database.add(String::from("key_1"), added_item_1);
 
@@ -392,10 +392,7 @@ fn test_keys_persist() -> TestResult {
 
 fn test_keys_expire() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("EXPIRE")
-        .arg("key_1")
-        .arg(4234230)
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("EXPIRE").arg("key_1").arg(15).query(&mut con)?;
 
     return if ret == 1 {
         Ok(())
@@ -409,7 +406,10 @@ fn test_keys_expire() -> TestResult {
 
 fn test_keys_expireat() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("EXPIREAT").arg("key_1").arg(5).query(&mut con)?;
+    let ret: usize = redis::cmd("EXPIREAT")
+        .arg("key_1")
+        .arg(1725487534)
+        .query(&mut con)?;
 
     return if ret == 1 {
         Ok(())
