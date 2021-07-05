@@ -130,18 +130,18 @@ fn test_main() {
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("key_getset"), added_item_9);
-    let added_item_10 = ValueTimeItem::new(
+    let added_item_10 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
         KeyAccessTime::Volatile(0),
     );
     database.add(String::from("mget_1"), added_item_10);
-    let added_item_11 = ValueTimeItem::new(
+    let added_item_11 = ValueTimeItem::new_now(
         ValueType::StringType("chau".to_string()),
         KeyAccessTime::Volatile(0),
     );
     database.add(String::from("mget_2"), added_item_11);
 
-    let added_item_12 = ValueTimeItem::new(
+    let added_item_12 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "15".to_string(),
             "18".to_string(),
@@ -154,31 +154,31 @@ fn test_main() {
     );
     database.add(String::from("edades_amigos"), added_item_12);
 
-    let added_item_13 = ValueTimeItem::new(
+    let added_item_13 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_maria"), added_item_13);
 
-    let added_item_14 = ValueTimeItem::new(
+    let added_item_14 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("11")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_clara"), added_item_14);
 
-    let added_item_15 = ValueTimeItem::new(
+    let added_item_15 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("12")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_josefina"), added_item_15);
 
-    let added_item_16 = ValueTimeItem::new(
+    let added_item_16 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("13")),
         KeyAccessTime::Volatile(4234234),
     );
     database.add(String::from("edad_luz"), added_item_16);
 
-    let added_item_17 = ValueTimeItem::new(
+    let added_item_17 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "clara".to_string(),
             "maria".to_string(),
@@ -189,7 +189,7 @@ fn test_main() {
     );
     database.add(String::from("grupo_amigas"), added_item_17);
 
-    let added_item_18 = ValueTimeItem::new(
+    let added_item_18 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("55")),
         KeyAccessTime::Volatile(4234234),
     );

@@ -930,7 +930,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _removed = std::fs::remove_file("file016".to_string());
+        let _removed = std::fs::remove_file("file11".to_string());
     }
 
     #[test]
@@ -984,7 +984,7 @@ mod tests {
         for key in matching_keys {
             println!("{:?}", key)
         }
-        let _removed = std::fs::remove_file("file017".to_string());
+        let _removed = std::fs::remove_file("file12".to_string());
     }
 
     #[test]
@@ -1245,25 +1245,25 @@ fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
 
     let mut db = Database::new("file10".to_string());
 
-    let vt_1 = ValueTimeItem::new_now {
-        value: ValueType::StringType("hola".to_string()),
-        timeout: KeyAccessTime::Volatile(0),
-    };
-    let vt_2 = ValueTimeItem::new_now{
-        value: ValueType::StringType("chau".to_string()),
-        timeout: KeyAccessTime::Volatile(0),
-    };
-    let vt_3 = ValueTimeItem::new_now {
-        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-        timeout: KeyAccessTime::Volatile(0),
-    };
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("hola".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("chau".to_string()),
+         KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Volatile(0),
+    );
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
-    let vt_4 = ValueTimeItem::new_now {
-        value: ValueType::SetType(this_set),
-        timeout: KeyAccessTime::Volatile(0),
-    };
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::SetType(this_set),
+        KeyAccessTime::Volatile(0),
+    );
     db.items.insert("saludo".to_string(), vt_1);
     db.items.insert("despido".to_string(), vt_2);
     db.items.insert("saludo_despido".to_string(), vt_3);
@@ -1279,25 +1279,25 @@ fn test_28_no_se_obtiene_la_clave_porque_tiene_value_tipo_list() {
 
     let mut db = Database::new("file10".to_string());
 
-    let vt_1 = ValueTimeItem::new_now {
-        value: ValueType::StringType("hola".to_string()),
-        timeout: KeyAccessTime::Volatile(0),
-    };
-    let vt_2 = ValueTimeItem::new_now {
-        value: ValueType::StringType("chau".to_string()),
-        timeout: KeyAccessTime::Volatile(0),
-    };
-    let vt_3 = ValueTimeItem::new_now {
-        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-        timeout: KeyAccessTime::Volatile(0),
-    };
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("hola".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("chau".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Volatile(0),
+    );
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
-    let vt_4 = ValueTimeItem::new_now {
-        value: ValueType::SetType(this_set),
-        timeout: KeyAccessTime::Volatile(0),
-    };
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::SetType(this_set),
+        KeyAccessTime::Volatile(0),
+    );
     db.items.insert("saludo".to_string(), vt_1);
     db.items.insert("despido".to_string(), vt_2);
     db.items.insert("saludo_despido".to_string(), vt_3);
