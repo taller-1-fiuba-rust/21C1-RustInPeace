@@ -15,6 +15,7 @@ use std::{
     net::SocketAddr,
     sync::{mpsc::Sender, Arc, RwLock},
 };
+use crate::services::commands::command_list;
 
 /// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
 /// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
@@ -92,7 +93,7 @@ pub fn handle_command(
                     return Some(command_key::sort(&array, database));
                 }
                 "keys" => return Some(command_key::keys(&array, database)),
-                "touch" => return Some(command_key::keys(&array, database)),
+                "touch" => return Some(command_key::touch(&array, database)),
                 "type" => {
                     return Some(command_key::get_type(&array, database));
                 }
@@ -139,6 +140,9 @@ pub fn handle_command(
                 }
                 "ttl" => {
                     return Some(command_key::get_ttl(&array, database));
+                }
+                "lindex" => {
+                    return Some(command_list::get_index(&array, database));
                 }
                 _ => {}
             }

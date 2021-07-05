@@ -195,6 +195,12 @@ fn test_main() {
     );
     database.add(String::from("edad_mariana"), added_item_18);
 
+    let added_item_list_1 = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["pomelo".to_string(), "sandia".to_string(), "kiwi".to_string(), "mandarina".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("frutas"), added_item_list_1);
+
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
@@ -378,6 +384,10 @@ const TESTS: &[Test] = &[
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
     //     func: test_pubsub,
     // },
+    Test {
+        name: "list command: lindex",
+        func: test_list_index,
+    }
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -949,4 +959,37 @@ fn _test_pubsub() -> TestResult {
     //         got: receivers.to_string(),
     //     }));
     // }
+}
+pub fn test_list_index() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LINDEX")
+        .arg("frutas")
+        .arg("0")
+        .query(&mut con)?;
+
+    return if ret == String::from("pomelo") {
+        let mut con = connect()?;
+        let ret: String = redis::cmd("LINDEX")
+            .arg("frutas")
+            .arg("-1")
+            .query(&mut con)?;
+
+        return if ret == String::from("mandarina") {
+            Ok(())
+        } else {
+            Err(
+                Box::new(ReturnError {
+                    expected: String::from("mandarina"),
+                    got: ret,
+                }))
+        }
+    } else {
+        Err(
+            Box::new(ReturnError {
+            expected: String::from("pomelo"),
+            got: ret,
+        }))
+    }
+
+
 }
