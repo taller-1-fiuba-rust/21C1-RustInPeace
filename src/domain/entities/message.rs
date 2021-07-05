@@ -1,4 +1,7 @@
-use std::{net::SocketAddr, sync::mpsc::Sender};
+use std::{
+    net::{SocketAddr, TcpStream},
+    sync::mpsc::Sender,
+};
 
 use crate::services::utils::resp_type::RespType;
 
@@ -16,7 +19,7 @@ pub enum WorkerMessage {
     Log(String),
     Verb(String),
     NewOperation(RespType, SocketAddr),
-    MonitorOp(String),
+    MonitorOp(String, TcpStream),
     Stop(bool),
     Subscribe(String, SocketAddr, Sender<String>),
     Unsubscribe(String, SocketAddr),

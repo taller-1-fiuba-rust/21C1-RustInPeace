@@ -19,7 +19,7 @@ pub fn subscribe(
     cmd: &[RespType],
     tx: &Sender<WorkerMessage>,
     addrs: SocketAddr,
-    mut stream: &TcpStream,
+    mut stream: TcpStream,
 ) {
     //creo channel para comunicar
     let (messages_sender, messages_receiver) = mpsc::channel();

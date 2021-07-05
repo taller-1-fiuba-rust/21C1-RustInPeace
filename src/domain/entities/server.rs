@@ -4,6 +4,8 @@ use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::utils::resp_type::RespType;
 // use crate::services::worker_service::ThreadPool;
 use std::collections::HashMap;
+use std::io::Write;
+use std::net::TcpStream;
 // use std::io::Read;
 // use std::io::Write;
 // use std::net::TcpListener;
@@ -82,8 +84,8 @@ impl Server {
                         println!("Logging error: {}", e);
                     }
                 },
-                WorkerMessage::MonitorOp(addrs) => {
-                    self.print_last_operations_by_client(addrs);
+                WorkerMessage::MonitorOp(addrs, stream) => {
+                    self.print_last_operations_by_client(addrs, stream);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
                     self.update_clients_operations(operation, addrs);
@@ -166,11 +168,14 @@ impl Server {
         last_operations.store_operation(operation);
     }
 
-    //
-    pub fn print_last_operations_by_client(&self, addrs: String) {
+    // Escribe sobre el stream cliente todas las operaciones hechas al servidor
+    pub fn print_last_operations_by_client(&self, addrs: String, mut stream: TcpStream) {
         if let Some(operations) = self.clients_operations.get(&addrs) {
             for operation in operations.get_operations() {
-                println!("{:?}", operation)
+                operation.iter().for_each(|op| {
+                    stream.write_all(op.as_bytes()).unwrap();
+                    stream.flush().unwrap();
+                });
             }
         }
     }

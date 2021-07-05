@@ -137,7 +137,7 @@ pub fn handle_connection(
                             client_addrs,
                             &database,
                             &config,
-                            &stream,
+                            stream.try_clone().unwrap(),
                         ) {
                             let response = parse_response(res);
                             log(
