@@ -45,7 +45,7 @@ use std::sync::{Arc, RwLock};
 /// ], &database);
 ///
 /// match res {
-///     RespType::RSimpleString(fruta) => {
+///     RespType::RBulkString(fruta) => {
 ///     assert_eq!(fruta, "kiwi") }
 ///     _ => assert!(false)
 /// }
@@ -78,7 +78,7 @@ use std::sync::{Arc, RwLock};
 /// ], &database);
 ///
 /// match res {
-///     RespType::RSimpleString(fruta) => { assert_eq!(fruta, "sandia") },
+///     RespType::RBulkString(fruta) => { assert_eq!(fruta, "sandia") },
 ///     _ => assert!(false)
 /// }
 /// let _ = std::fs::remove_file("dummy_db_doc2.csv");
@@ -101,15 +101,15 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
                         if let ValueType::ListType(items) = vti.get_value() {
                             if iindex.abs() as usize > items.len() {
                                 //Fuera de rango
-                                return RespType::RSimpleString("nil".to_string());
+                                return RespType::RNullBulkString();
                             }
                             let i = iindex.abs() as usize;
                             return if iindex >= 0 {
                                 //Hago unwrap porque ya chequee el tamaño del vector
                                 let string = items.get(i).unwrap();
-                                RespType::RSimpleString(string.to_string())
+                                RespType::RBulkString(string.to_string())
                             } else {
-                                RespType::RSimpleString((&items[items.len() - i]).to_string())
+                                RespType::RBulkString((&items[items.len() - i]).to_string())
                             };
                         }
                         RespType::RError(String::from("Value is not a list"))
