@@ -103,13 +103,12 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
                                 //Fuera de rango
                                 return RespType::RSimpleString("nil".to_string());
                             }
+                            let i = iindex.abs() as usize;
                             return if iindex >= 0 {
-                                let i = iindex.abs() as usize;
                                 //Hago unwrap porque ya chequee el tamaño del vector
                                 let string = items.get(i).unwrap();
                                 RespType::RSimpleString(string.to_string())
                             } else {
-                                let i = iindex.abs() as usize;
                                 RespType::RSimpleString((&items[items.len() - i]).to_string())
                             };
                         }
