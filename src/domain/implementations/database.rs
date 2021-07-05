@@ -112,6 +112,15 @@ impl Database {
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
     }
+
+    /// permite agregar *clave* y *valor* a la base de datos
+    // pub fn add_or_replace(&mut self, key: String, value: ValueTimeItem) {
+    //     if self.key_exists(key) {
+    //         let old_key_
+    //     }
+    //     self.items.insert(key, value);
+    // }
+
     /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
     /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
     pub fn get_values_of_external_keys_that_match_a_pattern(
@@ -148,6 +157,7 @@ impl Database {
         }
     }
 
+    ///Devuelve el tipo de dato del value
     pub fn get_type_of_value(&self, key: String) -> String {
         self.items.get(&key).unwrap().get_value_type()
     }
@@ -265,7 +275,7 @@ impl Database {
         Ok(new_value)
     }
 
-    /// REVISAR: NO ES LO MISMO QUE search_item_by_key?
+    /// Devuelve la clave si el valor asociado es un string
     pub fn get_value_by_key(&self, key: &str) -> Option<String> {
         let item = self.items.get(&key.to_string());
         if let Some(item) = item {
@@ -274,6 +284,20 @@ impl Database {
                 Some(str)
             } else {
                 None
+            }
+        } else {
+            None
+        }
+    }
+    /// Devuelve la clave si el valor asociado es un string, sino devuelve nil
+    pub fn get_value_by_key_or_nil(&self, key: &str) -> Option<String> {
+        let item = self.items.get(&key.to_string());
+        if let Some(item) = item {
+            let value = item.get_copy_of_value();
+            if let ValueType::StringType(str) = value {
+                Some(str)
+            } else {
+                Some("(nil)".to_string())
             }
         } else {
             None
@@ -427,6 +451,12 @@ impl Database {
         }
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//------------------------------------UNIT TESTS----------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -468,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_database_returns_cero() {
+    fn test_01_empty_database_returns_cero() {
         let db = Database {
             dbfilename: "file".to_string(),
             items: HashMap::new(),
@@ -478,7 +508,7 @@ mod tests {
     }
 
     #[test]
-    fn test_01_database_copies_value_to_new_key() {
+    fn test_02_database_copies_value_to_new_key() {
         let mut db = Database::new(String::from("./src/dummy.txt"));
         db.add(
             "clave_1".to_string(),
@@ -500,7 +530,7 @@ mod tests {
     }
 
     #[test]
-    fn test_02_database_copy_replaces_key_with_new_value() {
+    fn test_03_database_copy_replaces_key_with_new_value() {
         let mut db = Database::new(String::from("./src/dummy2.txt"));
         db.add(
             "clave_1".to_string(),
@@ -538,7 +568,7 @@ mod tests {
     }
 
     #[test]
-    fn test_03_clean_items_deletes_all_items() {
+    fn test_04_clean_items_deletes_all_items() {
         let mut db = Database::new(String::from("./src/database1.txt"));
         db.clean_items();
         assert_eq!(db.get_size(), 0);
@@ -546,7 +576,7 @@ mod tests {
     }
 
     #[test]
-    fn test_04_deletes_an_item_succesfully() {
+    fn test_05_deletes_an_item_succesfully() {
         let mut db = Database::new("file2".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
@@ -567,7 +597,7 @@ mod tests {
     }
 
     #[test]
-    fn test_05_persist_changes_type_of_access_time() {
+    fn test_06_persist_changes_type_of_access_time() {
         use crate::domain::entities::key_value_item::KeyAccessTime;
         let mut db = Database::new("file".to_string());
 
@@ -594,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn add_item() {
+    fn test_07_add_item() {
         let mut db = Database {
             dbfilename: "file".to_string(),
             items: HashMap::new(),
@@ -615,7 +645,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_item() {
+    fn test_08_delete_item() {
         let mut db = Database {
             dbfilename: "file".to_string(),
             items: HashMap::new(),
@@ -634,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    fn filename_is_correct() {
+    fn test_09_filename_is_correct() {
         let db = Database {
             dbfilename: "file".to_string(),
             items: HashMap::new(),
@@ -643,7 +673,7 @@ mod tests {
     }
 
     #[test]
-    fn load_items_from_file() {
+    fn test_10_load_items_from_file() {
         let mut file = File::create("file_5".to_string()).expect("Unable to open");
         file.write_all(b"124key;1623433670;1623433677;string;value2\n")
             .unwrap();
@@ -663,7 +693,7 @@ mod tests {
     }
 
     #[test]
-    fn create_database_file() {
+    fn test_11_create_database_file() {
         assert!(!std::path::Path::new("new_file").exists());
         let _db = Database::new("new_file".to_string());
         assert!(std::path::Path::new("new_file").exists());
@@ -671,7 +701,7 @@ mod tests {
     }
 
     #[test]
-    fn save_items_to_file() {
+    fn test_12_save_items_to_file() {
         let mut db = Database::new("file".to_string());
 
         let list = vec![
@@ -709,7 +739,7 @@ mod tests {
     }
 
     #[test]
-    fn test_08_size_in_memory_is_correct() {
+    fn test_13_size_in_memory_is_correct() {
         let mut db = Database::new("file1".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
@@ -726,7 +756,7 @@ mod tests {
     }
 
     #[test]
-    fn test_09_persist_changes_type_of_access_time() {
+    fn test_14_persist_changes_type_of_access_time() {
         use crate::domain::entities::key_value_item::KeyAccessTime;
         let mut db = Database::new(String::from("./src/dummy_persist.txt"));
         let _res = db.items.insert(
@@ -746,7 +776,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10_append_adds_string_to_end_of_existing_value() {
+    fn test_15_append_adds_string_to_end_of_existing_value() {
         let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
@@ -762,7 +792,7 @@ mod tests {
     }
 
     #[test]
-    fn test_11_append_adds_string_to_new_value() {
+    fn test_16_append_adds_string_to_new_value() {
         let mut db = Database::new(String::from("./src/dummy_appends_1.txt"));
 
         let len = db.append_string(&"mykey".to_string(), &" World".to_string());
@@ -771,7 +801,7 @@ mod tests {
     }
 
     #[test]
-    fn test_12_decr_key_to_existing_key() {
+    fn test_17_decr_key_to_existing_key() {
         let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
@@ -787,7 +817,7 @@ mod tests {
     }
 
     #[test]
-    fn test_13_decr_by_to_new_key() {
+    fn test_18_decr_by_to_new_key() {
         let mut db = Database::new(String::from("./src/dummy_decr.txt"));
 
         let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
@@ -796,7 +826,7 @@ mod tests {
     }
 
     #[test]
-    fn test_14_decr_by_to_invalid_string_value() {
+    fn test_19_decr_by_to_invalid_string_value() {
         let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
@@ -812,7 +842,7 @@ mod tests {
     }
 
     #[test]
-    fn test_15_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos(
+    fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos(
     ) {
         let mut db = Database::new("file10".to_string());
 
@@ -850,8 +880,8 @@ mod tests {
     }
 
     #[test]
-    fn test_16_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
-        let mut db = Database::new("file016".to_string());
+    fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
+        let mut db = Database::new("file11".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
@@ -904,8 +934,8 @@ mod tests {
     }
 
     #[test]
-    fn test_17_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
-        let mut db = Database::new("file017".to_string());
+    fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
+        let mut db = Database::new("file12".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
@@ -958,7 +988,7 @@ mod tests {
     }
 
     #[test]
-    fn test_18_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
+    fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
         let mut db = Database::new("file13".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
@@ -1012,7 +1042,7 @@ mod tests {
     }
 
     #[test]
-    fn test_19_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango(
+    fn test_24_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango(
     ) {
         let mut db = Database::new("file14".to_string());
 
@@ -1067,7 +1097,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
+    fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
         let mut db = Database::new("file15".to_string());
 
         let vt_1 = ValueTimeItem::new_now(
@@ -1121,7 +1151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_21_expire_key() {
+    fn test_26_expire_key() {
         let mut db = Database::new("file100".to_string());
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
@@ -1207,4 +1237,72 @@ mod tests {
         assert!(db.items.get("key123").is_some());
         let _ = std::fs::remove_file("file024".to_string());
     }
+}
+
+#[test]
+fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
+    use std::collections::HashSet;
+
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem::new_now {
+        value: ValueType::StringType("hola".to_string()),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem::new_now{
+        value: ValueType::StringType("chau".to_string()),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem::new_now {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem::new_now {
+        value: ValueType::SetType(this_set),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("saludo".to_string(), vt_1);
+    db.items.insert("despido".to_string(), vt_2);
+    db.items.insert("saludo_despido".to_string(), vt_3);
+    db.items.insert("valores".to_string(), vt_4);
+
+    let aux = db.get_value_by_key_or_nil("saludo").unwrap();
+    println!("{:?}", aux)
+}
+
+#[test]
+fn test_28_no_se_obtiene_la_clave_porque_tiene_value_tipo_list() {
+    use std::collections::HashSet;
+
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem::new_now {
+        value: ValueType::StringType("hola".to_string()),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let vt_2 = ValueTimeItem::new_now {
+        value: ValueType::StringType("chau".to_string()),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let vt_3 = ValueTimeItem::new_now {
+        value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    let vt_4 = ValueTimeItem::new_now {
+        value: ValueType::SetType(this_set),
+        timeout: KeyAccessTime::Volatile(0),
+    };
+    db.items.insert("saludo".to_string(), vt_1);
+    db.items.insert("despido".to_string(), vt_2);
+    db.items.insert("saludo_despido".to_string(), vt_3);
+    db.items.insert("valores".to_string(), vt_4);
+
+    let aux = db.get_value_by_key_or_nil("saludo_despido").unwrap();
+    println!("{:?}", aux)
 }
