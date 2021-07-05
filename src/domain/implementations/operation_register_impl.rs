@@ -16,10 +16,7 @@ impl OperationRegister {
         }
     }
 
-    //pub fn set_max_operations(mut self, max:usize){
-    //    self.max_operations = max
-    //}
-
+    /// Guarda una operacion en el registro
     pub fn store_operation(&mut self, operation: RespType) {
         if let RespType::RArray(command_vector) = operation {
             let mut vec_aux = Vec::<String>::new();
@@ -35,6 +32,7 @@ impl OperationRegister {
         }
     }
 
+    /// Devuelve la lista de operariones registradas
     pub fn get_operations(&self) -> &Vec<Vec<String>> {
         &self.operations
     }
@@ -58,9 +56,8 @@ fn test_01_se_guardan_vectores_de_tipo_resptype_en_field_operations() {
     register.store_operation(vec_resp_type_a);
     register.store_operation(vec_resp_type_b);
     let vector_of_operations = register.get_operations();
-    for elemento in vector_of_operations {
-        println!("{:?}", elemento)
-    }
+
+    assert_eq!(&vec![vec![String::from("set_a"), String::from("key_a"), String::from("value_a")], vec![String::from("set_b"), String::from("key_b"), String::from("value_b")]], vector_of_operations);
 }
 
 #[test]
@@ -88,7 +85,6 @@ fn test_02_se_elimina_el_primer_elemento_y_se_guarda_el_nuevo_cuando_esta_lleno(
     register.store_operation(vec_resp_type_b);
     register.store_operation(vec_resp_type_c);
     let vector_of_operations = register.get_operations();
-    for elemento in vector_of_operations {
-        println!("{:?}", elemento)
-    }
+
+    assert_eq!(&vec![vec![String::from("set_b"), String::from("key_b"), String::from("value_b")], vec![String::from("set_c"), String::from("key_c"), String::from("value_c")]], vector_of_operations);
 }
