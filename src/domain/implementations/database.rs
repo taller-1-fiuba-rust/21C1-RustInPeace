@@ -1,12 +1,8 @@
+use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use regex::Regex;
 use std::collections::HashMap;
-
-#[allow(unused)]
-use crate::domain::entities::key_value_item::KeyAccessTime;
-
-#[allow(unused)]
-use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -37,6 +33,13 @@ impl Database {
     }
 
     pub fn get_live_item(&mut self, key: &String) -> Option<&ValueTimeItem> {
+        let items = self.check_timeout_item(key);
+        if let None = items {
+            let _ = self.items.remove(key);
+        }
+        return self.items.get(key);
+    }
+    pub fn check_timeout_item(&mut self, key: &String) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
         return match option_item {
             Some(item) => {
@@ -1183,7 +1186,6 @@ mod tests {
             None => assert!(true),
         }
         assert!(db.items.get("key123").is_none());
-
         let _ = std::fs::remove_file("file023".to_string());
     }
 
@@ -1203,7 +1205,6 @@ mod tests {
             None => assert!(false),
         }
         assert!(db.items.get("key123").is_some());
-
         let _ = std::fs::remove_file("file024".to_string());
     }
 }
