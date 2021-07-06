@@ -281,18 +281,3 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     }
     aux_hash_map
 }
-
-pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
-    if let Ok(write_guard) = database.write() {
-        let mut db = write_guard;
-        db.add(key, value)
-    }
-}
-
-pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
-    if let Ok(write_guard) = database.read() {
-        write_guard.get_size()
-    } else {
-        0
-    }
-}
