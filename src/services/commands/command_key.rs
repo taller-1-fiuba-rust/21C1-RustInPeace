@@ -128,11 +128,11 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .unwrap();
             let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
             let result = db.expire_key(key, &new_time.to_string());
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -148,11 +148,11 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -406,15 +406,13 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
-            match db.get_live_item(key) {
-                None => return RespType::RSignedNumber(-2),
-                Some(item) => {
-                    return match item.get_timeout() {
-                        KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                        KeyAccessTime::Persistent => RespType::RInteger(0),
-                    }
-                }
-            }
+            return match db.get_live_item(key) {
+                None => RespType::RSignedNumber(-2),
+                Some(item) => match item.get_timeout() {
+                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                    KeyAccessTime::Persistent => RespType::RInteger(0),
+                },
+            };
         }
     }
     RespType::RInteger(0)

@@ -262,7 +262,7 @@ impl Database {
     }
 
     pub fn persist(&mut self, key: String) -> bool {
-        match self.items.get_mut(&key) {
+        match self.get_mut_live_item(&key) {
             Some(item) => item.make_persistent(),
             None => false,
         }
@@ -270,9 +270,11 @@ impl Database {
 
     ///renombra una clave, conservando su valor actual
     pub fn rename_key(&mut self, current_key: String, new_key: String) -> bool {
-        let item = self.items.remove(&current_key);
+        let item = self.get_mut_live_item(&current_key);
         if let Some(item) = item {
-            self.items.insert(new_key, item);
+            let item_value = item.get_copy_of_value();
+            let item_time = item.get_copy_of_timeout();
+            self.add(new_key, ValueTimeItem::new_now(item_value, item_time));
             true
         } else {
             false
@@ -521,7 +523,7 @@ impl Database {
     /// le setea un timestamp de expiración a una determinada key
     /// Si la key no existe, devuelve false. Si el update fue correctamente generado devuelve true.
     pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
-        let kvi = self.items.get_mut(key);
+        let kvi = self.get_mut_live_item(key);
         match kvi {
             Some(k) => k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap())),
             None => false,
@@ -680,11 +682,11 @@ mod tests {
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Volatile(1825601548),
         );
         let vt_2 = ValueTimeItem::new_now(
             ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Volatile(1825601548),
         );
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
@@ -1232,7 +1234,7 @@ mod tests {
         let mut db = Database::new("file100".to_string());
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(12123120),
+            KeyAccessTime::Volatile(1825601548),
         );
         db.items.insert("key123".to_string(), vt_1);
         let now = SystemTime::now()
