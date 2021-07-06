@@ -58,10 +58,7 @@ impl Database {
         self.items.clear();
         &self.items
     }
-    /// devuelve el valor almacenado en **key**
-    pub fn search_item_by_key(&self, key: String) -> Option<&ValueTimeItem> {
-        self.items.get(&key)
-    }
+
     /// Devuelve las claves que hacen *match* con un *pattern* sin uso de regex (limitado)
     pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
         let mut vector_keys = vec![];
@@ -589,7 +586,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
@@ -618,7 +615,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
@@ -627,7 +624,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, true).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_2"));
         }
