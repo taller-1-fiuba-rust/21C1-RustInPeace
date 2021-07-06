@@ -11,7 +11,6 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
-use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -50,22 +49,7 @@ impl Database {
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
         return match option_item {
-            Some(item) => {
-                return match item.get_timeout() {
-                    KeyAccessTime::Volatile(timeout) => {
-                        let now = SystemTime::now()
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs();
-                        if timeout > &now {
-                            Some(item)
-                        } else {
-                            None // expired
-                        }
-                    }
-                    KeyAccessTime::Persistent => Some(item),
-                };
-            }
+            Some(item) => return if item.is_expired() { None } else { Some(item) },
             None => None,
         };
     }
@@ -83,7 +67,9 @@ impl Database {
         let mut vector_keys = vec![];
         for key in &self.items {
             let current_key = key.to_owned().0.to_string();
-            vector_keys.push(current_key);
+            if !key.1.is_expired() {
+                vector_keys.push(current_key);
+            }
         }
         let mut vector_keys_filtered = vec![];
         for key in vector_keys {
@@ -100,7 +86,9 @@ impl Database {
         let mut vector_keys = vec![];
         for key in &self.items {
             let current_key = key.to_owned().0.to_string();
-            vector_keys.push(current_key);
+            if !key.1.is_expired() {
+                vector_keys.push(current_key);
+            }
         }
         //aca genero el regex a partir de pattern y lo comparo contra todas las claves
         let re = Regex::new(pattern).unwrap();
@@ -549,19 +537,19 @@ mod tests {
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_2 = ValueTimeItem::new_now(
             ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_3 = ValueTimeItem::new_now(
             ValueType::StringType("valor_3".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_4 = ValueTimeItem::new_now(
             ValueType::StringType("valor_4".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
 
         db.items.insert("weight_bananas".to_string(), vt_1);

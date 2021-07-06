@@ -309,14 +309,15 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
 /// ```
-/// 2. Itenta actualizar 2 `keys`donde una está expirada y la otra no existe en la database
+/// 2. Itenta actualizar 2 `keys` donde una está expirada y la otra no existe en la database
 /// ```
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
-/// use std::time::SystemTime;
+/// use std::time::{SystemTime, Duration};
 /// use proyecto_taller_1::services::utils::resp_type::RespType;
 /// use proyecto_taller_1::services::commands::command_key;
+/// use std::thread::sleep;
 ///
 /// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
@@ -324,6 +325,8 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// let timeout_now = SystemTime::now()
 ///  .duration_since(SystemTime::UNIX_EPOCH)
 ///   .unwrap().as_secs();
+///
+/// sleep(Duration::from_secs(1));
 ///
 /// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
 /// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
