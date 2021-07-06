@@ -246,25 +246,27 @@ impl Database {
     }
 
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
-        let source_item = self.items.get(&source);
-        let new_value = source_item?.get_copy_of_value();
-
-        if self.items.contains_key(&destination) {
-            if replace {
-                let dest = self.items.get_mut(&destination).unwrap();
-                dest._set_value(new_value);
-                return Some(());
-            } else {
-                return None;
+        return if let Some(source_item) = self.get_live_item(&source) {
+            let new_value = source_item.get_copy_of_value();
+            let timeout = source_item.get_copy_of_timeout();
+            match self.get_mut_live_item(&destination) {
+                Some(dest) => {
+                    if replace {
+                        dest._set_value(new_value);
+                        Some(())
+                    } else {
+                        None
+                    }
+                }
+                None => {
+                    // Si no existe la key, la creo.
+                    self.add(destination, ValueTimeItem::new_now(new_value, timeout));
+                    Some(())
+                }
             }
-        }
-        // } else {
-        //ver set del tiempo cuando es nuevo
-        self.items.entry(destination).or_insert_with(|| {
-            ValueTimeItem::new_now(new_value, KeyAccessTime::Volatile(12423423))
-        });
-        Some(())
-        // }
+        } else {
+            None
+        };
     }
 
     pub fn persist(&mut self, key: String) -> bool {
