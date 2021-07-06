@@ -237,7 +237,7 @@ impl Database {
         if let Some(item) = &mut item {
             item.reboot_last_access_time();
         }
-        return item;
+        item
     }
 
     ///Devuelve el tipo de dato del value
