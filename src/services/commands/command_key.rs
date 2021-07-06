@@ -347,7 +347,7 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if let Some(_) = db.reboot_time(current_key.to_string()){
+                if let Some(_) = db.reboot_time(current_key.to_string()) {
                     number_of_touched_keys += 1
                 }
             }

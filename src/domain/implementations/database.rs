@@ -232,7 +232,7 @@ impl Database {
     /// let _ = std::fs::remove_file("dummy_db_doc_reboot2.csv");
     ///
 
-   pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem>{
+    pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem> {
         let mut item = self.get_mut_live_item(&key);
         if let Some(item) = &mut item {
             item.reboot_last_access_time();
@@ -1272,9 +1272,9 @@ mod tests {
             .unwrap()
             .as_secs();
 
-        if let Some(vti) = db.reboot_time("key123".to_string()){
+        if let Some(vti) = db.reboot_time("key123".to_string()) {
             assert!(vti.get_last_access_time().ge(&now));
-        }else{
+        } else {
             assert!(false)
         }
 
@@ -1292,9 +1292,9 @@ mod tests {
         let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
         assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
 
-        if let None = db.reboot_time("key123".to_string()){
+        if let None = db.reboot_time("key123".to_string()) {
             assert!(true)
-        }else{
+        } else {
             assert!(false)
         }
 
