@@ -252,7 +252,95 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         RespType::RBulkString("No matching keys".to_string())
     }
 }
-
+/// Actualiza el `last_access_time` de las keys recibidas.
+///
+/// A partir de una lista de `keys` enviadas, se encarga de actualizar con now
+/// el `last_access_time`de la key. Si la key no existe o expiró se ignora.
+/// Devuelve la cantidad de keys actualizadas.
+///
+/// # Ejemplos
+///
+/// 1. Actualiza dos `keys` válidas:
+///
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::SystemTime;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+///
+/// // Agrego los datos en la base
+///
+/// let db = Database::new("dummy_db_doc_touch1.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let mut timeout_10seg = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+/// timeout_10seg += 10;
+///
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_10seg)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 2) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
+/// ```
+/// 2. Itenta actualizar 2 `keys`donde una está expirada y la otra no existe en la database
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::SystemTime;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+///
+/// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let timeout_now = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_now)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 0) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch2.csv");
+/// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
     let mut db = database.write().unwrap();

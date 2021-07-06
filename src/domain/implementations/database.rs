@@ -156,11 +156,83 @@ impl Database {
             None
         }
     }
-    /// Resetea el tiempo de acceso **KeyAccessTime** de una clave
-    /// Si existe el item y no está vencido, actualizo el last_access_time, sino
-    /// no hago nada.
-    /// Si la clave no existe es ignorada (no cuenta como "tocada")
-    pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem>{
+
+    ///
+    /// Actualiza el valor de `last_access_time` para una key.
+    ///
+    /// A partir de una `key` dada se actualiza el valor de
+    /// `last_access_time` con el momento en que se llama a la función.
+    /// Si la `key` llegó a su timeout o la key no existe en el listado
+    /// de items de la database se retorna None.
+    ///
+    /// # Ejemplos
+    ///
+    /// 1. Actualiza `last_access_time` para una key sin TTL
+    ///
+    ///```
+    ///use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    /// use std::thread::sleep;
+    /// use std::time::Duration;
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_doc_reboot.csv".to_string());
+    /// db.add("altura_juan".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("1.78".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    ///
+    /// let time_before_reboot = db.get_live_item("altura_juan").unwrap().get_last_access_time().clone();
+    ///
+    /// println!("Antes de la actualización: {}", time_before_reboot);
+    /// sleep(Duration::from_secs(2));
+    ///
+    /// //Reseteo el tiempo de acceso a la key: "altura_juan"
+    /// let res = db.reboot_time("altura_juan".to_string());
+    ///
+    /// match res {
+    ///     Some(item) => { assert!(item.get_last_access_time() > &time_before_reboot); }
+    ///     _ => assert!(false)
+    /// }
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_doc_reboot.csv");
+    /// ```
+    ///
+    /// 2. Actualiza `last_access_time` para una key vencida
+    ///
+    ///```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+    /// use std::time::{SystemTime, Duration};
+    /// use std::thread::sleep;
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_doc_reboot2.csv".to_string());
+    ///
+    /// //Le pongo vencimiento en now
+    /// let timeout =  SystemTime::now()
+    ///  .duration_since(SystemTime::UNIX_EPOCH)
+    ///   .unwrap().as_secs();
+    ///
+    /// db.add("altura_juan".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("1.78".to_string()),
+    /// KeyAccessTime::Volatile(timeout)));
+    ///
+    /// //Dejo vencer la key
+    /// sleep(Duration::from_secs(1));
+    ///
+    /// //Seteo last_access_time
+    /// let res = db.reboot_time("altura_juan".to_string());
+    ///
+    /// match res {
+    ///     None => assert!(true),
+    ///     _ => assert!(false)
+    /// }
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_doc_reboot2.csv");
+    ///
+
+   pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem>{
         let mut item = self.get_mut_live_item(&key);
         if let Some(item) = &mut item {
             item.reboot_last_access_time();
