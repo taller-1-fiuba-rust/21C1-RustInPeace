@@ -19,7 +19,7 @@ pub enum WorkerMessage {
     Log(String),
     Verb(String),
     NewOperation(RespType, SocketAddr),
-    MonitorOp(String, TcpStream),
+    MonitorOp(TcpStream),
     Stop(bool),
     Subscribe(String, SocketAddr, Sender<String>),
     Unsubscribe(String, SocketAddr),

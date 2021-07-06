@@ -84,8 +84,8 @@ impl Server {
                         println!("Logging error: {}", e);
                     }
                 },
-                WorkerMessage::MonitorOp(addrs, stream) => {
-                    self.print_last_operations_by_client(addrs, stream);
+                WorkerMessage::MonitorOp(stream) => {
+                    self.print_last_operations_by_client(stream);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
                     self.update_clients_operations(operation, addrs);
@@ -169,15 +169,14 @@ impl Server {
     }
 
     // Escribe sobre el stream cliente todas las operaciones hechas al servidor
-    pub fn print_last_operations_by_client(&self, addrs: String, mut stream: TcpStream) {
-        if let Some(operations) = self.clients_operations.get(&addrs) {
-            for operation in operations.get_operations() {
-                operation.iter().for_each(|op| {
-                    stream.write_all(op.as_bytes()).unwrap();
-                    stream.flush().unwrap();
-                });
-            }
-        }
+    pub fn print_last_operations_by_client(&self, mut stream: TcpStream) {
+        self.clients_operations.iter().for_each(|client| {
+            client.1.get_operations().iter().for_each(|operation| {
+                let op = format!("[{}] {}", client.0, operation);
+                stream.write_all(op.as_bytes()).unwrap();
+                stream.flush().unwrap();
+            })
+        });
     }
 
     /// Suscribe un cliente al channel

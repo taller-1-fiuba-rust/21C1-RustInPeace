@@ -922,7 +922,7 @@ fn test_string_mget() -> TestResult {
         .arg("mget_1")
         .arg("mget_2")
         .query(&mut con)?;
-    println!("RES MGET: {:?}", ret);
+
     if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
         return Ok(());
     } else {

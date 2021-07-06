@@ -32,7 +32,7 @@ pub fn handle_command(
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
             match actual_command.as_str() {
-                "monitor" => command_server::monitor(&tx, &addrs, stream),
+                "monitor" => command_server::monitor(&tx, stream),
                 "info" => {
                     let infor_requiered = command_server::info(&array);
                     println!("{:?}", infor_requiered);
