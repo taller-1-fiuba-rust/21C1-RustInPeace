@@ -48,10 +48,10 @@ impl Database {
     }
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
-        return match option_item {
-            Some(item) => return if item.is_expired() { None } else { Some(item) },
+        match option_item {
+            Some(item) => if item.is_expired() { None } else { Some(item) },
             None => None,
-        };
+        }
     }
     /// borra todos las claves (y sus valores asociados) de la base de datos
     pub fn clean_items(&mut self) -> &HashMap<String, ValueTimeItem> {
