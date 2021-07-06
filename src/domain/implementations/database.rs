@@ -49,7 +49,13 @@ impl Database {
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
         match option_item {
-            Some(item) => if item.is_expired() { None } else { Some(item) },
+            Some(item) => {
+                if item.is_expired() {
+                    None
+                } else {
+                    Some(item)
+                }
+            }
             None => None,
         }
     }
