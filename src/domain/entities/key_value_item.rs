@@ -141,6 +141,12 @@ impl ValueTimeItem {
     pub fn get_copy_of_value(&self) -> ValueType {
         self.value.clone()
     }
+    pub fn get_copy_of_timeout(&self) -> KeyAccessTime {
+        match self.timeout {
+            KeyAccessTime::Persistent => KeyAccessTime::Persistent,
+            KeyAccessTime::Volatile(timeout) => KeyAccessTime::Volatile(timeout),
+        }
+    }
 
     pub fn _set_value(&mut self, new_value: ValueType) {
         self.value = new_value;

@@ -73,7 +73,11 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if database.read().unwrap().key_exists(current_key.to_string()) {
+                if database
+                    .write()
+                    .unwrap()
+                    .key_exists(current_key.to_string())
+                {
                     key_found += 1;
                 }
             }
@@ -124,11 +128,11 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .unwrap();
             let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
             let result = db.expire_key(key, &new_time.to_string());
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -144,11 +148,11 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -252,16 +256,103 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         RespType::RBulkString("No matching keys".to_string())
     }
 }
-
+/// Actualiza el `last_access_time` de las keys recibidas.
+///
+/// A partir de una lista de `keys` enviadas, se encarga de actualizar con now
+/// el `last_access_time`de la key. Si la key no existe o expiró se ignora.
+/// Devuelve la cantidad de keys actualizadas.
+///
+/// # Ejemplos
+///
+/// 1. Actualiza dos `keys` válidas:
+///
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::SystemTime;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+///
+/// // Agrego los datos en la base
+///
+/// let db = Database::new("dummy_db_doc_touch1.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let mut timeout_10seg = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+/// timeout_10seg += 10;
+///
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_10seg)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 2) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
+/// ```
+/// 2. Itenta actualizar 2 `keys`donde una está expirada y la otra no existe en la database
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::SystemTime;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+///
+/// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let timeout_now = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_now)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 0) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch2.csv");
+/// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
     let mut db = database.write().unwrap();
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if db.key_exists(current_key.to_string()) {
-                    db.reboot_time(current_key.to_string());
-                    number_of_touched_keys += 1;
+                if db.reboot_time(current_key.to_string()).is_some() {
+                    number_of_touched_keys += 1
                 }
             }
         }
@@ -270,11 +361,17 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let db = database.read().unwrap();
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
-        if db.key_exists(current_key.to_string()) {
-            tipo = db.get_type_of_value(current_key.to_string());
+        if database
+            .write()
+            .unwrap()
+            .key_exists(current_key.to_string())
+        {
+            tipo = database
+                .read()
+                .unwrap()
+                .get_type_of_value(current_key.to_string());
         }
     }
     RespType::RBulkString(tipo)
@@ -303,60 +400,19 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     aux_hash_map
 }
 
-// }
-// if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
-//     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
-// } else if (argumento == "BY") || (argumento == "STORE") {
-//     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
-// } else if key == "LIMIT" {
-//     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-// }
-//println!("{:?}",poca);
-//}
-///////////////
-// for key in keys {
-//     current_position = cmd
-//         .iter()
-//         .position(|x| x == &RespType::RBulkString(key.to_string()));
-//         println!("VAMOS A IMPRIMIR");
-//         println!("{:?}",current_position);
-
-//     if current_position != None {
-//         println!("ENTRE A CMD DISTINTO DE NONE");
-//         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-//             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-//         } else if (key == "BY") || (key == "STORE") {
-//             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//         } else if key == "LIMIT" {
-//             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-//         }
-//         // } else if (key == "GET") {
-//         // }
-//     }
-// }
-// println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
-// for (key,value) in &aux_hash_map {
-//     println!("{:?} {:?}",key,value);
-// }
-//     aux_hash_map
-// }
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
-            match db.get_live_item(key) {
-                None => return RespType::RNegative(-2),
-                Some(item) => {
-                    return match item.get_timeout() {
-                        KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                        KeyAccessTime::Persistent => RespType::RInteger(0),
-                    }
-                }
-            }
+            return match db.get_live_item(key) {
+                None => RespType::RSignedNumber(-2),
+                Some(item) => match item.get_timeout() {
+                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                    KeyAccessTime::Persistent => RespType::RInteger(0),
+                },
+            };
         }
     }
     RespType::RInteger(0)
@@ -395,102 +451,3 @@ fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
         println!("{:?}: {:?}", key, value)
     }
 }
-
-// #[test]
-// fn test_004_sort_descending_succesfully() {
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     let operation = vec![
-//         RespType::RBulkString("SORT".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//         RespType::RBulkString("DESC".to_string()),
-//     ];
-//     let hm = generate_hashmap(&operation);
-//     for (key, value) in hm {
-//         println!("{:?}: {:?}", key, value)
-//     }
-// }
-
-//--------------------------------------------------------------------
-//let mut vector = Vec::new();
-// if aux_hash_map.contains_key("ALPHA"){
-//     //ordeno alfabeticamente
-// }
-// if aux_hash_map.contains_key("DESC")
-
-// if let RespType::RBulkString(current_key) = &cmd[1] {
-//     let database_lock = database.read().unwrap();
-//     let current_list = database_lock.search_item_by_key(current_key.to_string()).unwrap();
-//     //let mut vector = Vec::new();
-//     if cmd.len()>2 {
-//         if let RespType::RBulkString(current_inst) = &cmd[2] {
-//             if (current_inst.to_string() == "DESC") || ((current_inst.to_string() == "ALPHA")&&(&cmd[3]=="DESC") ){
-//                 let sorted_list_desc = current_list.sort_descending().unwrap().into_iter();
-//                 //let mut vector = Vec::new();
-//                 sorted_list_desc.into_iter().for_each(|value| {
-//                     vector.push(RespType::RBulkString(value.to_string()))
-//                 });
-//                 //return RespType::RArray(vector);
-//             }
-
-//             if current_inst.to_string() == "LIMIT" {
-//                 if cmd.len()>4 {
-//                     let min = &cmd[3];
-//                     let max = &cmd[4];
-
-//                     if let RespType::RBulkString(current_inst) = &cmd[5] {
-
-//                     }
-
-//                 } else {
-//                     let sorted_list = current_list.sort().unwrap();
-//                     let sorted_list_shorten = sorted_list[min..max].to_vec();
-//                     sorted_list_shorten.into_iter().for_each(|value| {
-//                         vector.push(RespType::RBulkString(value.to_string()))
-//                     });
-//                 }
-
-//                 }
-
-//             } else {
-
-//             }
-//         }
-//     } else {
-//         let sorted_list = current_list.sort().unwrap();
-//         sorted_list.into_iter().for_each(|value| {
-//             vector.push(RespType::RBulkString(value.to_string()))
-//         });
-//     }
-
-// }
-//     //tengo un ValueType (que puede ser List o Set - String no figura en el pryecto, hay que preg )
-// //ValueType::ListType();
-// RespType::RArray(vector)
-//}
-
-//     for n in cmd.iter().skip(1) {
-//         //            key_in_db = database.search_by_key()
-//         if let RespType::RBulkString(actual_key) = n {
-//             if let Some(_key) = database.read().unwrap().search_item_by_key(actual_key) {
-//                 key_found = 1;
-//             }
-//         }
-//     }
-// }

@@ -85,59 +85,59 @@ fn test_main() {
 
     let added_item_2 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_2")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_2"), added_item_2);
 
     let added_item_3 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_3")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_3"), added_item_3);
 
     let added_item_4 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("value_key_4")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_4"), added_item_4);
 
     let added_item_5 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("Hello")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("mykey"), added_item_5);
 
     let added_item_6 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_to_decr"), added_item_6);
 
     let added_item_7 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_to_incr"), added_item_7);
 
     let added_item_8 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("Hello")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_getdel"), added_item_8);
 
     let added_item_9 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("OldValue")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("key_getset"), added_item_9);
     let added_item_10 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("mget_1"), added_item_10);
     let added_item_11 = ValueTimeItem::new_now(
         ValueType::StringType("chau".to_string()),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("mget_2"), added_item_11);
 
@@ -150,31 +150,31 @@ fn test_main() {
             "22".to_string(),
             "45".to_string(),
         ]),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("edades_amigos"), added_item_12);
 
     let added_item_13 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("edad_maria"), added_item_13);
 
     let added_item_14 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("11")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("edad_clara"), added_item_14);
 
     let added_item_15 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("12")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("edad_josefina"), added_item_15);
 
     let added_item_16 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("13")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Volatile(1635597186),
     );
     database.add(String::from("edad_luz"), added_item_16);
 
@@ -205,6 +205,12 @@ fn test_main() {
         KeyAccessTime::Persistent,
     );
     database.add(String::from("frutas"), added_item_list_1);
+
+    let added_persistent = ValueTimeItem::new_now(
+        ValueType::StringType("persistente".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("persistente"), added_persistent);
 
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
@@ -300,6 +306,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: ttl",
         func: test_keys_ttl,
+    },
+    Test {
+        name: "keys command: touch",
+        func: test_keys_touch,
     },
     Test {
         name: "keys command: rename",
@@ -991,6 +1001,23 @@ pub fn test_list_index() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("pomelo"),
             got: ret,
+        }))
+    };
+}
+
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
         }))
     };
 }
