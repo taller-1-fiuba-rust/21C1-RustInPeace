@@ -259,9 +259,8 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if db.key_exists(current_key.to_string()) {
-                    db.reboot_time(current_key.to_string());
-                    number_of_touched_keys += 1;
+                if let Some(_) = db.reboot_time(current_key.to_string()){
+                    number_of_touched_keys += 1
                 }
             }
         }
@@ -303,45 +302,6 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     aux_hash_map
 }
 
-// }
-// if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
-//     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
-// } else if (argumento == "BY") || (argumento == "STORE") {
-//     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
-// } else if key == "LIMIT" {
-//     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-// }
-//println!("{:?}",poca);
-//}
-///////////////
-// for key in keys {
-//     current_position = cmd
-//         .iter()
-//         .position(|x| x == &RespType::RBulkString(key.to_string()));
-//         println!("VAMOS A IMPRIMIR");
-//         println!("{:?}",current_position);
-
-//     if current_position != None {
-//         println!("ENTRE A CMD DISTINTO DE NONE");
-//         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-//             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-//         } else if (key == "BY") || (key == "STORE") {
-//             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//         } else if key == "LIMIT" {
-//             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-//         }
-//         // } else if (key == "GET") {
-//         // }
-//     }
-// }
-// println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
-// for (key,value) in &aux_hash_map {
-//     println!("{:?} {:?}",key,value);
-// }
-//     aux_hash_map
-// }
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -349,7 +309,7 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
             match db.get_live_item(key) {
-                None => return RespType::RNegative(-2),
+                None => return RespType::RSignedNumber(-2),
                 Some(item) => {
                     return match item.get_timeout() {
                         KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
@@ -395,102 +355,3 @@ fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
         println!("{:?}: {:?}", key, value)
     }
 }
-
-// #[test]
-// fn test_004_sort_descending_succesfully() {
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     let operation = vec![
-//         RespType::RBulkString("SORT".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//         RespType::RBulkString("DESC".to_string()),
-//     ];
-//     let hm = generate_hashmap(&operation);
-//     for (key, value) in hm {
-//         println!("{:?}: {:?}", key, value)
-//     }
-// }
-
-//--------------------------------------------------------------------
-//let mut vector = Vec::new();
-// if aux_hash_map.contains_key("ALPHA"){
-//     //ordeno alfabeticamente
-// }
-// if aux_hash_map.contains_key("DESC")
-
-// if let RespType::RBulkString(current_key) = &cmd[1] {
-//     let database_lock = database.read().unwrap();
-//     let current_list = database_lock.search_item_by_key(current_key.to_string()).unwrap();
-//     //let mut vector = Vec::new();
-//     if cmd.len()>2 {
-//         if let RespType::RBulkString(current_inst) = &cmd[2] {
-//             if (current_inst.to_string() == "DESC") || ((current_inst.to_string() == "ALPHA")&&(&cmd[3]=="DESC") ){
-//                 let sorted_list_desc = current_list.sort_descending().unwrap().into_iter();
-//                 //let mut vector = Vec::new();
-//                 sorted_list_desc.into_iter().for_each(|value| {
-//                     vector.push(RespType::RBulkString(value.to_string()))
-//                 });
-//                 //return RespType::RArray(vector);
-//             }
-
-//             if current_inst.to_string() == "LIMIT" {
-//                 if cmd.len()>4 {
-//                     let min = &cmd[3];
-//                     let max = &cmd[4];
-
-//                     if let RespType::RBulkString(current_inst) = &cmd[5] {
-
-//                     }
-
-//                 } else {
-//                     let sorted_list = current_list.sort().unwrap();
-//                     let sorted_list_shorten = sorted_list[min..max].to_vec();
-//                     sorted_list_shorten.into_iter().for_each(|value| {
-//                         vector.push(RespType::RBulkString(value.to_string()))
-//                     });
-//                 }
-
-//                 }
-
-//             } else {
-
-//             }
-//         }
-//     } else {
-//         let sorted_list = current_list.sort().unwrap();
-//         sorted_list.into_iter().for_each(|value| {
-//             vector.push(RespType::RBulkString(value.to_string()))
-//         });
-//     }
-
-// }
-//     //tengo un ValueType (que puede ser List o Set - String no figura en el pryecto, hay que preg )
-// //ValueType::ListType();
-// RespType::RArray(vector)
-//}
-
-//     for n in cmd.iter().skip(1) {
-//         //            key_in_db = database.search_by_key()
-//         if let RespType::RBulkString(actual_key) = n {
-//             if let Some(_key) = database.read().unwrap().search_item_by_key(actual_key) {
-//                 key_found = 1;
-//             }
-//         }
-//     }
-// }

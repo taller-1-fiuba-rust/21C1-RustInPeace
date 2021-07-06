@@ -206,6 +206,12 @@ fn test_main() {
     );
     database.add(String::from("frutas"), added_item_list_1);
 
+    let added_persistent = ValueTimeItem::new_now(
+        ValueType::StringType("persistente".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("persistente"), added_persistent);
+
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
@@ -300,6 +306,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: ttl",
         func: test_keys_ttl,
+    },
+    Test {
+        name: "keys command: touch",
+        func: test_keys_touch,
     },
     Test {
         name: "keys command: rename",
@@ -991,6 +1001,23 @@ pub fn test_list_index() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("pomelo"),
             got: ret,
+        }))
+    };
+}
+
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
         }))
     };
 }

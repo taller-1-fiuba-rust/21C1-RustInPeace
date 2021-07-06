@@ -39,6 +39,14 @@ impl Database {
         }
         self.items.get(key)
     }
+
+    pub fn get_mut_live_item(&mut self, key: &str) -> Option<&mut ValueTimeItem> {
+        let items = self.check_timeout_item(key);
+        if items.is_none() {
+            let _ = self.items.remove(key);
+        }
+        self.items.get_mut(key)
+    }
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
         return match option_item {
@@ -148,13 +156,16 @@ impl Database {
             None
         }
     }
-    // VER EL TEMA DE LOS TIPOS DE DATOS GUARDADOS EN VALUE (SIN ITEM) PORQUE PUEDE SER CUALQUIERA DE 3 TIPOS
     /// Resetea el tiempo de acceso **KeyAccessTime** de una clave
-    pub fn reboot_time(&mut self, key: String) {
-        let mut item = self.items.get_mut(&key);
+    /// Si existe el item y no está vencido, actualizo el last_access_time, sino
+    /// no hago nada.
+    /// Si la clave no existe es ignorada (no cuenta como "tocada")
+    pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem>{
+        let mut item = self.get_mut_live_item(&key);
         if let Some(item) = &mut item {
             item.reboot_last_access_time();
         }
+        return item;
     }
 
     ///Devuelve el tipo de dato del value
@@ -1175,10 +1186,10 @@ mod tests {
 
     #[test]
     fn test_22_reboot_time() {
-        let mut db = Database::new("file022".to_string());
+        let mut db = Database::new("file022a".to_string());
         let vt_1 = ValueTimeItem::new(
             ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(12123120),
+            KeyAccessTime::Volatile(1925583652),
             u64::from_str("1211111").unwrap(),
         );
         db.items.insert("key123".to_string(), vt_1);
@@ -1189,15 +1200,33 @@ mod tests {
             .unwrap()
             .as_secs();
 
-        db.reboot_time("key123".to_string());
-        let new_item = db.items.get("key123");
-        match new_item {
-            Some(vti) => {
-                assert!(vti.get_last_access_time().ge(&now));
-            }
-            None => assert!(false),
+        if let Some(vti) = db.reboot_time("key123".to_string()){
+            assert!(vti.get_last_access_time().ge(&now));
+        }else{
+            assert!(false)
         }
-        let _ = std::fs::remove_file("file022".to_string());
+
+        let _ = std::fs::remove_file("file022a".to_string());
+    }
+    #[test]
+    fn test_22_reboot_time_expired() {
+        let mut db = Database::new("file022b".to_string());
+        let vt_1 = ValueTimeItem::new(
+            ValueType::StringType("1".to_string()),
+            KeyAccessTime::Volatile(12123120),
+            u64::from_str("1211111").unwrap(),
+        );
+        db.items.insert("key123".to_string(), vt_1);
+        let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
+        assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
+
+        if let None = db.reboot_time("key123".to_string()){
+            assert!(true)
+        }else{
+            assert!(false)
+        }
+
+        let _ = std::fs::remove_file("file022b".to_string());
     }
 
     #[test]
