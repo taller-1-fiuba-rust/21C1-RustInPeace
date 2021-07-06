@@ -1,4 +1,4 @@
-use crate::entities::resp_types::RespType;
+use crate::services::utils::resp_type::RespType;
 
 #[derive(Debug)]
 pub struct OperationRegister {
@@ -20,7 +20,7 @@ impl OperationRegister {
     //    self.max_operations = max
     //}
 
-    pub fn store_operation(&mut self, operation: &RespType) {
+    pub fn store_operation(&mut self, operation: RespType) {
         if let RespType::RArray(command_vector) = operation {
             let mut vec_aux = Vec::<String>::new();
             for element in command_vector {
@@ -55,8 +55,8 @@ fn test_01_se_guardan_vectores_de_tipo_resptype_en_field_operations() {
     let vec_resp_type_b = RespType::RArray(vector_aux_b);
 
     let mut register = OperationRegister::new(2);
-    register.store_operation(&vec_resp_type_a);
-    register.store_operation(&vec_resp_type_b);
+    register.store_operation(vec_resp_type_a);
+    register.store_operation(vec_resp_type_b);
     let vector_of_operations = register.get_operations();
     for elemento in vector_of_operations {
         println!("{:?}", elemento)
@@ -84,9 +84,9 @@ fn test_02_se_elimina_el_primer_elemento_y_se_guarda_el_nuevo_cuando_esta_lleno(
     let vec_resp_type_c = RespType::RArray(vector_aux_c);
 
     let mut register = OperationRegister::new(2);
-    register.store_operation(&vec_resp_type_a);
-    register.store_operation(&vec_resp_type_b);
-    register.store_operation(&vec_resp_type_c);
+    register.store_operation(vec_resp_type_a);
+    register.store_operation(vec_resp_type_b);
+    register.store_operation(vec_resp_type_c);
     let vector_of_operations = register.get_operations();
     for elemento in vector_of_operations {
         println!("{:?}", elemento)

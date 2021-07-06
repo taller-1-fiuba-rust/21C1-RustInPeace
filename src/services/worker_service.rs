@@ -1,9 +1,10 @@
-use crate::entities::message::Message;
-use crate::entities::worker::Worker;
+use crate::domain::entities::message::Message;
+use crate::domain::entities::worker::Worker;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+#[derive(Debug)]
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Message>,
@@ -53,7 +54,7 @@ impl Drop for ThreadPool {
         println!("Shutting down all workers.");
 
         for worker in &mut self.workers {
-            worker.drop();
+            worker.shutdown();
         }
     }
 }

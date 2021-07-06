@@ -1,164 +1,167 @@
-use crate::entities::operation_register::OperationRegister;
-use crate::entities::resp_types::RespType;
-use crate::services::commands::command_server;
-use std::collections::HashMap;
-use std::net::SocketAddr;
+use super::commands::command_pubsub;
+use super::utils::resp_type::RespType;
+use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
+use crate::domain::implementations::database::Database;
+use crate::services::commands::command_list;
+use crate::{
+    domain::entities::{config::Config, message::WorkerMessage},
+    services::commands::command_key,
+    services::commands::command_server,
+    services::commands::command_string,
+};
+#[allow(unused)]
+use std::fs::File;
+use std::net::TcpStream;
+use std::{
+    net::SocketAddr,
+    sync::{mpsc::Sender, Arc, RwLock},
+};
 
-pub struct Commander {
-    operations: HashMap<String, OperationRegister>,
-}
-
-impl Commander {
-    pub fn new() -> Self {
-        let operations = HashMap::new();
-        Commander { operations }
-    }
-
-    pub fn handle_command(&mut self, operation: &RespType, addrs: SocketAddr) -> RespType {
-        let last_operations = self
-            .operations
-            .entry(addrs.to_string())
-            .or_insert_with(|| OperationRegister::new(100));
-        last_operations.store_operation(operation);
-        if let RespType::RArray(array) = operation {
-            if let RespType::RBulkString(part_command) = &array[0] {
-                match part_command.as_str() {
-                    "monitor" => match self.operations.get(&addrs.to_string()) {
-                        Some(operations) => {
-                            let last_ops = operations.get_operations();
-                            command_server::monitor(last_ops);
-                            RespType::RNullArray();
-                        }
-                        None => {
-                            RespType::RNullArray();
-                        }
-                    },
-                    "info" => {
-                        command_server::info(array);
-                    }
-                    _ => {
-                        RespType::RNullArray();
-                    }
+/// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
+/// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
+/// Lee la primera palabra de la operación para disparar la acción que corresponda.
+/// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
+pub fn handle_command(
+    operation: RespType,
+    tx: &Sender<WorkerMessage>,
+    addrs: SocketAddr,
+    database: &Arc<RwLock<Database>>,
+    config: &Arc<RwLock<Config>>,
+    stream: &TcpStream,
+) -> Option<RespType> {
+    if let RespType::RArray(array) = operation {
+        if let RespType::RBulkString(actual_command) = &array[0] {
+            match actual_command.as_str() {
+                "monitor" => {
+                    command_server::monitor(&tx, &addrs);
+                    // match self.operations.get(&addrs.to_string()) {
+                    // Some(operations) => {
+                    //     let last_ops = operations.get_operations();
+                    //     command_server::monitor(last_ops);
+                    // }
+                    // None => println!("Client doesnt exist"),
+                    return None;
                 }
-            } else {
-                RespType::RNullArray();
-            }
-        }
-        RespType::RNullArray()
-    }
-    /*
-    pub fn handle_command(self, command: &RespType, addrs: SocketAddr) -> Result<RespType, Error> {
-        if let RespType::RArray(array) = command {
-            if let RespType::RBulkString(part_command) = &array[0] {
-                match part_command.as_str() {
-                    "monitor" => {
-                        match self.operations.get(&addrs.to_string()) {
-                            Some(operations) => {
-                                let last_ops = operations.get_operations();
-                                command_server::monitor(last_ops);
+                "info" => {
+                    let infor_requiered = command_server::info(&array);
+                    println!("{:?}", infor_requiered);
+                    return None;
+                }
+                "config" => {
+                    if let RespType::RBulkString(instruction) = &array[1] {
+                        match instruction.as_str() {
+                            "get" => {
+                                return Some(command_server::config_get(config, &array[2]));
                             }
-                            None => println!("Client doesnt exist")
+                            "set" => {
+                                return Some(command_server::config_set(
+                                    config, &array[2], &array[3],
+                                ));
+                            }
+                            _ => {}
                         }
                     }
-                    _ => {}
                 }
+                "dbsize" => {
+                    return Some(command_server::dbsize(&database));
+                }
+                "flushdb" => {
+                    return Some(command_server::flushdb(database));
+                }
+                "copy" => {
+                    return Some(command_key::copy(&array, database));
+                }
+                "del" => {
+                    return Some(command_key::del(&array, database));
+                }
+                "exists" => {
+                    return Some(command_key::exists(&array, database));
+                }
+                "persist" => {
+                    return Some(command_key::persist(&array, database));
+                }
+                "rename" => {
+                    return Some(command_key::rename(&array, database));
+                }
+                "expire" => {
+                    return Some(command_key::expire(&array, database));
+                }
+                "expireat" => {
+                    return Some(command_key::expireat(&array, database));
+                }
+                "sort" => {
+                    return Some(command_key::sort(&array, database));
+                }
+                "keys" => return Some(command_key::keys(&array, database)),
+                "touch" => return Some(command_key::touch(&array, database)),
+                "type" => {
+                    return Some(command_key::get_type(&array, database));
+                }
+                "append" => {
+                    return Some(command_string::append(&array, database));
+                }
+                "decrby" => {
+                    return Some(command_string::decrby(&array, database));
+                }
+                "get" => {
+                    return Some(command_string::get(&array, database));
+                }
+                "getdel" => {
+                    return Some(command_string::getdel(&array, database));
+                }
+                "getset" => {
+                    return Some(command_string::getset(&array, database));
+                }
+                "incrby" => {
+                    return Some(command_string::incrby(&array, database));
+                }
+                "strlen" => {
+                    return Some(command_string::strlen(&array, database));
+                }
+
+                "mget" => {
+                    return Some(command_string::mget(&array, database));
+                }
+                "mset" => {
+                    return Some(command_string::mset(&array, database));
+                }
+                "set" => {
+                    return Some(command_string::set(&array, database));
+                }
+                "subscribe" => {
+                    command_pubsub::subscribe(&array, tx, addrs, stream);
+                }
+                "unsubscribe" => {
+                    command_pubsub::unsubscribe(&array, tx, addrs);
+                    return Some(RespType::RNullBulkString());
+                }
+                "publish" => {
+                    return Some(command_pubsub::publish(&array, tx));
+                }
+                "ttl" => {
+                    return Some(command_key::get_ttl(&array, database));
+                }
+                "lindex" => {
+                    return Some(command_list::get_index(&array, database));
+                }
+                _ => {}
             }
         }
-        Ok(RespType::RNullArray())
-    }*/
+    }
+    None
 }
 
-//     // "monitor" => {},
-//     // "flushdb" => {},
-//     // "config get" => {},
-//     // "config set" => {},
-//     // "dbsize" => {},
-//     // "copy" => {},
-//     // "del" => {},
-//     // "exists" => {},
-//     // "expire" => {},
-//     // "expireat" => {},
-//     // "keys" => {},
-//     // "persist" => {},
-//     // "rename" => {},
-//     // "sort" => {},
-//     // "touch" => {},
-//     // "ttl" => {},
-//     // "type" => {},
-//     // "append" => {},
-//     // "decrby" => {},
-//     // "get" => {},
-//     // "getdel" => {},
-//     // "getset" => {},
-//     // "incrby" => {},
-//     // "mget" => {},
-//     // "mset" => {},
-//     // "set" => {},
-//     // "strlen" => {},
-//     // "lindex" => {},
-//     // "llen" => {},
-//     // "lpop" => {},
-//     // "lpush" => {},
-//     // "lpushx" => {},
-//     // "lrange" => {},
-//     // "lrem" => {},
-//     // "lset" => {},
-//     // "rpop" => {},
-//     // "rpush" => {},
-//     // "rpushx" => {},
-//     // "sadd" => {},
-//     // "scard" => {},
-//     // "sismember" => {},
-//     // "smembers" => {},
-//     // "srem" => {},
-//     // "pubsub" => {},
-//     // "publish" => {},
-//     // "subscribe" => {},
-//     // "unsubcribe" => {},
-
-#[test]
-fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
-    use std::net::{IpAddr, Ipv4Addr};
-
-    let mut commander = Commander::new();
-    let dummy_operation = &RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-    let mut operation_register = OperationRegister::new(100);
-    operation_register.store_operation(dummy_operation);
-
-    let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    commander.handle_command(dummy_operation, dir);
-    println!("{:?}", commander.operations);
-    let saved_operations = commander.operations.get(&dir.to_string()).unwrap();
-    assert_eq!(
-        saved_operations.get_operations(),
-        operation_register.get_operations()
-    );
+pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
+    if let Ok(write_guard) = database.write() {
+        let mut db = write_guard;
+        db.add(key, value)
+    }
 }
 
-#[test]
-fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
-    use std::net::{IpAddr, Ipv4Addr};
-
-    let mut commander = Commander::new();
-    let dummy_operation = &RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-    let dummy_operation_2 = &RespType::RArray(vec![
-        RespType::RBulkString(String::from("set")),
-        RespType::RBulkString(String::from("key")),
-        RespType::RBulkString(String::from("value")),
-    ]);
-
-    let mut operation_register = OperationRegister::new(100);
-    operation_register.store_operation(dummy_operation);
-    operation_register.store_operation(dummy_operation_2);
-
-    let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-    commander.handle_command(dummy_operation, dir);
-    commander.handle_command(dummy_operation_2, dir);
-
-    println!("{:?}", commander.operations);
-    let saved_operations = commander.operations.get(&dir.to_string()).unwrap();
-    assert_eq!(
-        saved_operations.get_operations(),
-        operation_register.get_operations()
-    );
+pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
+    if let Ok(write_guard) = database.read() {
+        write_guard.get_size()
+    } else {
+        0
+    }
 }
