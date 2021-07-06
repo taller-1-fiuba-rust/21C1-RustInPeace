@@ -273,7 +273,7 @@ impl Database {
     }
     //------------------------------------------------
     pub fn append_string(&mut self, key: &str, string: &str) -> usize {
-        match self.items.get_mut(&key.to_string()) {
+        match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
                 if let ValueType::StringType(old_value) = item.get_copy_of_value() {
                     let len = old_value.len() + string.len();
@@ -289,7 +289,7 @@ impl Database {
                     key.to_string(),
                     ValueTimeItem::new_now(
                         ValueType::StringType(string.to_string()),
-                        KeyAccessTime::Volatile(3423423),
+                        KeyAccessTime::Persistent,
                     ),
                 );
                 string.len()
@@ -298,7 +298,7 @@ impl Database {
     }
 
     pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
-        match self.items.get_mut(&key.to_string()) {
+        match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
                 if let ValueType::StringType(str) = item.get_copy_of_value() {
                     let str_as_number = str.parse::<i64>()?;
@@ -316,7 +316,7 @@ impl Database {
                     key.to_string(),
                     ValueTimeItem::new_now(
                         ValueType::StringType(new_value.to_string()),
-                        KeyAccessTime::Volatile(3423423),
+                        KeyAccessTime::Persistent,
                     ),
                 );
                 Ok(new_value)
@@ -325,7 +325,8 @@ impl Database {
     }
 
     pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
-        let item = self.items.get_mut(&key.to_string()).unwrap();
+        let item = self.get_mut_live_item(&key.to_string()).unwrap(); //TODO acá no deberia haber un unwrap.
+                                                                      //chequear la documentación para devolver lo correcto en caso que no haya key.
         if let ValueType::StringType(str) = item.get_copy_of_value() {
             let str_as_number = str.parse::<i64>()?;
             let new_value = ValueType::StringType((str_as_number + incr).to_string());
@@ -346,8 +347,8 @@ impl Database {
     }
 
     /// Devuelve la clave si el valor asociado es un string
-    pub fn get_value_by_key(&self, key: &str) -> Option<String> {
-        let item = self.items.get(&key.to_string());
+    pub fn get_value_by_key(&mut self, key: &str) -> Option<String> {
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -375,8 +376,8 @@ impl Database {
     }
 
     //agregar tests
-    pub fn get_strlen_by_key(&self, key: &str) -> Option<usize> {
-        let item = self.items.get(&key.to_string());
+    pub fn get_strlen_by_key(&mut self, key: &str) -> Option<usize> {
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -391,7 +392,7 @@ impl Database {
 
     //agregar tests
     pub fn getdel_value_by_key(&mut self, key: &str) -> Option<String> {
-        let item = self.items.get(&key.to_string());
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -407,8 +408,8 @@ impl Database {
 
     //agregar tests
     pub fn getset_value_by_key(&mut self, key: &str, new_value: &str) -> Option<String> {
-        let item = self.items.get_mut(&key.to_string());
-        if let Some(item) = item {
+        let item_optional = self.get_mut_live_item(&key.to_string());
+        if let Some(item) = item_optional {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 item._set_value(ValueType::StringType(new_value.to_string()));
