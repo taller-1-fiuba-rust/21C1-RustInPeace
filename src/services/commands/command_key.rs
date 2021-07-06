@@ -73,7 +73,11 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if database.read().unwrap().key_exists(current_key.to_string()) {
+                if database
+                    .write()
+                    .unwrap()
+                    .key_exists(current_key.to_string())
+                {
                     key_found += 1;
                 }
             }
@@ -357,11 +361,17 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let db = database.read().unwrap();
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
-        if db.key_exists(current_key.to_string()) {
-            tipo = db.get_type_of_value(current_key.to_string());
+        if database
+            .write()
+            .unwrap()
+            .key_exists(current_key.to_string())
+        {
+            tipo = database
+                .read()
+                .unwrap()
+                .get_type_of_value(current_key.to_string());
         }
     }
     RespType::RBulkString(tipo)

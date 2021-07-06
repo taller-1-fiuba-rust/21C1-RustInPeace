@@ -113,21 +113,13 @@ impl Database {
     }
 
     ///devuelve **true** si la clave existe en *database*
-    pub fn key_exists(&self, key: String) -> bool {
-        self.items.contains_key(&key)
+    pub fn key_exists(&mut self, key: String) -> bool {
+        return self.get_live_item(&key).is_some();
     }
     /// permite agregar *clave* y *valor* a la base de datos
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
     }
-
-    /// permite agregar *clave* y *valor* a la base de datos
-    // pub fn add_or_replace(&mut self, key: String, value: ValueTimeItem) {
-    //     if self.key_exists(key) {
-    //         let old_key_
-    //     }
-    //     self.items.insert(key, value);
-    // }
 
     /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
     /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
