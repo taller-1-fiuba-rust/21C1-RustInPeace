@@ -403,6 +403,10 @@ const TESTS: &[Test] = &[
         name: "list command: lindex",
         func: test_list_index,
     },
+    Test {
+        name: "set command: sadd",
+        func: test_set_add,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -1013,6 +1017,23 @@ pub fn test_keys_touch() -> TestResult {
         .query(&mut con)?;
 
     return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+
+}
+pub fn test_set_add() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SADD")
+        .arg("frutas_2")
+        .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 1 {
         Ok(())
     } else {
         Err(Box::new(ReturnError {

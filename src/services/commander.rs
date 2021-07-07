@@ -1,7 +1,7 @@
 use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
-use crate::services::commands::command_list;
+use crate::services::commands::{command_list, command_set};
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
@@ -142,6 +142,9 @@ pub fn handle_command(
                 }
                 "lindex" => {
                     return Some(command_list::get_index(&array, database));
+                }
+                "sadd" => {
+                    return Some(command_set::add(&array, database));
                 }
                 _ => {}
             }
