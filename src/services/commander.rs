@@ -5,6 +5,7 @@ use crate::domain::implementations::database::Database;
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
+    services::commands::command_list,
     services::commands::command_server,
     services::commands::command_string,
 };
@@ -139,6 +140,9 @@ pub fn handle_command(
                 }
                 "ttl" => {
                     return Some(command_key::get_ttl(&array, database));
+                }
+                "lpush" => {
+                    return Some(command_list::lpush(&array, database));
                 }
                 _ => {}
             }

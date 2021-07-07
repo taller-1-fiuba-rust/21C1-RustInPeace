@@ -172,9 +172,6 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             .search_item_by_key(current_key.to_string())
             .unwrap();
         if aux_hash_map.contains_key("by") {
-            // for (key,value) in &aux_hash_map {
-            //     println!("{:?} {:?}",key,value);
-            // }
             if let RespType::RBulkString(pat) = aux_hash_map.get("by").unwrap() {
                 let elements = my_list_value.get_value_version_2().unwrap();
                 //genero un vec_aux para guardar los "values" guardados en myList
@@ -303,45 +300,6 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     aux_hash_map
 }
 
-// }
-// if (argumento == "asc") || (argumento == "desc") || (argumento == "alpha") {
-//     aux_hash_map.insert(argumento.to_string(), &RespType::RInteger(1));
-// } else if (argumento == "BY") || (argumento == "STORE") {
-//     aux_hash_map.insert(argumento.to_string(), &cmd[current_position.unwrap() + 1]);
-// } else if key == "LIMIT" {
-//     aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//     aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-// }
-//println!("{:?}",poca);
-//}
-///////////////
-// for key in keys {
-//     current_position = cmd
-//         .iter()
-//         .position(|x| x == &RespType::RBulkString(key.to_string()));
-//         println!("VAMOS A IMPRIMIR");
-//         println!("{:?}",current_position);
-
-//     if current_position != None {
-//         println!("ENTRE A CMD DISTINTO DE NONE");
-//         if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-//             aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-//         } else if (key == "BY") || (key == "STORE") {
-//             aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//         } else if key == "LIMIT" {
-//             aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-//             aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
-//         }
-//         // } else if (key == "GET") {
-//         // }
-//     }
-// }
-// println!("IMPRIMIMOS LO QUE HAY ADENTRO DE HASHMAP");
-// for (key,value) in &aux_hash_map {
-//     println!("{:?} {:?}",key,value);
-// }
-//     aux_hash_map
-// }
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {

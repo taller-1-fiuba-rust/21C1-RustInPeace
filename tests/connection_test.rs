@@ -362,6 +362,18 @@ const TESTS: &[Test] = &[
         name: "string command: mget key_1 mykey",
         func: test_string_mget,
     },
+    Test {
+        name: "list command: push values into key - list type",
+        func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
+    },
+    Test {
+        name: "list command: push values into existing key - list type",
+        func: test_se_guardan_valores_en_una_lista_ya_existente,
+    },
+    Test {
+        name: "list command: cannot push values into existing non-list type key",
+        func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
+    },
     // Test {
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
     //     func: test_pubsub,
@@ -731,6 +743,68 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("Ok"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("bandada_de_caranchos")
+        .arg("carancho_1")
+        .arg("carancho_2")
+        .arg("carancho_3")
+        .arg("carancho_4")
+        .arg("carancho_5")
+        .query(&mut con)?;
+
+    if ret == "5".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "5".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("edad_mariana")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con)?;
+    if ret == "la clave guarda un valor cuyo tipo no es una lista".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "la clave guarda un valor cuyo tipo no es una lista".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("grupo_amigas")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con)?;
+
+    if ret == "9".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "9".to_string(),
+            got: ret,
         }));
     }
 }
