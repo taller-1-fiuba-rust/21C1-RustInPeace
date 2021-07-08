@@ -18,8 +18,10 @@ pub enum WorkerMessage {
     NewOperation(RespType, SocketAddr),
     MonitorOp(String),
     Stop(bool),
-    Subscribe(String, SocketAddr, Sender<String>, TcpStream),
-    Unsubscribe(String, SocketAddr),
-    UnsubscribeAll(SocketAddr),
+    Subscribe(String, SocketAddr, Sender<usize>, TcpStream),
+    Unsubscribe(String, SocketAddr, Sender<usize>),
+    UnsubscribeAll(SocketAddr, Sender<usize>),
     Publish(String, Sender<usize>, String), // Request(TcpStream, Sender<WorkerMessage>, Arc<RwLock<Database>>, Arc<RwLock<Config>>, Sender<bool>)
+    Channels(Sender<Vec<RespType>>, Option<String>),
+    Numsub(Vec<String>, Sender<Vec<RespType>>)
 }

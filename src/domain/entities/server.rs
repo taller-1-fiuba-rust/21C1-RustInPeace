@@ -19,6 +19,7 @@ use std::sync::Mutex;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
+use std::usize;
 // use std::thread;
 use std::{io::Error, net::SocketAddr};
 
@@ -39,7 +40,7 @@ pub struct Server {
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
     clients_operations: HashMap<String, OperationRegister>,
-    channels: HashMap<String, HashMap<String, (Sender<String>, TcpStream)>>,
+    channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
     // threadpool: ThreadPool,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
 }
@@ -59,6 +60,7 @@ impl Server {
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
         let clients_operations = HashMap::new();
+        //tener canales, publicadores y subscriptores
         let channels = HashMap::new();
 
         Ok(Server {
@@ -92,7 +94,6 @@ impl Server {
                     self.update_clients_operations(operation, addrs);
                 }
                 WorkerMessage::Stop(_) => {
-                    println!("mmm");
                     break;
                 }
                 WorkerMessage::Verb(verbose_txt) => {
@@ -101,19 +102,28 @@ impl Server {
                 WorkerMessage::Subscribe(channel, addrs, message_sender, stream) => {
                     self.subscribe_to_channel(channel, addrs, message_sender, stream);
                 }
-                WorkerMessage::Unsubscribe(channel, addrs) => {
-                    self.unsubscribe(channel, addrs);
+                WorkerMessage::Unsubscribe(channel, addrs, message_sender) => {
+                    self.unsubscribe(channel, addrs, message_sender);
                 }
-                WorkerMessage::UnsubscribeAll(addrs) => {
-                    self.unsubscribe_to_all_channels(addrs);
+                WorkerMessage::UnsubscribeAll(addrs, message_sender) => {
+                    self.unsubscribe_to_all_channels(addrs, message_sender);
                 }
                 WorkerMessage::Publish(channel, response_sender, message) => {
                     let messages_sent = self.send_message_to_channel(channel, message);
                     response_sender.send(messages_sent).unwrap();
                 }
+                WorkerMessage::Channels(response_sender, pattern) => {
+                    if let Some(pattern) = pattern {
+                        self.list_active_channels_by_pattern(response_sender, pattern);
+                    } else {
+                        self.list_active_channels(response_sender);
+                    }
+                }
+                WorkerMessage::Numsub(channels, sender) => {
+                    self.list_number_of_subscribers(channels, sender);
+                }
             }
         }
-        println!("salgo de loop server");
     }
 
     /// Retorna el puerto donde escucha el server
@@ -187,41 +197,58 @@ impl Server {
         &mut self,
         channel: String,
         addrs: SocketAddr,
-        sender: Sender<String>,
+        sender: Sender<usize>,
         stream: TcpStream
     ) {
+        let tx = sender.clone();
+        
         if let Some(subscribers) = self.channels.get_mut(&channel) {
-            subscribers.insert(addrs.ip().to_string(), (sender, stream));
+            subscribers.insert(addrs.to_string(), (sender, stream));
+
         } else {
             let mut inner_map = HashMap::new();
-            inner_map.insert(addrs.ip().to_string(), (sender, stream));
+            inner_map.insert(addrs.to_string(), (sender, stream));
             self.channels.entry(channel).or_insert(inner_map);
         }
+        let listening_channels = &self.get_listening_channels(addrs);
+
+        tx.send(*listening_channels).unwrap();
+    }
+
+    fn get_listening_channels(&self, addrs: SocketAddr) -> usize {
+        let mut listening_channels = 0;
+        self.channels.iter().for_each(|channel| {
+            if let Some(_) = channel.1.get(&addrs.to_string()) {
+                listening_channels += 1;
+            }
+        });
+        listening_channels
     }
 
     /// Desuscribe la dirección dada de todos los canales a los que este suscrito
     /// Por el sender asociado envia mensaje para dejar de aceptar
-    pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr) {
+    pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr, sender: Sender<usize>) {
         for subscriber in self.channels.values_mut() {
-            match subscriber.get(&addrs.ip().to_string()) {
-                Some(sender) => {
-                    // sender.0.send(String::from("UNSUBSCRIBE")).unwrap();
-                    // sender.0.send(String::from("QUIT")).unwrap();
-                    subscriber.remove(&addrs.ip().to_string());
+            match subscriber.get(&addrs.to_string()) {
+                Some(_) => {
+                    subscriber.remove(&addrs.to_string());
                 }
                 None => break,
             }
         }
+        let listening_channels = self.get_listening_channels(addrs);
+        sender.send(listening_channels).unwrap();
     }
 
     /// Desuscribe la dirección addrs del canal
     /// Elimina la dirección del hashmap de suscriptores de dicho canal
-    pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr) {
+    pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr, tx: Sender<usize>) {
         let subscribers = self.channels.get_mut(&channel).unwrap();
-        let sender = subscribers.get(&addrs.ip().to_string()).unwrap();
-        // sender.0.send(String::from("UNSUBSCRIBE")).unwrap();
-        // sender.0.send(String::from("QUIT")).unwrap(); //esto deberia pasar si la direccion no tiene ninguna suscripcion
-        subscribers.remove(&addrs.ip().to_string());
+        if let Some(_) = subscribers.get(&addrs.to_string()) {
+            subscribers.remove(&addrs.to_string());
+            let listening_channels = self.get_listening_channels(addrs);
+            tx.send(listening_channels).unwrap();
+        }
     }
 
     /// Envia el mensaje msg a todas las direcciones asociadas al canal dado
@@ -231,13 +258,28 @@ impl Server {
         for sender in subscribers.values_mut() {
             sender.1.write_all(parser_service::parse_response(RespType::RArray(vec![RespType::RBulkString(String::from("message")), RespType::RBulkString(channel.clone()), RespType::RBulkString(msg.clone())])).as_bytes()).unwrap();
             sender.1.flush().unwrap();
-            // match sender.send(msg.clone()) {
-            //     Ok(()) => sent += 1,
-            //     Err(_) => continue,
-            // }
             sent += 1
         }
         sent
+    }
+
+    ///
+    fn list_active_channels(&self, sender: Sender<Vec<RespType>>) {
+        let mut channels = Vec::new();
+        self.channels.iter().for_each(|channel| {
+            if !channel.1.is_empty() {
+                channels.push(RespType::RBulkString(channel.0.to_string()));
+            }
+        });
+        sender.send(channels).unwrap();
+    }
+
+    fn list_active_channels_by_pattern(&self, sender: Sender<Vec<RespType>>, pattern: String) {
+        //logica pattern
+    }
+
+    fn list_number_of_subscribers(&self, channels: Vec<String>, sender: Sender<Vec<RespType>>) {
+        //
     }
 }
 

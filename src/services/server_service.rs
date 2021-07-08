@@ -14,6 +14,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant, SystemTime};
 
 // static drop: AtomicBool = AtomicBool::new(false);
 
@@ -33,7 +34,7 @@ pub fn init(
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
     let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
-    
+
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
             for stream in listener.incoming() {
@@ -47,13 +48,13 @@ pub fn init(
                             handle_connection(stream, tx, cloned_database, conf_lock, stop);
                         });
                     
-                        if let Ok(drop) = stop_signal_receiver.recv() {
-                            if drop {
-                                println!("DROP");
-                                save_database(database);
-                                break;
-                            }
-                        }
+                        // if let Ok(drop) = stop_signal_receiver.recv() {
+                        //     if drop {
+                        //         println!("DROP");
+                        //         save_database(database);
+                        //         break;
+                        //     }
+                        // }
                     }
                     Err(_) => {
                         println!("Couldn't get stream");
@@ -112,7 +113,6 @@ pub fn handle_connection(
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
             Ok(0) => {
-                println!("CERO");
                 break;
             }
             Ok(size) => {
@@ -124,7 +124,7 @@ pub fn handle_connection(
                     ),
                     &tx,
                 );
-                // stop.send(false).unwrap();
+
                 match parse_request(&buf[..size]) {
                     Ok(parsed_request) => {
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
@@ -135,16 +135,14 @@ pub fn handle_connection(
                         ))
                         .unwrap();
                         println!("{:?}", parsed_request);
-                        if check_shutdown(&parsed_request) {
-                            println!("soy shutdown");
-                            // drop.store(true, Ordering::Relaxed);
-                            // println!("{:?}", drop.load(Ordering::Relaxed));
-                            stop.send(true).unwrap();
-                            tx.send(WorkerMessage::Stop(true)).unwrap();
-                            println!("break server service");
-                            return;
-                        }
-                        // stop.send(false).unwrap();
+                        // if check_shutdown(&parsed_request) {
+                        //     // drop.store(true, Ordering::Relaxed);
+                        //     // println!("{:?}", drop.load(Ordering::Relaxed));
+                        //     stop.send(true).unwrap();
+                        //     tx.send(WorkerMessage::Stop(true)).unwrap();
+                        //     break;
+                        // }
+
                         if let Some(res) = handle_command(
                             parsed_request,
                             &tx,
@@ -172,7 +170,7 @@ pub fn handle_connection(
                         continue;
                     }
                 }
-                stop.send(false).unwrap();
+                // stop.send(false).unwrap();
             }
             Err(e) => {
                 println!("Closing connection: {:?}", e);
@@ -180,8 +178,6 @@ pub fn handle_connection(
             }
         }
     }
-    // stop.send(false).unwrap();
-    println!("salgo de handle_connection");
 }
 
 /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage

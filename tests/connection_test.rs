@@ -51,8 +51,6 @@ impl fmt::Display for ReturnError {
 impl Error for ReturnError {}
 
 #[test]
-//use crate::src::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
 fn test_main() {
     let pool = ThreadPool::new(4);
     let config_file = String::from("./src/dummy_config.txt");
@@ -145,10 +143,6 @@ fn test_main() {
 
         server_service::init(database, config, port, dir, server_sender);
         h.join().unwrap();
-        // match &mut Server::new(String::from("8080"), log_file, String::from("0")) {
-        //     Ok(server) => server_service::init(server, database, config),
-        //     Err(e) => println!("Error on server: {:?}", e),
-        // }
     });
 
     sleep(Duration::from_secs(5));
@@ -177,9 +171,9 @@ fn test_main() {
         panic!("{}", err);
     }
 
-    pool.spawn(shutdown);
+    // pool.spawn(shutdown);
     println!("join test");
-    let _ = handle.join().expect("Couldnt join");
+    // let _ = handle.join().expect("Couldnt join");
     std::fs::remove_file("./src/dummy_config.txt").unwrap();
     // std::fs::remove_file("./src/dummy_log.txt").unwrap();
     std::fs::remove_file("./src/dummy_database.txt").unwrap();
@@ -573,4 +567,6 @@ fn test_pubsub() -> TestResult {
             got: receivers.to_string(),
         }));
     }
+
+    //test unsubscribe -> falta funcionalidad para estado tal que no pueda mandar ningun otro comando que los de pubsub
 }

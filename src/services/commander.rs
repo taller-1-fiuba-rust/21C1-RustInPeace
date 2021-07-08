@@ -16,8 +16,7 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
-/// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
-/// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
+/// Segun el comando recibido, delega la implementación al commander que corresponda.
 /// Lee la primera palabra de la operación para disparar la acción que corresponda.
 /// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 pub fn handle_command(
@@ -118,15 +117,18 @@ pub fn handle_command(
                     return Some(command_string::strlen(&array, database));
                 }
                 "subscribe" => {
-                    command_pubsub::subscribe(&array, tx, addrs, stream);
-                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("subscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(1)]));
+                    return Some(command_pubsub::subscribe(&array, tx, addrs, stream));
                 }
                 "unsubscribe" => {
-                    command_pubsub::unsubscribe(&array, tx, addrs);
-                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(1)]));
+                    return Some(command_pubsub::unsubscribe(&array, tx, addrs));
+                    // return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("foo")), RespType::RInteger(1)]));
                 }
                 "punsubscribe" => {
-                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("channel_1")), RespType::RInteger(0)]));
+                    //no se pide implementar esta funcion pero la agrego hardcodeada -por ahora- porque el cliente Redis la llama despues de un subscribe
+                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("foo")), RespType::RInteger(0)]));
+                }
+                "pubsub" => {
+                    return Some(command_pubsub::pubsub(&array, tx));
                 }
                 "publish" => {
                     return Some(command_pubsub::publish(&array, tx));
