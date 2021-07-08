@@ -1,5 +1,6 @@
 use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 use std::collections::HashSet;
+use std::str::FromStr;
 
 // Format: key; access_time; type; value
 pub struct KeyValueItemSerialized {
@@ -11,13 +12,13 @@ impl KeyValueItemSerialized {
         KeyValueItemSerialized { line }
     }
     pub fn transform_to_item(&self) -> (String, ValueTimeItem) {
-        // Format: key; access_time; type; value
+        // Format: key; last_access_time; timeout; type; value
         let line: Vec<&str> = self.line.split(';').collect();
-        let value = match line[2] {
-            "string" => ValueType::StringType(line[3].to_string()),
+        let value = match line[3] {
+            "string" => ValueType::StringType(line[4].to_string()),
             "set" => {
                 let mut hash_set = HashSet::new();
-                let values: Vec<&str> = line[3].split(',').collect();
+                let values: Vec<&str> = line[4].split(',').collect();
                 for value in values {
                     hash_set.insert(value.to_string());
                 }
@@ -25,7 +26,7 @@ impl KeyValueItemSerialized {
             }
             "list" => {
                 let mut list = Vec::new();
-                let values: Vec<&str> = line[3].split(',').collect();
+                let values: Vec<&str> = line[4].split(',').collect();
                 for value in values {
                     list.push(value.to_string());
                 }
@@ -33,9 +34,19 @@ impl KeyValueItemSerialized {
             }
             _ => panic!("Archivo corrupto. No pertenece a ningún tipo de dato soportado."),
         };
-
-        let time = line[1].parse::<KeyAccessTime>().unwrap();
-        (line[0].to_string(), ValueTimeItem::new(value, time))
+        let last_access_time_r = u64::from_str(line[1]);
+        match last_access_time_r {
+            Ok(last_access_time) => {
+                let timeout = line[2].parse::<KeyAccessTime>().unwrap();
+                (
+                    line[0].to_string(),
+                    ValueTimeItem::new(value, timeout, last_access_time),
+                )
+            }
+            Err(_) => {
+                panic!("Archivo corrupto. No se pudo levantar el last_access_time.")
+            }
+        }
     }
 }
 
@@ -47,13 +58,15 @@ mod tests {
     #[test]
     #[should_panic]
     fn line_has_no_valid_type() {
-        let kvis = KeyValueItemSerialized::new("123key;1623427130;no_type;value".to_string());
+        let kvis =
+            KeyValueItemSerialized::new("123key;1623427130;1623427130;no_type;value".to_string());
         kvis.transform_to_item();
     }
 
     #[test]
     fn line_string_type() {
-        let kvis = KeyValueItemSerialized::new("123key;1623427130;string;value".to_string());
+        let kvis =
+            KeyValueItemSerialized::new("123key;1623427130;1623427130;string;value".to_string());
         let kvi = kvis.transform_to_item();
 
         assert_eq!(kvi.0.to_string(), "123key");
@@ -63,7 +76,8 @@ mod tests {
 
     #[test]
     fn line_set_type() {
-        let kvis = KeyValueItemSerialized::new("123key;1623427130;set;3,2,4".to_string());
+        let kvis =
+            KeyValueItemSerialized::new("123key;1623427130;1623427130;set;3,2,4".to_string());
         let kvi = kvis.transform_to_item();
 
         assert_eq!(kvi.0.to_string(), "123key");
@@ -81,7 +95,8 @@ mod tests {
 
     #[test]
     fn line_list_type() {
-        let kvis = KeyValueItemSerialized::new("123key;1623427130;list;1,2,3".to_string());
+        let kvis =
+            KeyValueItemSerialized::new("123key;1623427130;1623427130;list;1,2,3".to_string());
         let kvi = kvis.transform_to_item();
         assert_eq!(kvi.0.to_string(), "123key");
         match kvi.1.get_value() {
@@ -100,7 +115,7 @@ mod tests {
 
     #[test]
     fn line_persistent() {
-        let kvis = KeyValueItemSerialized::new("123key;;string;value".to_string());
+        let kvis = KeyValueItemSerialized::new("123key;1623427130;;string;value".to_string());
         let kvi = kvis.transform_to_item();
 
         assert_eq!(kvi.0.to_string(), "123key");

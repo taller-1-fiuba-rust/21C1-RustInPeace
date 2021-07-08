@@ -2,10 +2,11 @@ use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
 use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
 use crate::domain::implementations::database::Database;
+use crate::services::commands::command_list;
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
-    services::commands::command_list,
+    // services::commands::command_list,
     services::commands::command_server,
     services::commands::command_string,
 };
@@ -93,7 +94,7 @@ pub fn handle_command(
                     return Some(command_key::sort(&array, database));
                 }
                 "keys" => return Some(command_key::keys(&array, database)),
-                "touch" => return Some(command_key::keys(&array, database)),
+                "touch" => return Some(command_key::touch(&array, database)),
                 "type" => {
                     return Some(command_key::get_type(&array, database));
                 }
@@ -143,6 +144,9 @@ pub fn handle_command(
                 }
                 "lpush" => {
                     return Some(command_list::lpush(&array, database));
+                }
+                "lindex" => {
+                    return Some(command_list::get_index(&array, database));
                 }
                 _ => {}
             }

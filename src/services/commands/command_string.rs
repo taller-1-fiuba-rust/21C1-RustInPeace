@@ -90,7 +90,7 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let db = database.read().unwrap();
+    let mut db = database.write().unwrap();
     let mut vec_keys_with_string_values = vec![];
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
@@ -183,10 +183,10 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         for (pos, e) in vec_aux.iter().enumerate().step_by(2) {
-            let vt_item = ValueTimeItem {
-                value: ValueType::StringType(vec_aux[pos + 1].to_string()),
-                timeout: KeyAccessTime::Volatile(0),
-            };
+            let vt_item = ValueTimeItem::new_now(
+                ValueType::StringType(vec_aux[pos + 1].to_string()),
+                KeyAccessTime::Volatile(0),
+            );
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())
@@ -312,123 +312,3 @@ pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
         0
     }
 }
-
-//VER LOS PARAMETROS QUE SE PASAN A VALUETIMEITEM.. TODO HA CAMBIADO
-// #[test]
-// fn test_001_agregan_key_values_multiplemente_ninguna_clave_agregada_ya_existente() {
-//     let db = Database::new("filename_13".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::StringType("hola".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("chau".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_3 = ValueTimeItem {
-//         value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-
-//     load_data_in_db(&database, "saludo".to_string(), vt_1);
-//     load_data_in_db(&database, "despido".to_string(), vt_2);
-//     load_data_in_db(&database, "sal_dep".to_string(), vt_3);
-
-//     let operation = vec![
-//         RespType::RBulkString("mset".to_string()),
-//         RespType::RBulkString("clave_1".to_string()),
-//         RespType::RBulkString("valor_1".to_string()),
-//         RespType::RBulkString("clave_2".to_string()),
-//         RespType::RBulkString("valor_2".to_string()),
-//     ];
-
-//     let cosa = mset(&operation, &database);
-//     println!("{:?}", cosa);
-//     println!("{:?}", get_database_size(&database));
-// }
-
-// #[test]
-// fn test_002_no_se_agregan_key_values_multiplemente_porque_hay_un_valor_faltante() {
-//     let db = Database::new("filename_13".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::StringType("hola".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("chau".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_3 = ValueTimeItem {
-//         value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-
-//     load_data_in_db(&database, "saludo".to_string(), vt_1);
-//     load_data_in_db(&database, "despido".to_string(), vt_2);
-//     load_data_in_db(&database, "sal_dep".to_string(), vt_3);
-
-//     let operation = vec![
-//         RespType::RBulkString("mset".to_string()),
-//         RespType::RBulkString("clave_1".to_string()),
-//         RespType::RBulkString("clave_2".to_string()),
-//         RespType::RBulkString("valor_2".to_string()),
-//     ];
-
-//     let cosa = mset(&operation, &database);
-//     println!("{:?}", cosa);
-//     println!("{:?}", get_database_size(&database));
-// }
-
-// #[test]
-// fn test_003_agregan_key_values_multiplemente_una_clave_agregada_ya_existente() {
-//     let db = Database::new("filename_13".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::StringType("hola".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("chau".to_string()),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_3 = ValueTimeItem {
-//         value: ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-//         last_access_time: KeyAccessTime::Volatile(0),
-//     };
-
-//     load_data_in_db(&database, "saludo".to_string(), vt_1);
-//     load_data_in_db(&database, "despido".to_string(), vt_2);
-//     load_data_in_db(&database, "sal_dep".to_string(), vt_3);
-
-//     let operation = vec![
-//         RespType::RBulkString("mset".to_string()),
-//         RespType::RBulkString("saludo".to_string()),
-//         RespType::RBulkString("valor_1".to_string()),
-//         RespType::RBulkString("clave_2".to_string()),
-//         RespType::RBulkString("valor_2".to_string()),
-//     ];
-
-//     let cosa = mset(&operation, &database);
-//     println!("{:?}", cosa);
-//     println!("{:?}", get_database_size(&database));
-// }
-
-// #[test]
-// fn test_004_se_genera_un_hashmap_a_partir_de_vector_con_ex_algun_valor() {
-//     let operation = vec![
-//         RespType::RBulkString("SET".to_string()),
-//         RespType::RBulkString("my_key".to_string()),
-//         RespType::RBulkString("my_value".to_string()),
-//         RespType::RBulkString("EX".to_string()),
-//         RespType::RBulkString("60".to_string()),
-//     ];
-//     let hm = generate_hashmap(&operation);
-//     for (key, value) in hm {
-//         println!("{:?}: {:?}", key, value)
-//     }
-// }
