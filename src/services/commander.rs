@@ -148,6 +148,12 @@ pub fn handle_command(
                 "lindex" => {
                     return Some(command_list::get_index(&array, database));
                 }
+                "llen" => {
+                    return Some(command_list::llen(&array, database));
+                }
+                "lpop" => {
+                    return Some(command_list::lpop(&array, database));
+                }
                 _ => {}
             }
         }

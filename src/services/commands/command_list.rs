@@ -23,7 +23,6 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         }
         if new_database.key_exists(key.to_string()) {
             let existing_value_type = new_database.get_type_of_value(key.to_string());
-            println!("{:?}", existing_value_type);
             if existing_value_type == *"list" {
                 let old_value = new_database.search_item_by_key(key.to_string()).unwrap();
                 let oldie = ValueTimeItem::get_value_version_2(old_value).unwrap();
@@ -50,6 +49,63 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             );
             new_database.add(key.to_string(), vt_item);
             RespType::RBulkString(vec_len.to_string())
+        }
+    } else {
+        RespType::RBulkString("empty request".to_string())
+    }
+}
+
+pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if new_database.key_exists(key.to_string()) {
+            let existing_value_type = new_database.get_type_of_value(key.to_string());
+            if existing_value_type == *"list" {
+                let value_at_key = new_database.search_item_by_key(key.to_string()).unwrap();
+                let list_size = ValueTimeItem::get_value_version_2(value_at_key)
+                    .unwrap()
+                    .len();
+                RespType::RBulkString(list_size.to_string())
+            } else {
+                RespType::RBulkString("error - not list type".to_string())
+            }
+        } else {
+            RespType::RBulkString("0".to_string())
+        }
+    } else {
+        RespType::RBulkString("empty request".to_string())
+    }
+}
+
+pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if new_database.key_exists(key.to_string()) {
+            let existing_value_type = new_database.get_type_of_value(key.to_string());
+            if existing_value_type == *"list" {
+                let mut value_at_key = new_database
+                    .search_item_by_key(key.to_string())
+                    .unwrap()
+                    .get_value_version_2()
+                    .unwrap();
+                if cmd.len() == 2 {
+                    let mut vec_aux = vec![];
+                    if let RespType::RBulkString(cant_elementos_seleccionado) = &cmd[2] {
+                        for _n in 0..cant_elementos_seleccionado.parse::<i32>().unwrap() {
+                            let current_element = value_at_key.pop().unwrap().to_string();
+                            vec_aux.push(RespType::RBulkString(current_element));
+                        }
+                        return RespType::RArray(vec_aux);
+                    } else {
+                        return RespType::RBulkString("empty".to_string());
+                    }
+                } else {
+                    return RespType::RBulkString(value_at_key.pop().unwrap().to_string());
+                }
+            }
+            RespType::RBulkString("error - not list type".to_string())
+        } else {
+            RespType::RBulkString("nil".to_string())
         }
     } else {
         RespType::RBulkString("empty request".to_string())
