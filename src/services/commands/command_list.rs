@@ -10,25 +10,24 @@ use std::sync::{Arc, RwLock};
 ///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
 /// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
 /// cantidad de elementos guardados en esa key
-//REVISAR EL KEY_ACCES_TIME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
-        //guardo el contenido de la request en un vector
         for n in cmd.iter().skip(2).rev() {
             if let RespType::RBulkString(value) = n {
                 vec_aux.push(value.to_string());
             }
         }
         if new_database.key_exists(key.to_string()) {
-            let existing_value_type = new_database.get_type_of_value(key.to_string());
-            if existing_value_type == *"list" {
-                let old_value = new_database.search_item_by_key(key.to_string()).unwrap();
-                let oldie = ValueTimeItem::get_value_version_2(old_value).unwrap();
-                for old_element in oldie.iter() {
-                    vec_aux.push(old_element.to_string());
-                }
+            if let ValueType::ListType(current_value) = new_database
+                .search_item_by_key(key.to_string())
+                .unwrap()
+                .get_value()
+                .to_owned()
+            {
+                let mut old_vector = current_value;
+                vec_aux.append(&mut old_vector);
                 let vec_len = &vec_aux.len();
                 let vt_item = ValueTimeItem::new_now(
                     ValueType::ListType(vec_aux),
@@ -37,9 +36,7 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 new_database.add(key.to_string(), vt_item);
                 RespType::RBulkString(vec_len.to_string())
             } else {
-                RespType::RBulkString(
-                    "la clave guarda un valor cuyo tipo no es una lista".to_string(),
-                )
+                RespType::RBulkString("error - not list type".to_string())
             }
         } else {
             let vec_len = &vec_aux.len();
@@ -51,7 +48,7 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             RespType::RBulkString(vec_len.to_string())
         }
     } else {
-        RespType::RBulkString("empty request".to_string())
+        RespType::RError("empty request".to_string())
     }
 }
 
@@ -59,12 +56,13 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
         if new_database.key_exists(key.to_string()) {
-            let existing_value_type = new_database.get_type_of_value(key.to_string());
-            if existing_value_type == *"list" {
-                let value_at_key = new_database.search_item_by_key(key.to_string()).unwrap();
-                let list_size = ValueTimeItem::get_value_version_2(value_at_key)
-                    .unwrap()
-                    .len();
+            if let ValueType::ListType(current_value) = new_database
+                .search_item_by_key(key.to_string())
+                .unwrap()
+                .get_value()
+                .to_owned()
+            {
+                let list_size = current_value.len();
                 RespType::RBulkString(list_size.to_string())
             } else {
                 RespType::RBulkString("error - not list type".to_string())
@@ -73,7 +71,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             RespType::RBulkString("0".to_string())
         }
     } else {
-        RespType::RBulkString("empty request".to_string())
+        RespType::RError("empty request".to_string())
     }
 }
 
@@ -81,18 +79,18 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
         if new_database.key_exists(key.to_string()) {
-            let existing_value_type = new_database.get_type_of_value(key.to_string());
-            if existing_value_type == *"list" {
-                let mut value_at_key = new_database
-                    .search_item_by_key(key.to_string())
-                    .unwrap()
-                    .get_value_version_2()
-                    .unwrap();
+            if let ValueType::ListType(current_value) = new_database
+                .search_item_by_key(key.to_string())
+                .unwrap()
+                .get_value()
+                .to_owned()
+            {
+                let mut old_vector = current_value;
                 if cmd.len() == 2 {
                     let mut vec_aux = vec![];
                     if let RespType::RBulkString(cant_elementos_seleccionado) = &cmd[2] {
                         for _n in 0..cant_elementos_seleccionado.parse::<i32>().unwrap() {
-                            let current_element = value_at_key.pop().unwrap().to_string();
+                            let current_element = old_vector.pop().unwrap().to_string();
                             vec_aux.push(RespType::RBulkString(current_element));
                         }
                         return RespType::RArray(vec_aux);
@@ -100,15 +98,15 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         return RespType::RBulkString("empty".to_string());
                     }
                 } else {
-                    return RespType::RBulkString(value_at_key.pop().unwrap().to_string());
+                    return RespType::RBulkString(old_vector.pop().unwrap());
                 }
             }
-            RespType::RBulkString("error - not list type".to_string())
+            RespType::RError("error - not list type".to_string())
         } else {
             RespType::RBulkString("nil".to_string())
         }
     } else {
-        RespType::RBulkString("empty request".to_string())
+        RespType::RError("empty request".to_string())
     }
 }
 
