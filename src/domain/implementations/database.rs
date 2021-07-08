@@ -11,7 +11,6 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
-use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -49,41 +48,31 @@ impl Database {
     }
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
-        return match option_item {
+        match option_item {
             Some(item) => {
-                return match item.get_timeout() {
-                    KeyAccessTime::Volatile(timeout) => {
-                        let now = SystemTime::now()
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs();
-                        if timeout > &now {
-                            Some(item)
-                        } else {
-                            None // expired
-                        }
-                    }
-                    KeyAccessTime::Persistent => Some(item),
-                };
+                if item.is_expired() {
+                    None
+                } else {
+                    Some(item)
+                }
             }
             None => None,
-        };
+        }
     }
     /// borra todos las claves (y sus valores asociados) de la base de datos
     pub fn clean_items(&mut self) -> &HashMap<String, ValueTimeItem> {
         self.items.clear();
         &self.items
     }
-    /// devuelve el valor almacenado en **key**
-    pub fn search_item_by_key(&self, key: String) -> Option<&ValueTimeItem> {
-        self.items.get(&key)
-    }
+
     /// Devuelve las claves que hacen *match* con un *pattern* sin uso de regex (limitado)
     pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
         let mut vector_keys = vec![];
         for key in &self.items {
             let current_key = key.to_owned().0.to_string();
-            vector_keys.push(current_key);
+            if !key.1.is_expired() {
+                vector_keys.push(current_key);
+            }
         }
         let mut vector_keys_filtered = vec![];
         for key in vector_keys {
@@ -100,7 +89,9 @@ impl Database {
         let mut vector_keys = vec![];
         for key in &self.items {
             let current_key = key.to_owned().0.to_string();
-            vector_keys.push(current_key);
+            if !key.1.is_expired() {
+                vector_keys.push(current_key);
+            }
         }
         //aca genero el regex a partir de pattern y lo comparo contra todas las claves
         let re = Regex::new(pattern).unwrap();
@@ -282,7 +273,7 @@ impl Database {
     }
     //------------------------------------------------
     pub fn append_string(&mut self, key: &str, string: &str) -> usize {
-        match self.items.get_mut(&key.to_string()) {
+        match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
                 if let ValueType::StringType(old_value) = item.get_copy_of_value() {
                     let len = old_value.len() + string.len();
@@ -298,7 +289,7 @@ impl Database {
                     key.to_string(),
                     ValueTimeItem::new_now(
                         ValueType::StringType(string.to_string()),
-                        KeyAccessTime::Volatile(3423423),
+                        KeyAccessTime::Persistent,
                     ),
                 );
                 string.len()
@@ -307,7 +298,7 @@ impl Database {
     }
 
     pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
-        match self.items.get_mut(&key.to_string()) {
+        match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
                 if let ValueType::StringType(str) = item.get_copy_of_value() {
                     let str_as_number = str.parse::<i64>()?;
@@ -325,7 +316,7 @@ impl Database {
                     key.to_string(),
                     ValueTimeItem::new_now(
                         ValueType::StringType(new_value.to_string()),
-                        KeyAccessTime::Volatile(3423423),
+                        KeyAccessTime::Persistent,
                     ),
                 );
                 Ok(new_value)
@@ -334,7 +325,8 @@ impl Database {
     }
 
     pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
-        let item = self.items.get_mut(&key.to_string()).unwrap();
+        let item = self.get_mut_live_item(&key.to_string()).unwrap(); //TODO acá no deberia haber un unwrap.
+                                                                      //chequear la documentación para devolver lo correcto en caso que no haya key.
         if let ValueType::StringType(str) = item.get_copy_of_value() {
             let str_as_number = str.parse::<i64>()?;
             let new_value = ValueType::StringType((str_as_number + incr).to_string());
@@ -355,8 +347,8 @@ impl Database {
     }
 
     /// Devuelve la clave si el valor asociado es un string
-    pub fn get_value_by_key(&self, key: &str) -> Option<String> {
-        let item = self.items.get(&key.to_string());
+    pub fn get_value_by_key(&mut self, key: &str) -> Option<String> {
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -384,8 +376,8 @@ impl Database {
     }
 
     //agregar tests
-    pub fn get_strlen_by_key(&self, key: &str) -> Option<usize> {
-        let item = self.items.get(&key.to_string());
+    pub fn get_strlen_by_key(&mut self, key: &str) -> Option<usize> {
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -400,7 +392,7 @@ impl Database {
 
     //agregar tests
     pub fn getdel_value_by_key(&mut self, key: &str) -> Option<String> {
-        let item = self.items.get(&key.to_string());
+        let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
@@ -416,8 +408,8 @@ impl Database {
 
     //agregar tests
     pub fn getset_value_by_key(&mut self, key: &str, new_value: &str) -> Option<String> {
-        let item = self.items.get_mut(&key.to_string());
-        if let Some(item) = item {
+        let item_optional = self.get_mut_live_item(&key.to_string());
+        if let Some(item) = item_optional {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 item._set_value(ValueType::StringType(new_value.to_string()));
@@ -549,19 +541,19 @@ mod tests {
 
         let vt_1 = ValueTimeItem::new_now(
             ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_2 = ValueTimeItem::new_now(
             ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_3 = ValueTimeItem::new_now(
             ValueType::StringType("valor_3".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
         let vt_4 = ValueTimeItem::new_now(
             ValueType::StringType("valor_4".to_string()),
-            KeyAccessTime::Volatile(0),
+            KeyAccessTime::Persistent,
         );
 
         db.items.insert("weight_bananas".to_string(), vt_1);
@@ -601,7 +593,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
@@ -630,7 +622,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, false).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_1"));
         }
@@ -639,7 +631,7 @@ mod tests {
         let destination = String::from("clone");
         assert_eq!(db.copy(source, destination, true).unwrap(), ());
 
-        let new_item = db.search_item_by_key(String::from("clone")).unwrap();
+        let new_item = db.get_live_item("clone").unwrap();
         if let ValueType::StringType(str) = new_item.get_value() {
             assert_eq!(str, &String::from("valor_2"));
         }

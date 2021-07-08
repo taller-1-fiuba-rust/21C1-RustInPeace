@@ -1,6 +1,5 @@
 use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
-use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::services::commands::command_list;
 use crate::{
@@ -149,19 +148,4 @@ pub fn handle_command(
         }
     }
     None
-}
-
-pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
-    if let Ok(write_guard) = database.write() {
-        let mut db = write_guard;
-        db.add(key, value)
-    }
-}
-
-pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
-    if let Ok(write_guard) = database.read() {
-        write_guard.get_size()
-    } else {
-        0
-    }
 }
