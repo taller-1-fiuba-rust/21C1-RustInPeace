@@ -169,25 +169,14 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(current_key) = &cmd[1] {
         let mut sorted_list: Vec<&String> = Vec::new();
         let mut auxiliary_vec = Vec::new();
-        //let mut auxiliary_vec_2 = Vec::new();
-        let database_lock = database.read().unwrap();
-        //aca atrapo "myList", que (si existe) es una key en la database
-        let my_list_value = database_lock
-            .search_item_by_key(current_key.to_string())
-            .unwrap();
+        let mut database_lock = database.write().unwrap();
         if aux_hash_map.contains_key("by") {
             if let RespType::RBulkString(pat) = aux_hash_map.get("by").unwrap() {
-                let elements = my_list_value.get_value_version_2().unwrap();
-                //genero un vec_aux para guardar los "values" guardados en myList
-                //(la que se pide ordenar) como String. Facilita la comparacion para
-                //hallar el patron solicitado
-                let mut vec_resptype_to_string = Vec::new();
-                for aux in elements {
-                    vec_resptype_to_string.push(aux.to_string());
-                }
-                let mut tuple_vector; //= Vec::new();
-                tuple_vector = database_lock
-                    .get_values_of_external_keys_that_match_a_pattern(vec_resptype_to_string, pat)
+                let mut tuple_vector = database_lock
+                    .get_values_and_associated_external_key_values(
+                        pat.to_string(),
+                        current_key.to_string(),
+                    )
                     .unwrap();
                 tuple_vector.sort_by_key(|k| k.1.clone());
                 for val in tuple_vector {
@@ -212,25 +201,28 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 }
             }
         } else {
-            if aux_hash_map.contains_key("desc") {
-                //ordeno descendentemente
-
-                sorted_list = my_list_value.sort_descending().unwrap();
-            } else {
-                //ordeno ascendentemente
-                sorted_list = my_list_value.sort().unwrap();
-            }
-            if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
-                if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
-                    if let RespType::RBulkString(upper_bound) = aux_hash_map.get("upper").unwrap() {
-                        let min = lower_bound.parse::<usize>().unwrap();
-                        let max = upper_bound.parse::<usize>().unwrap();
-                        sorted_list = sorted_list[min..max].to_vec();
+            let my_list_value_optional = database_lock.get_live_item(current_key);
+            if let Some(my_list_value) = my_list_value_optional {
+                if aux_hash_map.contains_key("desc") {
+                    //ordeno descendentemente
+                    sorted_list = my_list_value.sort_descending().unwrap();
+                } else {
+                    //ordeno ascendentemente
+                    sorted_list = my_list_value.sort().unwrap();
+                }
+                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
+                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
+                        if let RespType::RBulkString(upper_bound) =
+                            aux_hash_map.get("upper").unwrap()
+                        {
+                            let min = lower_bound.parse::<usize>().unwrap();
+                            let max = upper_bound.parse::<usize>().unwrap();
+                            sorted_list = sorted_list[min..max].to_vec();
+                        }
                     }
                 }
             }
         }
-
         sorted_list
             .into_iter()
             .for_each(|value| vector.push(RespType::RBulkString(value.to_string())));
@@ -306,14 +298,15 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
 /// ```
-/// 2. Itenta actualizar 2 `keys`donde una está expirada y la otra no existe en la database
+/// 2. Itenta actualizar 2 `keys` donde una está expirada y la otra no existe en la database
 /// ```
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
-/// use std::time::SystemTime;
+/// use std::time::{SystemTime, Duration};
 /// use proyecto_taller_1::services::utils::resp_type::RespType;
 /// use proyecto_taller_1::services::commands::command_key;
+/// use std::thread::sleep;
 ///
 /// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
@@ -321,6 +314,8 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// let timeout_now = SystemTime::now()
 ///  .duration_since(SystemTime::UNIX_EPOCH)
 ///   .unwrap().as_secs();
+///
+/// sleep(Duration::from_secs(1));
 ///
 /// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
 /// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),

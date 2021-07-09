@@ -150,31 +150,31 @@ fn test_main() {
             "22".to_string(),
             "45".to_string(),
         ]),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edades_amigos"), added_item_12);
 
     let added_item_13 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_maria"), added_item_13);
 
     let added_item_14 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("11")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_clara"), added_item_14);
 
     let added_item_15 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("12")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_josefina"), added_item_15);
 
     let added_item_16 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("13")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_luz"), added_item_16);
 
@@ -185,7 +185,7 @@ fn test_main() {
             "luz".to_string(),
             "josefina".to_string(),
         ]),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("grupo_amigas"), added_item_17);
 
@@ -197,7 +197,7 @@ fn test_main() {
 
     let added_item_18 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("55")),
-        KeyAccessTime::Volatile(1635597167),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_mariana"), added_item_18);
 
@@ -309,14 +309,14 @@ const TESTS: &[Test] = &[
         name: "keys command: expireat",
         func: test_keys_expireat,
     },
-    // Test {
-    //     name: "keys command: ttl",
-    //     func: test_keys_ttl,
-    // },
-    // Test {
-    //     name: "keys command: touch",
-    //     func: test_keys_touch,
-    // },
+    Test {
+        name: "keys command: ttl",
+        func: test_keys_ttl,
+    },
+    Test {
+        name: "keys command: touch",
+        func: test_keys_touch,
+    },
     Test {
         name: "keys command: rename",
         func: test_keys_rename,

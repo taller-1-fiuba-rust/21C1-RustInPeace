@@ -21,8 +21,9 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         if new_database.key_exists(key.to_string()) {
+            //let coso = new_database.
             if let ValueType::ListType(current_value) = new_database
-                .search_item_by_key(key.to_string())
+                .get_live_item(key)
                 .unwrap()
                 .get_value()
                 .to_owned()
@@ -69,7 +70,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
         if new_database.key_exists(key.to_string()) {
             if let ValueType::ListType(current_value) = new_database
-                .search_item_by_key(key.to_string())
+                .get_live_item(key)
                 .unwrap()
                 .get_value()
                 .to_owned()
@@ -92,7 +93,7 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
         if new_database.key_exists(key.to_string()) {
             if let ValueType::ListType(current_value) = new_database
-                .search_item_by_key(key.to_string())
+                .get_live_item(key)
                 .unwrap()
                 .get_value()
                 .to_owned()
