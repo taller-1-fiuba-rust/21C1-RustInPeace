@@ -2,6 +2,7 @@
 use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::parser_service;
+use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
 use regex::Regex;
 // use crate::services::worker_service::ThreadPool;
@@ -24,6 +25,7 @@ use std::usize;
 // use std::thread;
 use std::{io::Error, net::SocketAddr};
 
+use super::client::Client;
 // use super::config::Config;
 use super::message::WorkerMessage;
 
@@ -40,6 +42,7 @@ pub struct Server {
     verbose: String,
     // threadpool_size: usize,
     logger: Logger, // receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>
+    clients: Vec<Client>,
     clients_operations: HashMap<String, OperationRegister>,
     channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
     // threadpool: ThreadPool,
@@ -63,12 +66,14 @@ impl Server {
         let clients_operations = HashMap::new();
         //tener canales, publicadores y subscriptores
         let channels = HashMap::new();
+        let clients = Vec::new();
 
         Ok(Server {
             dir,
             port,
             verbose,
             logger,
+            clients,
             clients_operations,
             channels,
             receiver,
@@ -88,6 +93,9 @@ impl Server {
                         println!("Logging error: {}", e);
                     }
                 },
+                WorkerMessage::AddClient(client) => {
+                    self.clients.push(client);
+                }
                 WorkerMessage::MonitorOp(addrs) => {
                     self.print_last_operations_by_client(addrs);
                 }
@@ -214,6 +222,15 @@ impl Server {
         let listening_channels = &self.get_listening_channels(addrs);
 
         tx.send(*listening_channels).unwrap();
+        self.update_client_subscribe_status(addrs, true);
+    }
+
+    fn update_client_subscribe_status(&mut self, addrs: SocketAddr, status: bool) {
+        self.clients.iter_mut().for_each(|client| {
+            if client.get_address() == &addrs {
+                client.set_subscribe(status);
+            }
+        });
     }
 
     fn get_listening_channels(&self, addrs: SocketAddr) -> usize {
@@ -229,16 +246,21 @@ impl Server {
     /// Desuscribe la dirección dada de todos los canales a los que este suscrito
     /// Por el sender asociado envia mensaje para dejar de aceptar
     pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr, sender: Sender<usize>) {
+        let mut removed = false;
         for subscriber in self.channels.values_mut() {
             match subscriber.get(&addrs.to_string()) {
                 Some(_) => {
                     subscriber.remove(&addrs.to_string());
+                    removed = true;
                 }
                 None => break,
             }
         }
         let listening_channels = self.get_listening_channels(addrs);
         sender.send(listening_channels).unwrap();
+        if removed {
+            self.update_client_subscribe_status(addrs, false);
+        }
     }
 
     /// Desuscribe la dirección addrs del canal
@@ -249,6 +271,7 @@ impl Server {
             subscribers.remove(&addrs.to_string());
             let listening_channels = self.get_listening_channels(addrs);
             tx.send(listening_channels).unwrap();
+            self.update_client_subscribe_status(addrs, false);
         }
     }
 
@@ -276,12 +299,11 @@ impl Server {
     }
 
     fn list_active_channels_by_pattern(&self, sender: Sender<Vec<RespType>>, pattern: String) {
-        // reemplazar por glob-style pattern
         let mut channels = Vec::new();
-        let re = Regex::new(&pattern).unwrap();
+        // let glob = glob_pattern::new(&pattern).unwrap();
         
         self.channels.iter().for_each(|channel| {
-            if !channel.1.is_empty() && re.is_match(channel.0) {
+            if !channel.1.is_empty() && glob_pattern::g_match(pattern.as_bytes(), channel.0.as_bytes()) {
                 channels.push(RespType::RBulkString(channel.0.to_string()));
             }
         });

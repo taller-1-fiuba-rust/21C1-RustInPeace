@@ -16,6 +16,23 @@ use std::thread;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
+
+// macro_rules! select {
+//     (
+//         $($name:pat = $rx:ident.$meth:ident() => $code:expr),+
+//     ) => ({
+//         use $crate::sync::mpsc::Select;
+//         let sel = Select::new();
+//         $( let mut $rx = sel.handle(&$rx); )+
+//         unsafe {
+//             $( $rx.add(); )+
+//         }
+//         let ret = sel.wait();
+//         $( if ret == $rx.id() { let $name = $rx.$meth(); $code } else )+
+//         { unreachable!() }
+//     })
+// }
+
 // static drop: AtomicBool = AtomicBool::new(false);
 
 /// Recibe una refencia mutable de tipo Server, la base de datos Database y la configuración Config
@@ -37,30 +54,41 @@ pub fn init(
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
-            for stream in listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        let tx = server_sender.clone();
-                        let conf_lock = conf.clone();
-                        let cloned_database = database.clone();
-                        let stop = stop_signal_sender.clone();
-                        pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock, stop);
-                        });
-                    
-                        // if let Ok(drop) = stop_signal_receiver.recv() {
-                        //     if drop {
-                        //         println!("DROP");
-                        //         save_database(database);
-                        //         break;
-                        //     }
-                        // }
+            // loop {
+            // select!{
+            //     stream = listener.incoming() => {
+                for stream in listener.incoming() {
+                    match stream {
+                        Ok(stream) => {
+                            let tx = server_sender.clone();
+                            let conf_lock = conf.clone();
+                            let cloned_database = database.clone();
+                            let stop = stop_signal_sender.clone();
+                            pool.spawn(|| {
+                                handle_connection(stream, tx, cloned_database, conf_lock, stop);
+                            });
+                            // drop = stop_signal_receiver.recv() => {
+                            //     if drop {
+                            //         println!("DROP");
+                            //         save_database(database);
+                            //         break;
+                            //     }
+                            // }
+                        }
+                        Err(_) => {
+                            println!("Couldn't get stream");
+                            continue;
+                        }
                     }
-                    Err(_) => {
-                        println!("Couldn't get stream");
-                        continue;
-                    }
-                }
+                // },
+                // drop = stop_signal_receiver.recv() => {
+                //     if drop {
+                //         println!("DROP");
+                //         save_database(database);
+                //         break;
+                //     }
+                // }
+            // }
             }
         }
         Err(_) => {
@@ -103,6 +131,8 @@ pub fn handle_connection(
 ) {
     let client_addrs = stream.peer_addr().unwrap();
     let client = Client::new(client_addrs, stream.try_clone().unwrap());
+    tx.send(WorkerMessage::AddClient(client)).unwrap();
+    
     log(
         format!("Connection to address {} established\r\n", client_addrs),
         &tx,
@@ -149,7 +179,7 @@ pub fn handle_connection(
                             client_addrs,
                             &database,
                             &config,
-                            stream.try_clone().unwrap(),
+                            stream.try_clone().unwrap()
                         ) {
                             let response = parse_response(res);
                             log(

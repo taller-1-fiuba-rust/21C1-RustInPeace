@@ -172,7 +172,7 @@ fn test_main() {
     }
 
     // pool.spawn(shutdown);
-    println!("join test");
+    // println!("join test");
     // let _ = handle.join().expect("Couldnt join");
     std::fs::remove_file("./src/dummy_config.txt").unwrap();
     // std::fs::remove_file("./src/dummy_log.txt").unwrap();
@@ -180,14 +180,14 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
-    // Test {
-    //     name: "server command: config get verbose",
-    //     func: test_config_get_verbose,
-    // },
-    // Test {
-    //     name: "server command: config set maxmemory",
-    //     func: test_config_set_maxmemory,
-    // },
+    Test {
+        name: "server command: config get verbose",
+        func: test_config_get_verbose,
+    },
+    Test {
+        name: "server command: config set maxmemory",
+        func: test_config_set_maxmemory,
+    },
     // Test {
     //     name: "server command: dbsize",
     //     func: test_dbsize,
@@ -196,73 +196,61 @@ const TESTS: &[Test] = &[
     //     name: "server command: flushdb",
     //     func: test_flushdb,
     // },
-    // Test {
-    //     name: "keys command: del",
-    //     func: test_keys_del,
-    // },
-    // Test {
-    //     name: "keys command: exists",
-    //     func: test_keys_exists,
-    // },
-    // Test {
-    //     name: "keys command: persist",
-    //     func: test_keys_persist,
-    // },
-    // Test {
-    //     name: "keys command: rename",
-    //     func: test_keys_rename,
-    // },
-    // Test {
-    //     name: "keys command: copy",
-    //     func: test_keys_copy,
-    // },
-    // Test {
-    //     name: "keys command: copy replace",
-    //     func: test_keys_copy_with_replace,
-    // },
-    // Test {
-    //     name: "string command: append mykey newvalue",
-    //     func: test_string_append,
-    // },
-    // Test {
-    //     name: "string command: decrby mykey 3",
-    //     func: test_string_decrby,
-    // },
-    // Test {
-    //     name: "string command: incrby mykey 3",
-    //     func: test_string_incrby,
-    // },
-    // Test {
-    //     name: "string command: get key_1",
-    //     func: test_string_get,
-    // },
-    // Test {
-    //     name: "string command: getdel key_getdel",
-    //     func: test_string_getdel,
-    // },
-    // Test {
-    //     name: "string command: getset key_getset",
-    //     func: test_string_getset,
-    // },
-    // Test {
-    //     name: "string command: strlen key_1",
-    //     func: test_string_strlen,
-    // },
-    // Test {
-    //     name: "pubsub command: subscribe foo",
-    //     func: test_pubsub,
-    // },
-    // Test {
-    //     name: "pubsub command: pubsub numsub channel_1 channel_2",
-    //     func: test_pubsub_numsub,
-    // },
-    // Test {
-    //     name: "pubsub command: pubsub channels",
-    //     func: test_pubsub_channels,
-    // },
     Test {
-        name: "pubsub command: pubsub channels pattern",
-        func: test_pubsub_channels_pattern,
+        name: "keys command: del",
+        func: test_keys_del,
+    },
+    Test {
+        name: "keys command: exists",
+        func: test_keys_exists,
+    },
+    Test {
+        name: "keys command: persist",
+        func: test_keys_persist,
+    },
+    Test {
+        name: "keys command: rename",
+        func: test_keys_rename,
+    },
+    Test {
+        name: "keys command: copy",
+        func: test_keys_copy,
+    },
+    Test {
+        name: "keys command: copy replace",
+        func: test_keys_copy_with_replace,
+    },
+    Test {
+        name: "string command: append mykey newvalue",
+        func: test_string_append,
+    },
+    Test {
+        name: "string command: decrby mykey 3",
+        func: test_string_decrby,
+    },
+    Test {
+        name: "string command: incrby mykey 3",
+        func: test_string_incrby,
+    },
+    Test {
+        name: "string command: get key_1",
+        func: test_string_get,
+    },
+    Test {
+        name: "string command: getdel key_getdel",
+        func: test_string_getdel,
+    },
+    Test {
+        name: "string command: getset key_getset",
+        func: test_string_getset,
+    },
+    Test {
+        name: "string command: strlen key_1",
+        func: test_string_strlen,
+    },
+    Test {
+        name: "pubsub command: subscribe foo",
+        func: test_pubsub,
     },
 ];
 
@@ -552,9 +540,10 @@ fn test_pubsub() -> TestResult {
 
     // Barrier is used to make test thread wait to publish
     // until after the pubsub thread has subscribed.
-    let barrier = Arc::new(Barrier::new(2));
+    let barrier = Arc::new(Barrier::new(4));
+    let close_barrier = Arc::new(Barrier::new(4));
     let pubsub_barrier = barrier.clone();
-
+    let close_pubsub = close_barrier.clone();
     let thread = thread::spawn(move || {
         let mut pubsub = pubsub_con.as_pubsub();
         pubsub.subscribe("foo").unwrap();
@@ -564,134 +553,67 @@ fn test_pubsub() -> TestResult {
         let msg = pubsub.get_message().unwrap();
         assert_eq!(msg.get_channel(), Ok("foo".to_string()));
         assert_eq!(msg.get_payload(), Ok(42));
+        let _ = close_pubsub.wait();
     });
+
+    let mut pubsub_con_2 = connect().unwrap();
+    let pubsub_barrier_2 = barrier.clone();
+    let close_pubsub = close_barrier.clone();
+    let thread_2 = thread::spawn(move || {
+        let mut pubsub_2 = pubsub_con_2.as_pubsub();
+        pubsub_2.subscribe("foo").unwrap();
+
+        let _ = pubsub_barrier_2.wait();
+        let _ = close_pubsub.wait();
+    });
+
+    let mut pubsub_con_3 = connect().unwrap();
+    let pubsub_barrier_3 = barrier.clone();
+    let close_pubsub = close_barrier.clone();
+    let thread_3 = thread::spawn(move || {
+        let mut pubsub_3 = pubsub_con_3.as_pubsub();
+        pubsub_3.subscribe("helloworld").unwrap();
+
+        let _ = pubsub_barrier_3.wait();
+        let _ = close_pubsub.wait();
+    });
+
     let _ = barrier.wait();
     let mut con = connect().unwrap();
     let receivers: usize = redis::cmd("PUBLISH").arg("foo").arg(42).query(&mut con).unwrap();
+    let subs: Vec<String> = redis::cmd("PUBSUB").arg("NUMSUB").arg("foo").query(&mut con).unwrap();
+    let channels: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").query(&mut con).unwrap();
+    let channels_pattern: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").arg("*d").query(&mut con).unwrap();
+    let _ = close_barrier.wait();
+
+    let mut pass = true;
+    if receivers != 2 {
+        pass = false;
+    }
+
+    if subs != vec![String::from("foo"), String::from("2")] {
+        pass = false;
+    }
+
+    if channels != vec![String::from("foo"), String::from("helloworld")] && channels != vec![String::from("helloworld"), String::from("foo")] {
+        pass = false;
+    }
+
+    if channels_pattern != vec![String::from("helloworld")] {
+        pass = false;
+    }
 
     thread.join().expect("Something went wrong");
-
-    if receivers == 1 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("1"),
-            got: receivers.to_string(),
-        }));
-    }
-}
-
-fn test_pubsub_numsub() -> TestResult {
-    let mut pubsub_con_1 = connect().unwrap();
-
-    let barrier = Arc::new(Barrier::new(2));
-    let pubsub_barrier = barrier.clone();
-
-    let thread_1 = thread::spawn(move || {
-        let mut pubsub_1 = pubsub_con_1.as_pubsub();
-        pubsub_1.subscribe("bar").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let pubsub_barrier = barrier.clone();
-    let mut pubsub_con_2 = connect().unwrap();
-
-    let thread_2 = thread::spawn(move || {
-        let mut pubsub_2 = pubsub_con_2.as_pubsub();
-        pubsub_2.subscribe("bar").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let _ = barrier.wait();
-    let mut con = connect().unwrap();
-    let result: Vec<String> = redis::cmd("PUBSUB").arg("NUMSUB").arg("bar").query(&mut con).unwrap();
-    thread_1.join().expect("Something went wrong");
     thread_2.join().expect("Something went wrong");
-
-    if result == vec![String::from("bar"), String::from("2")] {
+    thread_3.join().expect("Something went wrong");
+    if pass {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("1"),
-            got: format!("{:?}", result),
+            expected: format!("publish: {}, numsub: {:?}, channels: {:?}, channels pattern: {:?}", 2, vec![String::from("foo"), String::from("2")], vec![String::from("foo"), String::from("helloworld")], vec![String::from("helloworld")]),
+            got: format!("publish: {}, numsub: {:?}, channels: {:?}, channels pattern: {:?}", receivers, subs, channels, channels_pattern),
         }));
     }
 }
 
-fn test_pubsub_channels() -> TestResult {
-    let mut pubsub_con_1 = connect().unwrap();
-
-    let barrier = Arc::new(Barrier::new(2));
-    let pubsub_barrier = barrier.clone();
-
-    let thread_1 = thread::spawn(move || {
-        let mut pubsub_1 = pubsub_con_1.as_pubsub();
-        pubsub_1.subscribe("cat").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let pubsub_barrier = barrier.clone();
-    let mut pubsub_con_2 = connect().unwrap();
-
-    let thread_2 = thread::spawn(move || {
-        let mut pubsub_2 = pubsub_con_2.as_pubsub();
-        pubsub_2.subscribe("dog").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let _ = barrier.wait();
-    let mut con = connect().unwrap();
-    let result: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").query(&mut con).unwrap();
-
-    thread_1.join().expect("Something went wrong");
-    thread_2.join().expect("Something went wrong");
-
-    if result == vec![String::from("cat"), String::from("dog")] {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: format!("{:?}", vec![String::from("cat"), String::from("dog")]),
-            got: format!("{:?}", result),
-        }));
-    }
-}
-
-fn test_pubsub_channels_pattern() -> TestResult {
-    let mut pubsub_con_1 = connect().unwrap();
-
-    let barrier = Arc::new(Barrier::new(2));
-    let pubsub_barrier = barrier.clone();
-
-    let thread_1 = thread::spawn(move || {
-        let mut pubsub_1 = pubsub_con_1.as_pubsub();
-        pubsub_1.subscribe("hello").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let pubsub_barrier = barrier.clone();
-    let mut pubsub_con_2 = connect().unwrap();
-
-    let thread_2 = thread::spawn(move || {
-        let mut pubsub_2 = pubsub_con_2.as_pubsub();
-        pubsub_2.subscribe("world").unwrap();
-        let _ = pubsub_barrier.wait();        
-    });
-
-    let _ = barrier.wait();
-    let mut con = connect().unwrap();
-    let result: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").arg("h*").query(&mut con).unwrap();
-    println!("{:?}", result);
-    thread_1.join().expect("Something went wrong");
-    thread_2.join().expect("Something went wrong");
-
-    if result == vec![String::from("hello")] {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: format!("{:?}", vec![String::from("hello")]),
-            got: format!("{:?}", result),
-        }));
-    }
-}
-
-    //test unsubscribe -> falta funcionalidad para estado tal que no pueda mandar ningun otro comando que los de pubsub
+//test unsubscribe -> falta funcionalidad para estado tal que no pueda mandar ningun otro comando que los de pubsub
