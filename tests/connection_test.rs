@@ -150,31 +150,31 @@ fn test_main() {
             "22".to_string(),
             "45".to_string(),
         ]),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edades_amigos"), added_item_12);
 
     let added_item_13 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("10")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_maria"), added_item_13);
 
     let added_item_14 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("11")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_clara"), added_item_14);
 
     let added_item_15 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("12")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_josefina"), added_item_15);
 
     let added_item_16 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("13")),
-        KeyAccessTime::Volatile(1635597186),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_luz"), added_item_16);
 
@@ -185,13 +185,19 @@ fn test_main() {
             "luz".to_string(),
             "josefina".to_string(),
         ]),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("grupo_amigas"), added_item_17);
 
+    // let added_item_18 = ValueTimeItem::new_now(
+    //     ValueType::StringType(String::from("63")),
+    //     KeyAccessTime::Volatile(1635595186),
+    // );
+    // database.add(String::from("edad_mariana"), added_item_18);
+
     let added_item_18 = ValueTimeItem::new_now(
         ValueType::StringType(String::from("55")),
-        KeyAccessTime::Volatile(4234234),
+        KeyAccessTime::Persistent,
     );
     database.add(String::from("edad_mariana"), added_item_18);
 
@@ -394,6 +400,30 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: mget key_1 mykey",
         func: test_string_mget,
+    },
+    Test {
+        name: "list command: push values into key - list type",
+        func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
+    },
+    Test {
+        name: "list command: push values into existing key - list type",
+        func: test_se_guardan_valores_en_una_lista_ya_existente,
+    },
+    Test {
+        name: "list command: cannot push values into existing non-list type key",
+        func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
+    },
+    Test {
+        name: "list command: get lenght of existing list",
+        func: test_se_obtiene_la_longitud_de_la_lista_en_value,
+    },
+    Test {
+        name: "list command: get 0 as lenght of unexisting list",
+        func: test_se_obtiene_cero_como_la_longitud_de_key_inexistente,
+    },
+    Test {
+        name: "list command: cannot get len of non-list type key",
+        func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
     },
     // Test {
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
@@ -622,7 +652,6 @@ fn test_keys_copy_with_replace() -> TestResult {
         }));
     }
 }
-//ESTOY ACA
 fn test_keys_sort_ascending() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("SORT").arg("edades_amigos").query(&mut con)?;
@@ -816,6 +845,108 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("Ok"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("bandada_de_caranchos")
+        .arg("carancho_1")
+        .arg("carancho_2")
+        .arg("carancho_3")
+        .arg("carancho_4")
+        .arg("carancho_5")
+        .query(&mut con)?;
+
+    if ret == "5".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "5".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("edad_luz")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con)?;
+    if ret == "error - not list type".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "error - not list type".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPUSH")
+        .arg("grupo_amigas")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con)?;
+    if ret == "9".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "9".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_se_obtiene_la_longitud_de_la_lista_en_value() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
+    if ret == "6".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "6".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LLEN")
+        .arg("porotos_de_canasta")
+        .query(&mut con)?;
+    if ret == "0".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "0".to_string(),
+            got: ret,
+        }));
+    }
+}
+
+fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LLEN").arg("edad_luz").query(&mut con)?;
+    if ret == "error - not list type".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "error - not list type".to_string(),
+            got: ret,
         }));
     }
 }
