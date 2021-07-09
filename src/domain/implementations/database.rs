@@ -30,6 +30,13 @@ impl Database {
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
+    pub fn get_items(&self) -> &HashMap<String, ValueTimeItem> {
+        &self.items
+    }
+
+    // pub fn search_item_by_key(&self, key: String) -> Option<&ValueTimeItem> {
+    //     self.items.get(&key)
+    // }
 
     pub fn get_live_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let items = self.check_timeout_item(key);
@@ -107,6 +114,11 @@ impl Database {
     pub fn key_exists(&mut self, key: String) -> bool {
         return self.get_live_item(&key).is_some();
     }
+
+    ///devuelve **true** si la clave existe en *database*
+    // pub fn key_exists_2(&self, key: String) -> bool {
+    //     return self.items.contains_key(&key); // (&key).is_some();
+    // }
     /// permite agregar *clave* y *valor* a la base de datos
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
@@ -122,6 +134,7 @@ impl Database {
         let mut vec_auxiliar = Vec::new();
         for element in elements {
             let patterned_key = pat.to_string() + element.as_str();
+            println!("patterned key: {:?}", &patterned_key);
             if self.items.contains_key(&patterned_key) {
                 let current_value = self
                     .items
@@ -139,6 +152,36 @@ impl Database {
             None
         }
     }
+
+    pub fn get_values_and_associated_external_key_values(
+        &mut self,
+        pat: String,
+        key: String,
+    ) -> Option<Vec<(String, String)>> {
+        //aca agarro la key que me pasan por request
+        let my_list_value_optional = self.get_live_item(&key);
+        if let Some(my_list_value) = my_list_value_optional {
+            let elements = my_list_value.get_value_version_2().unwrap(); //aca tengo la lista guardada en la key q me pasaron
+            let mut vec_resptype_to_string = Vec::new();
+            for aux in elements {
+                vec_resptype_to_string.push(aux.to_string());
+            }
+            let tuple_vector = self
+                .get_values_of_external_keys_that_match_a_pattern(vec_resptype_to_string, &pat)
+                .unwrap();
+            Some(tuple_vector)
+        } else {
+            None
+        }
+    }
+
+    // pub fn pop_elements_from_db(&self , cantidad: usize, key: String) ->Vec<String> {
+    //     let mut vec_aux = vec![];
+    //     for _n in 0..cantidad {
+    //         let current_element = old_vector.pop().unwrap().to_string();
+    //         vec_aux.push(RespType::RBulkString(current_element));
+    //     }
+    // }
 
     ///
     /// Actualiza el valor de `last_access_time` para una key.
