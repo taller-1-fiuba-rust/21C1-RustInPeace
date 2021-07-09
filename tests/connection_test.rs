@@ -248,9 +248,21 @@ const TESTS: &[Test] = &[
     //     name: "string command: strlen key_1",
     //     func: test_string_strlen,
     // },
+    // Test {
+    //     name: "pubsub command: subscribe foo",
+    //     func: test_pubsub,
+    // },
+    // Test {
+    //     name: "pubsub command: pubsub numsub channel_1 channel_2",
+    //     func: test_pubsub_numsub,
+    // },
+    // Test {
+    //     name: "pubsub command: pubsub channels",
+    //     func: test_pubsub_channels,
+    // },
     Test {
-        name: "pubsub command: subscribe channel_1 channel_2 ",
-        func: test_pubsub,
+        name: "pubsub command: pubsub channels pattern",
+        func: test_pubsub_channels_pattern,
     },
 ];
 
@@ -567,6 +579,119 @@ fn test_pubsub() -> TestResult {
             got: receivers.to_string(),
         }));
     }
+}
+
+fn test_pubsub_numsub() -> TestResult {
+    let mut pubsub_con_1 = connect().unwrap();
+
+    let barrier = Arc::new(Barrier::new(2));
+    let pubsub_barrier = barrier.clone();
+
+    let thread_1 = thread::spawn(move || {
+        let mut pubsub_1 = pubsub_con_1.as_pubsub();
+        pubsub_1.subscribe("bar").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let pubsub_barrier = barrier.clone();
+    let mut pubsub_con_2 = connect().unwrap();
+
+    let thread_2 = thread::spawn(move || {
+        let mut pubsub_2 = pubsub_con_2.as_pubsub();
+        pubsub_2.subscribe("bar").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let _ = barrier.wait();
+    let mut con = connect().unwrap();
+    let result: Vec<String> = redis::cmd("PUBSUB").arg("NUMSUB").arg("bar").query(&mut con).unwrap();
+    thread_1.join().expect("Something went wrong");
+    thread_2.join().expect("Something went wrong");
+
+    if result == vec![String::from("bar"), String::from("2")] {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: format!("{:?}", result),
+        }));
+    }
+}
+
+fn test_pubsub_channels() -> TestResult {
+    let mut pubsub_con_1 = connect().unwrap();
+
+    let barrier = Arc::new(Barrier::new(2));
+    let pubsub_barrier = barrier.clone();
+
+    let thread_1 = thread::spawn(move || {
+        let mut pubsub_1 = pubsub_con_1.as_pubsub();
+        pubsub_1.subscribe("cat").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let pubsub_barrier = barrier.clone();
+    let mut pubsub_con_2 = connect().unwrap();
+
+    let thread_2 = thread::spawn(move || {
+        let mut pubsub_2 = pubsub_con_2.as_pubsub();
+        pubsub_2.subscribe("dog").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let _ = barrier.wait();
+    let mut con = connect().unwrap();
+    let result: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").query(&mut con).unwrap();
+
+    thread_1.join().expect("Something went wrong");
+    thread_2.join().expect("Something went wrong");
+
+    if result == vec![String::from("cat"), String::from("dog")] {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: format!("{:?}", vec![String::from("cat"), String::from("dog")]),
+            got: format!("{:?}", result),
+        }));
+    }
+}
+
+fn test_pubsub_channels_pattern() -> TestResult {
+    let mut pubsub_con_1 = connect().unwrap();
+
+    let barrier = Arc::new(Barrier::new(2));
+    let pubsub_barrier = barrier.clone();
+
+    let thread_1 = thread::spawn(move || {
+        let mut pubsub_1 = pubsub_con_1.as_pubsub();
+        pubsub_1.subscribe("hello").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let pubsub_barrier = barrier.clone();
+    let mut pubsub_con_2 = connect().unwrap();
+
+    let thread_2 = thread::spawn(move || {
+        let mut pubsub_2 = pubsub_con_2.as_pubsub();
+        pubsub_2.subscribe("world").unwrap();
+        let _ = pubsub_barrier.wait();        
+    });
+
+    let _ = barrier.wait();
+    let mut con = connect().unwrap();
+    let result: Vec<String> = redis::cmd("PUBSUB").arg("CHANNELS").arg("h*").query(&mut con).unwrap();
+    println!("{:?}", result);
+    thread_1.join().expect("Something went wrong");
+    thread_2.join().expect("Something went wrong");
+
+    if result == vec![String::from("hello")] {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: format!("{:?}", vec![String::from("hello")]),
+            got: format!("{:?}", result),
+        }));
+    }
+}
 
     //test unsubscribe -> falta funcionalidad para estado tal que no pueda mandar ningun otro comando que los de pubsub
-}

@@ -102,15 +102,17 @@ pub fn pubsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
 
 fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     let (response_sender, response_receiver) = mpsc::channel();
-    if let RespType::RBulkString(pattern) = &cmd[2] {
-        tx.send(WorkerMessage::Channels(
-            response_sender,
-            Some(pattern.to_string())
-        ))
-        .unwrap();
-
-        if let Ok(res) = response_receiver.recv() {
-            return RespType::RArray(res);
+    if cmd.len() >= 3 {
+        if let RespType::RBulkString(pattern) = &cmd[2] {
+            tx.send(WorkerMessage::Channels(
+                response_sender,
+                Some(pattern.to_string())
+            ))
+            .unwrap();
+    
+            if let Ok(res) = response_receiver.recv() {
+                return RespType::RArray(res);
+            }
         }
     } else {
         tx.send(WorkerMessage::Channels(

@@ -3,6 +3,7 @@ use crate::domain::implementations::logger_impl::Logger;
 use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
+use regex::Regex;
 // use crate::services::worker_service::ThreadPool;
 use std::collections::HashMap;
 use std::io::Write;
@@ -275,11 +276,29 @@ impl Server {
     }
 
     fn list_active_channels_by_pattern(&self, sender: Sender<Vec<RespType>>, pattern: String) {
-        //logica pattern
+        // reemplazar por glob-style pattern
+        let mut channels = Vec::new();
+        let re = Regex::new(&pattern).unwrap();
+        
+        self.channels.iter().for_each(|channel| {
+            if !channel.1.is_empty() && re.is_match(channel.0) {
+                channels.push(RespType::RBulkString(channel.0.to_string()));
+            }
+        });
+        sender.send(channels).unwrap();
     }
 
     fn list_number_of_subscribers(&self, channels: Vec<String>, sender: Sender<Vec<RespType>>) {
-        //
+        let mut list = Vec::new();
+        channels.iter().for_each(|channel| {
+            let mut counter = 0;
+            if let Some(subscribers) = self.channels.get(channel) {
+                counter = subscribers.len();
+            }
+            list.push(RespType::RBulkString(channel.to_string()));
+            list.push(RespType::RBulkString(counter.to_string()));
+        });
+        sender.send(list).unwrap();
     }
 }
 
