@@ -185,7 +185,7 @@ impl Database {
                 self.get_live_item(key).unwrap().get_value().to_owned()
             {
                 let mut old_vector = current_value;
-                &new_vec.append(&mut old_vector);
+                new_vec.append(&mut old_vector);
                 let vec_len = new_vec.len();
                 let vt_item =
                     ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
@@ -209,7 +209,7 @@ impl Database {
                 self.get_live_item(key).unwrap().get_value().to_owned()
             {
                 let mut old_vector = current_value;
-                &new_vec.append(&mut old_vector);
+                new_vec.append(&mut old_vector);
                 let vec_len = new_vec.len();
                 let vt_item =
                     ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);

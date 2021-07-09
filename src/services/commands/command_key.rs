@@ -377,8 +377,8 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 //-------------------------------------------------------------------------------------------------------------
 
 fn _sort_vec_by_min_max_values(
-    lower_bound: &String,
-    upper_bound: &String,
+    lower_bound: &str,
+    upper_bound: &str,
     sorted_list: Vec<&String>,
 ) -> Vec<String> {
     let min = lower_bound.parse::<usize>().unwrap();
