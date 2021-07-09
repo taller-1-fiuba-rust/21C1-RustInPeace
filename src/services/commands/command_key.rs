@@ -218,6 +218,7 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                             let min = lower_bound.parse::<usize>().unwrap();
                             let max = upper_bound.parse::<usize>().unwrap();
                             sorted_list = sorted_list[min..max].to_vec();
+                            //sorted_list = sort_vec_by_min_max_values(lower_bound, upper_, sorted_list);
                         }
                     }
                 }
@@ -369,7 +370,27 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
     RespType::RBulkString(tipo)
 }
 
-//--------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+
+fn _sort_vec_by_min_max_values(
+    lower_bound: &String,
+    upper_bound: &String,
+    sorted_list: Vec<&String>,
+) -> Vec<String> {
+    let min = lower_bound.parse::<usize>().unwrap();
+    let max = upper_bound.parse::<usize>().unwrap();
+    let list = sorted_list[min..max].to_vec();
+    let mut aux = vec![];
+    for elemento in list {
+        aux.push(elemento.to_string());
+    }
+    aux
+}
+
 /// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
 fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     let mut aux_hash_map = HashMap::new();

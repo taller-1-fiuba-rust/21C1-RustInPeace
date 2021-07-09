@@ -19,6 +19,7 @@ use std::{
     sync::{mpsc, Arc, Mutex},
     thread::{self, sleep},
     time::Duration,
+    usize,
 };
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
@@ -201,7 +202,7 @@ fn test_main() {
     );
     database.add(String::from("edad_mariana"), added_item_18);
 
-    let added_item_list_1 = ValueTimeItem::new_now(
+    let added_item_list_19 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "pomelo".to_string(),
             "sandia".to_string(),
@@ -210,7 +211,18 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("frutas"), added_item_list_1);
+    database.add(String::from("frutas"), added_item_list_19);
+
+    let added_item_list_20 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "tamarindo".to_string(),
+            "grosella".to_string(),
+            "pomelo_negro".to_string(),
+            "coco".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("frutas_raras"), added_item_list_20);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -424,6 +436,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: cannot get len of non-list type key",
         func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
+    },
+    Test {
+        name: "list command: pushx values into key - list type",
+        func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
+    },
+    Test {
+        name: "list command: cannot pushx values into non_existing key",
+        func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
     },
     // Test {
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
@@ -847,7 +867,7 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
 
 fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
+    let ret: usize = redis::cmd("LPUSH")
         .arg("bandada_de_caranchos")
         .arg("carancho_1")
         .arg("carancho_2")
@@ -856,12 +876,13 @@ fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResul
         .arg("carancho_5")
         .query(&mut con)?;
 
-    if ret == "5".to_string() {
+    if ret == 5 {
+        // if ret == "5".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "5".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
@@ -888,7 +909,7 @@ fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestRes
 
 fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
+    let ret: usize = redis::cmd("LPUSH")
         .arg("grupo_amigas")
         .arg("jacinta")
         .arg("leonela")
@@ -896,12 +917,13 @@ fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
         .arg("leonilda")
         .arg("murcia")
         .query(&mut con)?;
-    if ret == "9".to_string() {
+    if ret == 9 {
+        // if ret == "9".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "9".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
@@ -943,6 +965,45 @@ fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: "error - not list type".to_string(),
             got: ret,
+        }));
+    }
+}
+
+fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("frutas_raras")
+        .arg("granada")
+        .arg("mango")
+        .arg("morango")
+        .arg("anana")
+        .arg("kinoto")
+        .query(&mut con)?;
+    if ret == 9 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 9.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("gorilas_y_mandriles")
+        .arg("gorila_gutierrez")
+        .arg("gorila_sosa")
+        .arg("mandril_gonzalez")
+        .arg("mandril_galvan")
+        .query(&mut con)?;
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 0.to_string(),
+            got: ret.to_string(),
         }));
     }
 }

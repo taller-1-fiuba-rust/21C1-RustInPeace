@@ -11,7 +11,8 @@ use std::usize;
 ///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
 /// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
 /// cantidad de elementos guardados en esa key
-pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+///DEPRECATED
+pub fn _lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
@@ -49,20 +50,6 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     } else {
         RespType::RError("empty request".to_string())
     }
-}
-
-pub fn actualizar_list_type_value(
-    key: String,
-    old_vec: Vec<String>,
-    mut new_vec: Vec<String>,
-    mut database: RwLockWriteGuard<Database>,
-) -> usize {
-    let mut old_vector = old_vec;
-    new_vec.append(&mut old_vector);
-    let vec_len = new_vec.len();
-    let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
-    database.add(key, vt_item);
-    vec_len
 }
 
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -127,29 +114,49 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
-pub fn pop_elements_from_db(
-    cantidad: usize,
-    key: String,
-    mut old_vec: Vec<String>,
-    mut database: RwLockWriteGuard<Database>,
-) -> Vec<RespType> {
+///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
+/// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
+/// cantidad de elementos guardados en esa key
+pub fn lpush_version_2(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
-    for _n in 0..cantidad {
-        let current_element = old_vec.pop().unwrap().to_string();
-        vec_aux.push(RespType::RBulkString(current_element));
-    }
-    let mut vec_to_stored = vec![];
-    for elemento in &vec_aux {
-        if let RespType::RBulkString(elem) = elemento {
-            vec_to_stored.push(elem.to_string());
+    if let RespType::RBulkString(key) = &cmd[1] {
+        for n in cmd.iter().skip(2).rev() {
+            if let RespType::RBulkString(value) = n {
+                vec_aux.push(value.to_string());
+            }
         }
+        if let Some(resultado) =
+            new_database.push_new_values_into_existing_or_non_existing_key_value_pair(vec_aux, key)
+        {
+            RespType::RInteger(resultado)
+        } else {
+            RespType::RBulkString("error - not list type".to_string())
+        }
+    } else {
+        RespType::RError("empty request".to_string())
     }
-    let vt_item = ValueTimeItem::new_now(
-        ValueType::ListType(vec_to_stored),
-        KeyAccessTime::Persistent,
-    );
-    database.add(key, vt_item);
-    vec_aux
+}
+
+pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    let mut vec_aux = vec![];
+    if let RespType::RBulkString(key) = &cmd[1] {
+        for n in cmd.iter().skip(2).rev() {
+            if let RespType::RBulkString(value) = n {
+                vec_aux.push(value.to_string());
+            }
+        }
+        if let Some(resultado) =
+            new_database.push_new_values_into_existing_key_value_pair(vec_aux, key)
+        {
+            RespType::RInteger(resultado)
+        } else {
+            RespType::RBulkString("".to_string())
+        }
+    } else {
+        RespType::RError("empty request".to_string())
+    }
 }
 
 /// Devuelve el valor en la posición `index` de la lista asociada a una `key`.
@@ -267,4 +274,49 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
         }
     }
     RespType::RError(String::from("Invalid command lindex"))
+}
+
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+
+pub fn pop_elements_from_db(
+    cantidad: usize,
+    key: String,
+    mut old_vec: Vec<String>,
+    mut database: RwLockWriteGuard<Database>,
+) -> Vec<RespType> {
+    let mut vec_aux = vec![];
+    for _n in 0..cantidad {
+        let current_element = old_vec.pop().unwrap().to_string();
+        vec_aux.push(RespType::RBulkString(current_element));
+    }
+    let mut vec_to_stored = vec![];
+    for elemento in &vec_aux {
+        if let RespType::RBulkString(elem) = elemento {
+            vec_to_stored.push(elem.to_string());
+        }
+    }
+    let vt_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec_to_stored),
+        KeyAccessTime::Persistent,
+    );
+    database.add(key, vt_item);
+    vec_aux
+}
+
+pub fn actualizar_list_type_value(
+    key: String,
+    old_vec: Vec<String>,
+    mut new_vec: Vec<String>,
+    mut database: RwLockWriteGuard<Database>,
+) -> usize {
+    let mut old_vector = old_vec;
+    new_vec.append(&mut old_vector);
+    let vec_len = new_vec.len();
+    let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+    database.add(key, vt_item);
+    vec_len
 }

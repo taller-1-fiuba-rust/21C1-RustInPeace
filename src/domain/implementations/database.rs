@@ -175,6 +175,71 @@ impl Database {
         }
     }
 
+    pub fn push_new_values_into_existing_key_value_pair(
+        &mut self,
+        mut new_vec: Vec<String>,
+        key: &str,
+    ) -> Option<usize> {
+        if self.key_exists(key.to_string()) {
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let mut old_vector = current_value;
+                &new_vec.append(&mut old_vector);
+                let vec_len = new_vec.len();
+                let vt_item =
+                    ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+                self.add(key.to_string(), vt_item);
+                Some(vec_len)
+            } else {
+                None
+            }
+        } else {
+            Some(0)
+        }
+    }
+
+    pub fn push_new_values_into_existing_or_non_existing_key_value_pair(
+        &mut self,
+        mut new_vec: Vec<String>,
+        key: &str,
+    ) -> Option<usize> {
+        if self.key_exists(key.to_string()) {
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let mut old_vector = current_value;
+                &new_vec.append(&mut old_vector);
+                let vec_len = new_vec.len();
+                let vt_item =
+                    ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+                self.add(key.to_string(), vt_item);
+                Some(vec_len)
+            } else {
+                None
+            }
+        } else {
+            let vec_len = new_vec.len();
+            let vt_item =
+                ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+            self.add(key.to_string(), vt_item);
+            Some(vec_len)
+        }
+    }
+    //---
+    //     key: String,
+    //     old_vec: Vec<String>,
+    //     mut new_vec: Vec<String>,
+    //     mut database: RwLockWriteGuard<Database>,
+    // ) -> usize {
+    //     let mut old_vector = old_vec;
+    //     new_vec.append(&mut old_vector);
+    //     let vec_len = new_vec.len();
+    //     let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+    //     database.add(key, vt_item);
+    //     vec_len
+    //---
+
     // pub fn pop_elements_from_db(&self , cantidad: usize, key: String) ->Vec<String> {
     //     let mut vec_aux = vec![];
     //     for _n in 0..cantidad {

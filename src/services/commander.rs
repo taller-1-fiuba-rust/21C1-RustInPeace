@@ -142,7 +142,7 @@ pub fn handle_command(
                     return Some(command_key::get_ttl(&array, database));
                 }
                 "lpush" => {
-                    return Some(command_list::lpush(&array, database));
+                    return Some(command_list::lpush_version_2(&array, database));
                 }
                 "lindex" => {
                     return Some(command_list::get_index(&array, database));
@@ -152,6 +152,9 @@ pub fn handle_command(
                 }
                 "lpop" => {
                     return Some(command_list::lpop(&array, database));
+                }
+                "lpushx" => {
+                    return Some(command_list::lpushx(&array, database));
                 }
                 _ => {}
             }
