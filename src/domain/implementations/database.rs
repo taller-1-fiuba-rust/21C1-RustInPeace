@@ -157,6 +157,14 @@ impl Database {
         }
     }
 
+    // pub fn pop_elements_from_db(&self , cantidad: usize, key: String) ->Vec<String> {
+    //     let mut vec_aux = vec![];
+    //     for _n in 0..cantidad {
+    //         let current_element = old_vector.pop().unwrap().to_string();
+    //         vec_aux.push(RespType::RBulkString(current_element));
+    //     }
+    // }
+
     ///
     /// Actualiza el valor de `last_access_time` para una key.
     ///

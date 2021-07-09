@@ -2,7 +2,8 @@ use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, Valu
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::usize;
 //use std::collections::HashMap;
 //use std::str::FromStr;
 //use std::time::SystemTime;
@@ -26,30 +27,41 @@ pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .get_value()
                 .to_owned()
             {
-                let mut old_vector = current_value;
-                vec_aux.append(&mut old_vector);
-                let vec_len = &vec_aux.len();
-                let vt_item = ValueTimeItem::new_now(
-                    ValueType::ListType(vec_aux),
-                    KeyAccessTime::Volatile(1635597198),
-                );
-                new_database.add(key.to_string(), vt_item);
-                RespType::RBulkString(vec_len.to_string())
+                RespType::RBulkString(
+                    actualizar_list_type_value(
+                        key.to_string(),
+                        current_value,
+                        vec_aux,
+                        new_database,
+                    )
+                    .to_string(),
+                )
             } else {
                 RespType::RBulkString("error - not list type".to_string())
             }
         } else {
-            let vec_len = &vec_aux.len();
-            let vt_item = ValueTimeItem::new_now(
-                ValueType::ListType(vec_aux),
-                KeyAccessTime::Volatile(1635597199),
-            );
-            new_database.add(key.to_string(), vt_item);
-            RespType::RBulkString(vec_len.to_string())
+            RespType::RBulkString(
+                actualizar_list_type_value(key.to_string(), vec![], vec_aux, new_database)
+                    .to_string(),
+            )
         }
     } else {
         RespType::RError("empty request".to_string())
     }
+}
+
+pub fn actualizar_list_type_value(
+    key: String,
+    old_vec: Vec<String>,
+    mut new_vec: Vec<String>,
+    mut database: RwLockWriteGuard<Database>,
+) -> usize {
+    let mut old_vector = old_vec;
+    new_vec.append(&mut old_vector);
+    let vec_len = new_vec.len();
+    let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+    database.add(key, vt_item);
+    vec_len
 }
 
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -85,20 +97,24 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .get_value()
                 .to_owned()
             {
-                let mut old_vector = current_value;
                 if cmd.len() == 2 {
-                    let mut vec_aux = vec![];
-                    if let RespType::RBulkString(cant_elementos_seleccionado) = &cmd[2] {
-                        for _n in 0..cant_elementos_seleccionado.parse::<i32>().unwrap() {
-                            let current_element = old_vector.pop().unwrap().to_string();
-                            vec_aux.push(RespType::RBulkString(current_element));
-                        }
-                        return RespType::RArray(vec_aux);
+                    if let RespType::RBulkString(cantidad) = &cmd[2] {
+                        let popped_elements = pop_elements_from_db(
+                            cantidad.parse::<usize>().unwrap(),
+                            key.to_string(),
+                            current_value,
+                            new_database,
+                        );
+                        return RespType::RArray(popped_elements);
                     } else {
                         return RespType::RBulkString("empty".to_string());
                     }
                 } else {
-                    return RespType::RBulkString(old_vector.pop().unwrap());
+                    let popped_elements =
+                        pop_elements_from_db(1, key.to_string(), current_value, new_database);
+                    if let RespType::RBulkString(sole_value) = &popped_elements[0] {
+                        return RespType::RBulkString(sole_value.to_string());
+                    }
                 }
             }
             RespType::RError("error - not list type".to_string())
@@ -108,6 +124,31 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     } else {
         RespType::RError("empty request".to_string())
     }
+}
+
+pub fn pop_elements_from_db(
+    cantidad: usize,
+    key: String,
+    mut old_vec: Vec<String>,
+    mut database: RwLockWriteGuard<Database>,
+) -> Vec<RespType> {
+    let mut vec_aux = vec![];
+    for _n in 0..cantidad {
+        let current_element = old_vec.pop().unwrap().to_string();
+        vec_aux.push(RespType::RBulkString(current_element));
+    }
+    let mut vec_to_stored = vec![];
+    for elemento in &vec_aux {
+        if let RespType::RBulkString(elem) = elemento {
+            vec_to_stored.push(elem.to_string());
+        }
+    }
+    let vt_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec_to_stored),
+        KeyAccessTime::Persistent,
+    );
+    database.add(key, vt_item);
+    vec_aux
 }
 
 /// Devuelve el valor en la posición `index` de la lista asociada a una `key`.
