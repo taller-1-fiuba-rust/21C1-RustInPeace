@@ -243,9 +243,16 @@ fn test_main() {
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_list_22 =
+    let added_item_set_1 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_values_1"), added_item_list_22);
+    database.add(String::from("set_values_1"), added_item_set_1);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_set_2 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_values_2"), added_item_set_2);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -1333,7 +1340,7 @@ pub fn test_keys_touch() -> TestResult {
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
-        .arg("set_values_1")
+        .arg("set_values_2")
         .arg("rust")
         .query(&mut con)?;
 
@@ -1341,7 +1348,7 @@ pub fn test_set_add() -> TestResult {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("2"),
+            expected: String::from("1"),
             got: ret.to_string(),
         }))
     };

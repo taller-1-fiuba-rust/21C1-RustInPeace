@@ -43,7 +43,7 @@ use std::sync::{Arc, RwLock};
 ///
 /// match res {
 /// RespType::RInteger(qty) => {
-/// assert_eq!(qty,0)
+/// assert_eq!(qty,1)
 ///}
 /// _ => assert!(false)
 /// }
@@ -70,6 +70,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     Some(value_item) => {
                         if let ValueType::SetType(mut old_value) = value_item.get_copy_of_value() {
                             let res = old_value.insert(value_to_add.to_string());
+                            value_item._set_value(ValueType::SetType(old_value));
                             return if res {
                                 RespType::RInteger(1)
                             } else {
