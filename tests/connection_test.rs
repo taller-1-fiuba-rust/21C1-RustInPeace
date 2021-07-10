@@ -1328,9 +1328,7 @@ pub fn test_keys_touch() -> TestResult {
             got: ret.to_string(),
         }))
     };
-
 }
-<<<<<<< HEAD
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
@@ -1342,10 +1340,10 @@ pub fn test_set_add() -> TestResult {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-    expected: String::from("2"),
-    got: ret.to_string(),
-}))
-};
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
 }
 
 pub fn test_set_scard() -> TestResult {

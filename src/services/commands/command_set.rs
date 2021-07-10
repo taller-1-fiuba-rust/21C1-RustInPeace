@@ -1,8 +1,8 @@
-use crate::services::utils::resp_type::RespType;
-use std::sync::{Arc, RwLock};
+use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 use crate::domain::implementations::database::Database;
-use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+use crate::services::utils::resp_type::RespType;
 use std::collections::HashSet;
+use std::sync::{Arc, RwLock};
 
 /// Agrega un elemento al set de la `key` dada
 ///
@@ -50,27 +50,30 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
             if let RespType::RBulkString(value_to_add) = &cmd[2] {
-                match db.get_live_item(key){
-                    None => { // Creo el set
+                match db.get_live_item(key) {
+                    None => {
+                        // Creo el set
                         let mut set = HashSet::new();
                         set.insert(value_to_add.to_string());
-                        let vti = ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+                        let vti = ValueTimeItem::new_now(
+                            ValueType::SetType(set),
+                            KeyAccessTime::Persistent,
+                        );
                         db.add(value_to_add.to_string(), vti);
                         RespType::RInteger(1);
-                    },
+                    }
                     Some(value_item) => {
-                        return match value_item.get_value(){
-                            ValueType::SetType(_map) => { |mut map: HashSet<String>|
-                                map.insert(value_to_add.to_string());
+                        return match value_item.get_value() {
+                            ValueType::SetType(_map) => {
+                                |mut map: HashSet<String>| map.insert(value_to_add.to_string());
                                 RespType::RInteger(1) // podría ser cero si ya existia el valor
-                            },
-                            _ => RespType::RError(String::from("Value stored should be a set."))
-
-                        }
+                            }
+                            _ => RespType::RError(String::from("Value stored should be a set.")),
+                        };
                     }
                 }
             }
-        }else{
+        } else {
             RespType::RError(String::from("Invalid command sadd"));
         }
     }
