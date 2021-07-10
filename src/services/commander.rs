@@ -159,6 +159,9 @@ pub fn handle_command(
                 "scard" => {
                     return Some(command_set::scard(&array, database));
                 }
+                "sismember" => {
+                    return Some(command_set::sismember(&array, database));
+                }
                 _ => {}
             }
         }

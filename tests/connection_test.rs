@@ -465,6 +465,10 @@ const TESTS: &[Test] = &[
         name: "set command: scard",
         func: test_set_scard,
     },
+    Test {
+        name: "set command: ismember",
+        func: test_set_ismember,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -1235,6 +1239,23 @@ pub fn test_set_scard() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("set_values_1")
+        .arg("value_1")
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
             got: ret.to_string(),
         }))
     };
