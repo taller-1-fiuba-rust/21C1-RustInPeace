@@ -83,7 +83,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 };
             }
         } else {
-            RespType::RError(String::from("Invalid command sadd"));
+            String::from("Invalid command sadd")
         }
     }
     RespType::RError(String::from("Invalid command sadd"))
