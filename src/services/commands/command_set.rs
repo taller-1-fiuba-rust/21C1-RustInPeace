@@ -22,23 +22,28 @@ use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// use std::collections::HashSet;
 ///
 /// let db = Database::new("dummy_db_doc_set1.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
-/// //database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-/// //ValueType::Set(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
-/// //KeyAccessTime::Persistent
-/// //));
+/// let mut set = HashSet::new();
+/// set.insert("kiwi".to_string());
+/// set.insert("pomelo".to_string());
+/// set.insert("sandia".to_string());
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::SetType(set),
+/// KeyAccessTime::Persistent
+/// ));
 ///
 /// let res = command_set::add(&vec![
 /// RespType::RBulkString("SADD".to_string()),
 /// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("pomelo".to_string())
+/// RespType::RBulkString("frutillas".to_string()),
 /// ], &database);
 ///
 /// match res {
 /// RespType::RInteger(qty) => {
-/// assert_eq!(qty,1)
+/// assert_eq!(qty,0)
 ///}
 /// _ => assert!(false)
 /// }
@@ -50,7 +55,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
             if let RespType::RBulkString(value_to_add) = &cmd[2] {
-                match db.get_live_item(key) {
+                return match db.get_mut_live_item(key) {
                     None => {
                         // Creo el set
                         let mut set = HashSet::new();
@@ -59,19 +64,22 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                             ValueType::SetType(set),
                             KeyAccessTime::Persistent,
                         );
-                        db.add(value_to_add.to_string(), vti);
-                        RespType::RInteger(1);
+                        db.add(key.to_string(), vti);
+                        RespType::RInteger(1)
                     }
                     Some(value_item) => {
-                        return match value_item.get_value() {
-                            ValueType::SetType(_map) => {
-                                |mut map: HashSet<String>| map.insert(value_to_add.to_string());
-                                RespType::RInteger(1) // podría ser cero si ya existia el valor
-                            }
-                            _ => RespType::RError(String::from("Value stored should be a set.")),
-                        };
+                        if let ValueType::SetType(mut old_value) = value_item.get_copy_of_value() {
+                            let res = old_value.insert(value_to_add.to_string());
+                            return if res {
+                                RespType::RInteger(1)
+                            } else {
+                                RespType::RInteger(0) // ya existía el valor
+                            };
+                        } else {
+                            RespType::RError(String::from("Value stored should be a set."))
+                        }
                     }
-                }
+                };
             }
         } else {
             RespType::RError(String::from("Invalid command sadd"));

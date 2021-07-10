@@ -308,6 +308,7 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
+
     Test {
         name: "server command: config get verbose",
         func: test_config_get_verbose,
@@ -492,14 +493,14 @@ const TESTS: &[Test] = &[
         name: "set command: sadd",
         func: test_set_add,
     },
-    Test {
-        name: "set command: scard",
-        func: test_set_scard,
-    },
-    Test {
-        name: "set command: ismember",
-        func: test_set_ismember,
-    },
+       Test {
+           name: "set command: scard",
+           func: test_set_scard,
+       },
+       Test {
+           name: "set command: ismember",
+           func: test_set_ismember,
+       },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -1332,8 +1333,8 @@ pub fn test_keys_touch() -> TestResult {
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
-        .arg("frutas_2")
-        .arg("persistente")
+        .arg("set_values_1")
+        .arg("rust")
         .query(&mut con)?;
 
     return if ret == 1 {
