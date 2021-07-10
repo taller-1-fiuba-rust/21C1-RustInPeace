@@ -226,19 +226,46 @@ impl Database {
             Some(vec_len)
         }
     }
-    //---
-    //     key: String,
-    //     old_vec: Vec<String>,
-    //     mut new_vec: Vec<String>,
-    //     mut database: RwLockWriteGuard<Database>,
-    // ) -> usize {
-    //     let mut old_vector = old_vec;
-    //     new_vec.append(&mut old_vector);
-    //     let vec_len = new_vec.len();
-    //     let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
-    //     database.add(key, vt_item);
-    //     vec_len
-    //---
+
+    pub fn get_values_from_list_value_type(
+        &mut self,
+        key: &str,
+        lower_bound: &str,
+        upper_bound: &str,
+    ) -> Option<Vec<String>> {
+        if self.key_exists(key.to_string()) {
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let current_value_len = current_value.len() as isize;
+                let mut vec_values_selected_by_index = vec![];
+                let mut lb = lower_bound.parse::<isize>().unwrap();
+                let mut ub = upper_bound.parse::<isize>().unwrap();
+
+                if lb < 0 {
+                    lb = current_value_len + lb + 1;
+                }
+                if ub < 0 {
+                    ub = current_value_len + lb + 1;
+                }
+
+                if ub <= current_value_len {
+                    for j in lb..ub {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                    }
+                } else {
+                    for j in lb..current_value_len {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                    }
+                }
+                Some(vec_values_selected_by_index)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 
     // pub fn pop_elements_from_db(&self , cantidad: usize, key: String) ->Vec<String> {
     //     let mut vec_aux = vec![];
