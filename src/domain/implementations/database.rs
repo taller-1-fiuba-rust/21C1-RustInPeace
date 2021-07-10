@@ -53,6 +53,7 @@ impl Database {
         }
         self.items.get_mut(key)
     }
+
     pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let option_item = self.items.get(key);
         match option_item {
@@ -66,6 +67,7 @@ impl Database {
             None => None,
         }
     }
+
     /// borra todos las claves (y sus valores asociados) de la base de datos
     pub fn clean_items(&mut self) -> &HashMap<String, ValueTimeItem> {
         self.items.clear();
@@ -89,6 +91,7 @@ impl Database {
         }
         vector_keys_filtered
     }
+
     /// Devuelve las claves que hacen *match* con un *pattern* con uso de regex (exhaustivo)
     pub fn get_keys_that_match_pattern(&self, pattern: &str) -> Vec<String> {
         let mut vec_matching_keys = vec![];
@@ -226,27 +229,6 @@ impl Database {
             Some(vec_len)
         }
     }
-    //---
-    //     key: String,
-    //     old_vec: Vec<String>,
-    //     mut new_vec: Vec<String>,
-    //     mut database: RwLockWriteGuard<Database>,
-    // ) -> usize {
-    //     let mut old_vector = old_vec;
-    //     new_vec.append(&mut old_vector);
-    //     let vec_len = new_vec.len();
-    //     let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
-    //     database.add(key, vt_item);
-    //     vec_len
-    //---
-
-    // pub fn pop_elements_from_db(&self , cantidad: usize, key: String) ->Vec<String> {
-    //     let mut vec_aux = vec![];
-    //     for _n in 0..cantidad {
-    //         let current_element = old_vector.pop().unwrap().to_string();
-    //         vec_aux.push(RespType::RBulkString(current_element));
-    //     }
-    // }
 
     ///
     /// Actualiza el valor de `last_access_time` para una key.
@@ -379,6 +361,7 @@ impl Database {
             false
         }
     }
+
     //------------------------------------------------
     pub fn append_string(&mut self, key: &str, string: &str) -> usize {
         match self.get_mut_live_item(&key.to_string()) {
@@ -468,6 +451,7 @@ impl Database {
             None
         }
     }
+
     /// Devuelve la clave si el valor asociado es un string, sino devuelve nil
     pub fn get_value_by_key_or_nil(&self, key: &str) -> Option<String> {
         let item = self.items.get(&key.to_string());
@@ -536,6 +520,20 @@ impl Database {
         }
     }
 
+    pub fn get_len_of_set(&mut self, key: &str) -> usize {
+        let item = self.get_live_item(key);
+        match item {
+            Some(item) => {
+                if let ValueType::SetType(item) = item.get_value() {
+                    item.len()
+                } else {
+                    0
+                }
+            }
+            None => 0
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -599,6 +597,7 @@ impl Database {
             .unwrap();
         }
     }
+
     /// devuelve todos los valores almacenados en todas las claves en orden aleatorio
     pub fn _get_all_values(&self) -> Vec<ValueType> {
         let mut all_values = Vec::new();
@@ -1440,7 +1439,7 @@ mod tests {
 fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
     use std::collections::HashSet;
 
-    let mut db = Database::new("file10".to_string());
+    let mut db = Database::new("file025".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
@@ -1464,36 +1463,51 @@ fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
     db.items.insert("valores".to_string(), vt_4);
 
     let aux = db.get_value_by_key_or_nil("saludo").unwrap();
-    println!("{:?}", aux)
+    assert_eq!(aux, String::from("hola"));
+    let aux = db.get_value_by_key_or_nil("despido").unwrap();
+    assert_eq!(aux, String::from("chau"));
+    let aux = db.get_value_by_key_or_nil("saludo_despido").unwrap();
+    assert_eq!(aux, String::from("(nil)"));
+    let aux = db.get_value_by_key_or_nil("valores").unwrap();
+    assert_eq!(aux, String::from("(nil)"));
+    let _ = std::fs::remove_file("file025".to_string());
 }
 
 #[test]
-fn test_28_no_se_obtiene_la_clave_porque_tiene_value_tipo_list() {
+fn test_28_scard_de_set_existente_devuelve_cantidad_de_elementos() {
     use std::collections::HashSet;
+    let mut db = Database::new("file026".to_string());
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
 
-    let mut db = Database::new("file10".to_string());
+    let vt = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Persistent);
 
+    db.items.insert("valores".to_string(), vt);
+    let len = db.get_len_of_set("valores");
+    assert_eq!(len, 2);
+    let _ = std::fs::remove_file("file026".to_string());
+}
+
+#[test]
+fn test_29_scard_de_set_devuelve_cero_si_no_existe() {
+    let mut db = Database::new("file027".to_string());
+    
+    let len = db.get_len_of_set("valores");
+    assert_eq!(len, 0);
+    let _ = std::fs::remove_file("file027".to_string());
+}
+
+#[test]
+fn test_30_scard_de_set_devuelve_cero_si_no_es_tipo_set() {
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
         KeyAccessTime::Volatile(0),
     );
-    let vt_2 = ValueTimeItem::new_now(
-        ValueType::StringType("chau".to_string()),
-        KeyAccessTime::Volatile(0),
-    );
-    let vt_3 = ValueTimeItem::new_now(
-        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-        KeyAccessTime::Volatile(0),
-    );
-    let mut this_set = HashSet::new();
-    this_set.insert("value_1".to_string());
-    this_set.insert("value_2".to_string());
-    let vt_4 = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Volatile(0));
+    let mut db = Database::new("file028".to_string());
     db.items.insert("saludo".to_string(), vt_1);
-    db.items.insert("despido".to_string(), vt_2);
-    db.items.insert("saludo_despido".to_string(), vt_3);
-    db.items.insert("valores".to_string(), vt_4);
 
-    let aux = db.get_value_by_key_or_nil("saludo_despido").unwrap();
-    println!("{:?}", aux)
+    let len = db.get_len_of_set("saludo");
+    assert_eq!(len, 0);
+    let _ = std::fs::remove_file("file028".to_string());
 }

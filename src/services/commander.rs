@@ -1,4 +1,4 @@
-use super::commands::command_pubsub;
+use super::commands::{command_pubsub, command_set};
 use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
 use crate::services::commands::command_list;
@@ -155,6 +155,9 @@ pub fn handle_command(
                 }
                 "lpushx" => {
                     return Some(command_list::lpushx(&array, database));
+                }
+                "scard" => {
+                    return Some(command_set::scard(&array, database));
                 }
                 _ => {}
             }

@@ -13,14 +13,7 @@ use proyecto_taller_1::{
 };
 use redis::Commands;
 
-use std::{
-    error::Error,
-    fmt,
-    sync::{mpsc, Arc, Mutex},
-    thread::{self, sleep},
-    time::Duration,
-    usize,
-};
+use std::{collections::HashSet, error::Error, fmt, sync::{mpsc, Arc, Mutex}, thread::{self, sleep}, time::Duration, usize};
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
 
@@ -223,6 +216,15 @@ fn test_main() {
         KeyAccessTime::Persistent,
     );
     database.add(String::from("frutas_raras"), added_item_list_20);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_list_21 = ValueTimeItem::new_now(
+        ValueType::SetType(set),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("set_values_1"), added_item_list_21);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -452,6 +454,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lindex",
         func: test_list_index,
+    },
+    Test {
+        name: "set command: scard",
+        func: test_set_scard,
     },
 ];
 
@@ -1124,7 +1130,7 @@ fn test_string_mget() -> TestResult {
         .arg("mget_1")
         .arg("mget_2")
         .query(&mut con)?;
-    println!("RES MGET: {:?}", ret);
+
     if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
         return Ok(());
     } else {
@@ -1202,6 +1208,22 @@ pub fn test_keys_touch() -> TestResult {
     let ret: usize = redis::cmd("TOUCH")
         .arg("frutas")
         .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_scard() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SCARD")
+        .arg("set_values_1")
         .query(&mut con)?;
 
     return if ret == 2 {
