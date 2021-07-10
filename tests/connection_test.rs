@@ -13,7 +13,15 @@ use proyecto_taller_1::{
 };
 use redis::Commands;
 
-use std::{collections::HashSet, error::Error, fmt, sync::{mpsc, Arc, Mutex}, thread::{self, sleep}, time::Duration, usize};
+use std::{
+    collections::HashSet,
+    error::Error,
+    fmt,
+    sync::{mpsc, Arc, Mutex},
+    thread::{self, sleep},
+    time::Duration,
+    usize,
+};
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
 
@@ -220,10 +228,8 @@ fn test_main() {
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_list_21 = ValueTimeItem::new_now(
-        ValueType::SetType(set),
-        KeyAccessTime::Persistent,
-    );
+    let added_item_list_21 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
     database.add(String::from("set_values_1"), added_item_list_21);
 
     let added_persistent = ValueTimeItem::new_now(
@@ -1222,9 +1228,7 @@ pub fn test_keys_touch() -> TestResult {
 
 pub fn test_set_scard() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("SCARD")
-        .arg("set_values_1")
-        .query(&mut con)?;
+    let ret: usize = redis::cmd("SCARD").arg("set_values_1").query(&mut con)?;
 
     return if ret == 2 {
         Ok(())

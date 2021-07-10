@@ -530,7 +530,7 @@ impl Database {
                     0
                 }
             }
-            None => 0
+            None => 0,
         }
     }
 
@@ -1492,7 +1492,7 @@ fn test_28_scard_de_set_existente_devuelve_cantidad_de_elementos() {
 #[test]
 fn test_29_scard_de_set_devuelve_cero_si_no_existe() {
     let mut db = Database::new("file027".to_string());
-    
+
     let len = db.get_len_of_set("valores");
     assert_eq!(len, 0);
     let _ = std::fs::remove_file("file027".to_string());
