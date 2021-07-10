@@ -1,4 +1,17 @@
-/// Determina si un string sigue un patrón glob [glob-style pattern]
+/// Determina si una cadena de caracteres sigue un patrón glob [glob-style pattern].
+///
+/// # Examples
+/// 
+/// ```
+/// use proyecto_taller_1::services::utils::glob_pattern::g_match;
+///
+/// let pattern = b"*.md";
+/// let my_string = b"an_example.md";
+/// assert_eq!(g_match(pattern, my_string), true);
+/// let pattern = b"*.md";
+/// let my_string = b"wrong_example.ad";
+/// assert_eq!(g_match(pattern, my_string), false);
+/// ```
 pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
     let mut pattern_pos = 0;
     let mut string_pos = 0;
@@ -34,10 +47,6 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
             }
             b'?' => {
                 // ? hace match con cualquier caracter
-                // if string_pos >= string.len() {
-                //     return false;
-                // }
-                // string_pos += 1;
             }
             b'!' => {
                 // ! niega el patron que le sigue
@@ -51,13 +60,9 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
                 // caracter especial. Por ejemplo, que se pueda leer el caracter '?' sin considerarlo
                 // parte del patron
                 pattern_pos += 1;
-                // if string_pos >= string.len() {
-                //     return false;
-                // }
                 if pattern[pattern_pos] != string[string_pos] {
                     return false;
                 }
-                // string_pos += 1;
             }
             b'[' => {
                 pattern_pos += 1;
@@ -65,12 +70,12 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
                 if not {
                     pattern_pos += 1;
                 }
-                let mut matched = false;
+                let mut is_match = false;
                 loop {
                     if pattern[pattern_pos] == b'\\' {
                         pattern_pos += 1;
                         if pattern[pattern_pos] == string[string_pos] {
-                            matched = true;
+                            is_match = true;
                         }
                     } else if pattern[pattern_pos] == b']' {
                         break;
@@ -78,85 +83,82 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
                         pattern_pos += 1;
                         break;
                     } else if pattern.len() >= pattern_pos + 3 && pattern[pattern_pos + 1] == b'-' {
-                        let mut start = pattern[pattern_pos];
-                        let mut end = pattern[pattern_pos + 2];
-                        let c = string[string_pos];
-                        if start > end {
-                            std::mem::swap(&mut start, &mut end);
-                        }
+                        //si es un Range
+                        let low_bound = pattern[pattern_pos];
+                        let upper_bound = pattern[pattern_pos + 2];
+                        let char = string[string_pos];
                         pattern_pos += 2;
-                        if c >= start && c <= end {
-                            matched = true;
+                        if char >= low_bound && char <= upper_bound {
+                            is_match = true;
                         }
                     } else if pattern[pattern_pos] == string[string_pos] {
-                        matched = true;
+                        is_match = true;
                     }
-
                     pattern_pos += 1;
                 }
                 if not {
-                    matched = !matched;
+                    is_match = !is_match;
                 }
-                if !matched {
+                if !is_match {
                     return false;
                 }
-                // string_pos += 1;
             }
             _ => {
-                // if string_pos >= string.len() {
-                //     return false;
-                // }
                 if string_pos >= string.len() || pattern[pattern_pos] != string[string_pos] {
                     return false;
                 }
-                // string_pos += 1;
             }
         }
         pattern_pos += 1;
         string_pos += 1;
-        if string_pos == string.len() {
-            for i in &pattern[pattern_pos..pattern.len()] {
-                if *i != b'*' {
-                    break;
-                }
-            }
-            break;
-        }
-        if string_pos >= string.len() {
+        if string_pos > string.len() {
             return false;
         }
     }
-
     true
 }
 
 #[test]
-fn test_01() {
+fn test_01_wildcard_is_match() {
     assert_eq!(g_match(b"*.md", b"banana.md"), true);
 }
 
 #[test]
-fn test_02() {
-    assert_eq!(g_match(b"*.md", b"banana.ad"), false);
-}
-
-
-#[test]
-fn test_03() {
+fn test_02_wildcard_is_not_match() {
     assert_eq!(g_match(b"*.md", b"banana.ad"), false);
 }
 
 #[test]
-fn test_04() {
+fn test_03_pattern_in_brackets_is_match() {
+    assert_eq!(g_match(b"[cbr]at", b"cat"), true);
+}
+
+#[test]
+fn test_04_question_mark_is_match() {
     assert_eq!(g_match(b"?at.md", b"cat.md"), true);
 }
 
 #[test]
-fn test_05() {
+fn test_05_backslash_is_match() {
     assert_eq!(g_match(b"set\\*.md", b"set*.md"), true);
 }
 
 #[test]
-fn test_06() {
+fn test_06_multiple_wildcards_is_match() {
     assert_eq!(g_match(b"*max-*-entries*", b"hash-max-zipmap-entries"), true);
+}
+
+#[test]
+fn test_07_pattern_in_brackets_is_not_match() {
+    assert_eq!(g_match(b"[br]", b"cat"), false);
+}
+
+#[test]
+fn test_08_pattern_in_range_is_match() {
+    assert_eq!(g_match(b"[a-e]at", b"cat"), true);
+}
+
+#[test]
+fn test_09_pattern_in_range_is_not_match() {
+    assert_eq!(g_match(b"[n-o]", b"cat"), false);
 }
