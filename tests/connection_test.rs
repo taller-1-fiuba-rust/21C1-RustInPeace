@@ -14,6 +14,7 @@ use proyecto_taller_1::{
 use redis::Commands;
 
 use std::{
+    collections::HashSet,
     error::Error,
     fmt,
     sync::{mpsc, Arc, Mutex},
@@ -238,6 +239,13 @@ fn test_main() {
         KeyAccessTime::Persistent,
     );
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_list_22 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_values_1"), added_item_list_22);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -479,6 +487,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lindex",
         func: test_list_index,
+    },
+    Test {
+        name: "set command: scard",
+        func: test_set_scard,
+    },
+    Test {
+        name: "set command: ismember",
+        func: test_set_ismember,
     },
 ];
 
@@ -1220,7 +1236,7 @@ fn test_string_mget() -> TestResult {
         .arg("mget_1")
         .arg("mget_2")
         .query(&mut con)?;
-    println!("RES MGET: {:?}", ret);
+
     if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
         return Ok(());
     } else {
@@ -1305,6 +1321,37 @@ pub fn test_keys_touch() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_scard() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SCARD").arg("set_values_1").query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("set_values_1")
+        .arg("value_1")
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
             got: ret.to_string(),
         }))
     };
