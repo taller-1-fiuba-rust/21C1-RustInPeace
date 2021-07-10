@@ -247,6 +247,35 @@ fn test_main() {
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
     database.add(String::from("set_values_1"), added_item_list_22);
 
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    set.insert("value_3".to_string());
+    let added_item_list_23 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_remove_1"), added_item_list_23);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    set.insert("value_3".to_string());
+    let added_item_list_24 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_remove_2"), added_item_list_24);
+
+    let mut set = HashSet::new();
+    set.insert("value_2".to_string());
+    set.insert("value_3".to_string());
+    let added_item_list_25 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_remove_3"), added_item_list_25);
+
+    let added_item_list_26 = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["item_1".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("set_remove_4"), added_item_list_26);
+
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
         KeyAccessTime::Persistent,
@@ -499,6 +528,22 @@ const TESTS: &[Test] = &[
     Test {
         name: "set command: smembers",
         func: test_set_smembers,
+    },
+    Test {
+        name: "set command: srem",
+        func: test_set_srem,
+    },
+    Test {
+        name: "set command: srem multiple",
+        func: test_set_srem_removes_multiple_values,
+    },
+    Test {
+        name: "set command: srem is not set type",
+        func: test_set_srem_removes_zero_values,
+    },
+    Test {
+        name: "set command: srem error",
+        func: test_set_srem_removes_returns_error,
     },
 ];
 
@@ -1379,6 +1424,76 @@ pub fn test_set_smembers() -> TestResult {
                 vec![String::from("value_1"), String::from("value_2")]
             ),
             got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_set_srem() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SREM")
+        .arg("set_remove_1")
+        .arg("value_1")
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 1.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_srem_removes_multiple_values() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SREM")
+        .arg("set_remove_2")
+        .arg("value_1")
+        .arg("value_2")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 1.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_srem_removes_zero_values() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SREM")
+        .arg("set_remove_3")
+        .arg("value_1")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 1.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_srem_removes_returns_error() -> TestResult {
+    let mut con = connect()?;
+    let ret = redis::cmd("SREM")
+        .arg("set_remove_4")
+        .arg("value_1")
+        .query(&mut con);
+    assert!(ret.is_err());
+
+    return if ret.is_err() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Value stored at key set_remove_4 is not a Set"),
+            got: ret.unwrap(),
         }))
     };
 }

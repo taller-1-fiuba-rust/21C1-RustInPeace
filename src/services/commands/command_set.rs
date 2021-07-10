@@ -36,5 +36,33 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
             return RespType::RArray(final_members);
         }
     }
-    RespType::RInteger(0)
+    RespType::RArray(vec![])
+}
+
+pub fn srem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut deleted = 0;
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            for n in cmd.iter().skip(2) {
+                if let RespType::RBulkString(member) = n {
+                    let removed = db.remove_member_from_set(key, member);
+                    match removed {
+                        Some(rem) => {
+                            if rem {
+                                deleted += 1;
+                            }
+                        }
+                        None => {
+                            return RespType::RError(format!(
+                                "Value stored at key {} is not a Set",
+                                key
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    RespType::RInteger(deleted)
 }

@@ -168,6 +168,9 @@ pub fn handle_command(
                 "smembers" => {
                     return Some(command_set::smembers(&array, database));
                 }
+                "srem" => {
+                    return Some(command_set::srem(&array, database));
+                }
                 _ => {}
             }
         }

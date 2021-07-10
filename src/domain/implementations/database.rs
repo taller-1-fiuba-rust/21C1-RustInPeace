@@ -609,6 +609,25 @@ impl Database {
         }
     }
 
+    pub fn remove_member_from_set(&mut self, key: &str, member: &str) -> Option<bool> {
+        //si el miembro no pertenece al set, lo ignoro
+        //si la clave no existe, devuelvo 0 (false)
+        //empty set -> devuelve 0 (false)
+        //si no es tipo Set -> devuelve error (None)
+        let item = self.get_live_item(key);
+        match item {
+            Some(item) => {
+                if let ValueType::SetType(mut item) = item.get_copy_of_value() {
+                    return Some(item.remove(member));
+                }
+            }
+            None => {
+                return Some(false);
+            }
+        }
+        None
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -1658,4 +1677,53 @@ fn test_34_get_members_of_set_existente_devuelve_elementos_del_set() {
     assert!(members.contains(&&String::from("value_3")));
     assert_eq!(members.len(), 3);
     let _ = std::fs::remove_file("file033".to_string());
+}
+
+#[test]
+fn test_35_remove_member_from_existing_set_returns_true() {
+    use std::collections::HashSet;
+    let mut db = Database::new("file034".to_string());
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+
+    let vt = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Persistent);
+
+    db.items.insert("valores".to_string(), vt);
+    let removed = db.remove_member_from_set("valores", "value_1").unwrap();
+    assert_eq!(removed, true);
+
+    let _ = std::fs::remove_file("file034".to_string());
+}
+
+#[test]
+fn test_36_remove_member_from_non_existing_set_returns_false() {
+    use std::collections::HashSet;
+    let mut db = Database::new("file035".to_string());
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+
+    let vt = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Persistent);
+
+    db.items.insert("values".to_string(), vt);
+    let removed = db.remove_member_from_set("valores", "value_1").unwrap();
+    assert_eq!(removed, false);
+
+    let _ = std::fs::remove_file("file035".to_string());
+}
+
+#[test]
+fn test_37_remove_member_from_list_type_returns_none() {
+    let mut db = Database::new("file036".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.remove_member_from_set("saludo", "value_1");
+    assert!(removed.is_none());
+
+    let _ = std::fs::remove_file("file036".to_string());
 }
