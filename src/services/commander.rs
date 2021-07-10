@@ -156,6 +156,9 @@ pub fn handle_command(
                 "lpushx" => {
                     return Some(command_list::lpushx(&array, database));
                 }
+                "lrange" => {
+                    return Some(command_list::lrange(&array, database));
+                }
                 _ => {}
             }
         }

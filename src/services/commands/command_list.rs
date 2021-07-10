@@ -12,45 +12,45 @@ use std::usize;
 /// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
 /// cantidad de elementos guardados en esa key
 ///DEPRECATED
-pub fn _lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
-    let mut vec_aux = vec![];
-    if let RespType::RBulkString(key) = &cmd[1] {
-        for n in cmd.iter().skip(2).rev() {
-            if let RespType::RBulkString(value) = n {
-                vec_aux.push(value.to_string());
-            }
-        }
-        if new_database.key_exists(key.to_string()) {
-            //let coso = new_database.
-            if let ValueType::ListType(current_value) = new_database
-                .get_live_item(key)
-                .unwrap()
-                .get_value()
-                .to_owned()
-            {
-                RespType::RBulkString(
-                    actualizar_list_type_value(
-                        key.to_string(),
-                        current_value,
-                        vec_aux,
-                        new_database,
-                    )
-                    .to_string(),
-                )
-            } else {
-                RespType::RBulkString("error - not list type".to_string())
-            }
-        } else {
-            RespType::RBulkString(
-                actualizar_list_type_value(key.to_string(), vec![], vec_aux, new_database)
-                    .to_string(),
-            )
-        }
-    } else {
-        RespType::RError("empty request".to_string())
-    }
-}
+// pub fn _lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+//     let mut new_database = database.write().unwrap();
+//     let mut vec_aux = vec![];
+//     if let RespType::RBulkString(key) = &cmd[1] {
+//         for n in cmd.iter().skip(2).rev() {
+//             if let RespType::RBulkString(value) = n {
+//                 vec_aux.push(value.to_string());
+//             }
+//         }
+//         if new_database.key_exists(key.to_string()) {
+//             //let coso = new_database.
+//             if let ValueType::ListType(current_value) = new_database
+//                 .get_live_item(key)
+//                 .unwrap()
+//                 .get_value()
+//                 .to_owned()
+//             {
+//                 RespType::RBulkString(
+//                     actualizar_list_type_value(
+//                         key.to_string(),
+//                         current_value,
+//                         vec_aux,
+//                         new_database,
+//                     )
+//                     .to_string(),
+//                 )
+//             } else {
+//                 RespType::RBulkString("error - not list type".to_string())
+//             }
+//         } else {
+//             RespType::RBulkString(
+//                 actualizar_list_type_value(key.to_string(), vec![], vec_aux, new_database)
+//                     .to_string(),
+//             )
+//         }
+//     } else {
+//         RespType::RError("empty request".to_string())
+//     }
+// }
 
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
@@ -154,6 +154,46 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         } else {
             RespType::RBulkString("".to_string())
         }
+    } else {
+        RespType::RError("empty request".to_string())
+    }
+}
+
+pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    //let mut vec_aux = vec![];
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if let RespType::RBulkString(lower_bound) = &cmd[2] {
+            if let RespType::RBulkString(upper_bound) = &cmd[3] {
+                if let Some(value_vec) =
+                    new_database.get_values_from_list_value_type(key, lower_bound, upper_bound)
+                {
+                    let mut value_vec_resptype = vec![];
+                    for elemento in value_vec {
+                        value_vec_resptype.push(RespType::RBulkString(elemento));
+                    }
+                    RespType::RArray(value_vec_resptype)
+                } else {
+                    RespType::RBulkString("error".to_string())
+                }
+            } else {
+                RespType::RBulkString("no upper_bound_specified".to_string())
+            }
+        } else {
+            RespType::RBulkString("no lower_bound_specified".to_string())
+        }
+        // for n in cmd.iter().skip(2).rev() {
+        //     if let RespType::RBulkString(value) = n {
+        //         vec_aux.push(value.to_string());
+        //     }
+        // }
+        // if let Some(resultado) =
+        //     new_database.push_new_values_into_existing_key_value_pair(vec_aux, key)
+        // {
+        //     RespType::RInteger(resultado)
+        // } else {
+        //     RespType::RBulkString("".to_string())
+        // }
     } else {
         RespType::RError("empty request".to_string())
     }
@@ -307,16 +347,16 @@ pub fn pop_elements_from_db(
     vec_aux
 }
 
-pub fn actualizar_list_type_value(
-    key: String,
-    old_vec: Vec<String>,
-    mut new_vec: Vec<String>,
-    mut database: RwLockWriteGuard<Database>,
-) -> usize {
-    let mut old_vector = old_vec;
-    new_vec.append(&mut old_vector);
-    let vec_len = new_vec.len();
-    let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
-    database.add(key, vt_item);
-    vec_len
-}
+// pub fn actualizar_list_type_value(
+//     key: String,
+//     old_vec: Vec<String>,
+//     mut new_vec: Vec<String>,
+//     mut database: RwLockWriteGuard<Database>,
+// ) -> usize {
+//     let mut old_vector = old_vec;
+//     new_vec.append(&mut old_vector);
+//     let vec_len = new_vec.len();
+//     let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
+//     database.add(key, vt_item);
+//     vec_len
+// }
