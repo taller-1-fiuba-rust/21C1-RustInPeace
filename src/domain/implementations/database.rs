@@ -591,6 +591,24 @@ impl Database {
         }
     }
 
+    pub fn get_members_of_set(&mut self, key: &str) -> Vec<&String> {
+        let item = self.get_live_item(key);
+        let mut members = Vec::new();
+        match item {
+            Some(item) => {
+                if let ValueType::SetType(item) = item.get_value() {
+                    item.iter().for_each(|member| {
+                        members.push(member);
+                    });
+                    members
+                } else {
+                    members
+                }
+            }
+            None => members,
+        }
+    }
+
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -1620,4 +1638,24 @@ fn test_33_ismember_de_set_existente_devuelve_cero_si_no_pertenece_al_set() {
     let is_member = db.is_member_of_set("valores", "value_2");
     assert_eq!(is_member, 0);
     let _ = std::fs::remove_file("file032".to_string());
+}
+
+#[test]
+fn test_34_get_members_of_set_existente_devuelve_elementos_del_set() {
+    use std::collections::HashSet;
+    let mut db = Database::new("file033".to_string());
+    let mut this_set = HashSet::new();
+    this_set.insert("value_1".to_string());
+    this_set.insert("value_2".to_string());
+    this_set.insert("value_3".to_string());
+
+    let vt = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Persistent);
+
+    db.items.insert("valores".to_string(), vt);
+    let members = db.get_members_of_set("valores");
+    assert!(members.contains(&&String::from("value_1")));
+    assert!(members.contains(&&String::from("value_2")));
+    assert!(members.contains(&&String::from("value_3")));
+    assert_eq!(members.len(), 3);
+    let _ = std::fs::remove_file("file033".to_string());
 }

@@ -496,6 +496,10 @@ const TESTS: &[Test] = &[
         name: "set command: ismember",
         func: test_set_ismember,
     },
+    Test {
+        name: "set command: smembers",
+        func: test_set_smembers,
+    },
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -920,7 +924,6 @@ fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResul
         .query(&mut con)?;
 
     if ret == 5 {
-        // if ret == "5".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
@@ -940,6 +943,7 @@ fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestRes
         .arg("leonilda")
         .arg("murcia")
         .query(&mut con)?;
+
     if ret == "error - not list type".to_string() {
         return Ok(());
     } else {
@@ -960,8 +964,8 @@ fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
         .arg("leonilda")
         .arg("murcia")
         .query(&mut con)?;
+
     if ret == 9 {
-        // if ret == "9".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
@@ -974,6 +978,7 @@ fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
 fn test_se_obtiene_la_longitud_de_la_lista_en_value() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
+
     if ret == "6".to_string() {
         return Ok(());
     } else {
@@ -989,6 +994,7 @@ fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
     let ret: String = redis::cmd("LLEN")
         .arg("porotos_de_canasta")
         .query(&mut con)?;
+
     if ret == "0".to_string() {
         return Ok(());
     } else {
@@ -1002,6 +1008,7 @@ fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
 fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("LLEN").arg("edad_luz").query(&mut con)?;
+
     if ret == "error - not list type".to_string() {
         return Ok(());
     } else {
@@ -1022,6 +1029,7 @@ fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
         .arg("anana")
         .arg("kinoto")
         .query(&mut con)?;
+
     if ret == 9 {
         return Ok(());
     } else {
@@ -1041,6 +1049,7 @@ fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
         .arg("mandril_gonzalez")
         .arg("mandril_galvan")
         .query(&mut con)?;
+
     if ret == 0 {
         return Ok(());
     } else {
@@ -1059,7 +1068,7 @@ fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferi
         .arg("0")
         .arg("4")
         .query(&mut con)?;
-    println!("{:?}", ret);
+
     if &ret[0] == &String::from("jinete_1")
         && &ret[1] == &String::from("jinete_2")
         && &ret[2] == &String::from("jinete_3")
@@ -1082,7 +1091,7 @@ fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferi
         .arg("0")
         .arg("20")
         .query(&mut con)?;
-    println!("{:?}", ret);
+
     if &ret[0] == &String::from("jinete_1")
         && &ret[1] == &String::from("jinete_2")
         && &ret[2] == &String::from("jinete_3")
@@ -1105,7 +1114,7 @@ fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferi
         .arg("-3")
         .arg("3")
         .query(&mut con)?;
-    println!("{:?}", ret);
+
     if &ret[0] == &String::from("jinete_1")
         && &ret[1] == &String::from("jinete_2")
         && &ret[2] == &String::from("jinete_3")
@@ -1353,6 +1362,23 @@ pub fn test_set_ismember() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("1"),
             got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_smembers() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("SMEMBERS").arg("set_values_1").query(&mut con)?;
+
+    return if ret.contains(&&String::from("value_1")) && ret.contains(&&String::from("value_2")) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![String::from("value_1"), String::from("value_2")]
+            ),
+            got: format!("{:?}", ret),
         }))
     };
 }

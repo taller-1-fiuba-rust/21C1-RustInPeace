@@ -23,3 +23,18 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     }
     RespType::RInteger(0)
 }
+
+pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut final_members = Vec::new();
+            let mut db = database.write().unwrap();
+            let members = db.get_members_of_set(key);
+            members
+                .iter()
+                .for_each(|member| final_members.push(RespType::RBulkString(member.to_string())));
+            return RespType::RArray(final_members);
+        }
+    }
+    RespType::RInteger(0)
+}
