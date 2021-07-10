@@ -225,12 +225,27 @@ fn test_main() {
     );
     database.add(String::from("frutas_raras"), added_item_list_20);
 
+    let added_item_list_21 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "jinete_1".to_string(),
+            "jinete_2".to_string(),
+            "jinete_3".to_string(),
+            "jinete_4".to_string(),
+            "jinete_5".to_string(),
+            "jinete_6".to_string(),
+            "jinete_7".to_string(),
+            "jinete_8".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
+
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_list_21 =
+    let added_item_list_22 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_values_1"), added_item_list_21);
+    database.add(String::from("set_values_1"), added_item_list_22);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -452,6 +467,18 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: cannot pushx values into non_existing key",
         func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds with ub>len of the list",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista,
     },
     // Test {
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
@@ -1020,6 +1047,75 @@ fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: 0.to_string(),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("4")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("20")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("-3")
+        .arg("3")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
         }));
     }
 }

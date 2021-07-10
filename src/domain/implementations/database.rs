@@ -230,6 +230,46 @@ impl Database {
         }
     }
 
+    pub fn get_values_from_list_value_type(
+        &mut self,
+        key: &str,
+        lower_bound: &str,
+        upper_bound: &str,
+    ) -> Option<Vec<String>> {
+        if self.key_exists(key.to_string()) {
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let current_value_len = current_value.len() as isize;
+                let mut vec_values_selected_by_index = vec![];
+                let mut lb = lower_bound.parse::<isize>().unwrap();
+                let mut ub = upper_bound.parse::<isize>().unwrap();
+
+                if lb < 0 {
+                    lb = current_value_len + lb + 1;
+                }
+                if ub < 0 {
+                    ub = current_value_len + lb + 1;
+                }
+
+                if ub <= current_value_len {
+                    for j in lb..ub {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                    }
+                } else {
+                    for j in lb..current_value_len {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                    }
+                }
+                Some(vec_values_selected_by_index)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     ///
     /// Actualiza el valor de `last_access_time` para una key.
     ///

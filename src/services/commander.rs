@@ -162,6 +162,9 @@ pub fn handle_command(
                 "sismember" => {
                     return Some(command_set::sismember(&array, database));
                 }
+                "lrange" => {
+                    return Some(command_list::lrange(&array, database));
+                }
                 _ => {}
             }
         }
