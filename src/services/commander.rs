@@ -136,6 +136,9 @@ pub fn handle_command(
                 "ttl" => {
                     return Some(command_key::get_ttl(&array, database));
                 }
+                "command" => {
+                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("append")), RespType::RBulkString(String::from("pubsub"))]))
+                }
                 _ => {}
             }
         }
