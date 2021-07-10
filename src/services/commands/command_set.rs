@@ -110,3 +110,46 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     }
     RespType::RInteger(0)
 }
+
+pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut final_members = Vec::new();
+            let mut db = database.write().unwrap();
+            let members = db.get_members_of_set(key);
+            members
+                .iter()
+                .for_each(|member| final_members.push(RespType::RBulkString(member.to_string())));
+            return RespType::RArray(final_members);
+        }
+    }
+    RespType::RArray(vec![])
+}
+
+pub fn srem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut deleted = 0;
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            for n in cmd.iter().skip(2) {
+                if let RespType::RBulkString(member) = n {
+                    let removed = db.remove_member_from_set(key, member);
+                    match removed {
+                        Some(rem) => {
+                            if rem {
+                                deleted += 1;
+                            }
+                        }
+                        None => {
+                            return RespType::RError(format!(
+                                "Value stored at key {} is not a Set",
+                                key
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    RespType::RInteger(deleted)
+}
