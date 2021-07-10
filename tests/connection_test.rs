@@ -14,11 +14,13 @@ use proyecto_taller_1::{
 use redis::Commands;
 
 use std::{
+    collections::HashSet,
     error::Error,
     fmt,
     sync::{mpsc, Arc, Mutex},
     thread::{self, sleep},
     time::Duration,
+    usize,
 };
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
@@ -201,7 +203,7 @@ fn test_main() {
     );
     database.add(String::from("edad_mariana"), added_item_18);
 
-    let added_item_list_1 = ValueTimeItem::new_now(
+    let added_item_list_19 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "pomelo".to_string(),
             "sandia".to_string(),
@@ -210,7 +212,40 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("frutas"), added_item_list_1);
+    database.add(String::from("frutas"), added_item_list_19);
+
+    let added_item_list_20 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "tamarindo".to_string(),
+            "grosella".to_string(),
+            "pomelo_negro".to_string(),
+            "coco".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("frutas_raras"), added_item_list_20);
+
+    let added_item_list_21 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "jinete_1".to_string(),
+            "jinete_2".to_string(),
+            "jinete_3".to_string(),
+            "jinete_4".to_string(),
+            "jinete_5".to_string(),
+            "jinete_6".to_string(),
+            "jinete_7".to_string(),
+            "jinete_8".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_list_22 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_values_1"), added_item_list_22);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -425,6 +460,26 @@ const TESTS: &[Test] = &[
         name: "list command: cannot get len of non-list type key",
         func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
     },
+    Test {
+        name: "list command: pushx values into key - list type",
+        func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
+    },
+    Test {
+        name: "list command: cannot pushx values into non_existing key",
+        func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds with ub>len of the list",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista,
+    },
+    Test {
+        name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista,
+    },
     // Test {
     //     name: "pubsub command: subscribe channel_1 channel_2 ",
     //     func: test_pubsub,
@@ -436,6 +491,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "set command: sadd",
         func: test_set_add,
+    },
+    Test {
+        name: "set command: scard",
+        func: test_set_scard,
+    },
+    Test {
+        name: "set command: ismember",
+        func: test_set_ismember,
     },
 ];
 
@@ -851,7 +914,7 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
 
 fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
+    let ret: usize = redis::cmd("LPUSH")
         .arg("bandada_de_caranchos")
         .arg("carancho_1")
         .arg("carancho_2")
@@ -860,12 +923,13 @@ fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResul
         .arg("carancho_5")
         .query(&mut con)?;
 
-    if ret == "5".to_string() {
+    if ret == 5 {
+        // if ret == "5".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "5".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
@@ -892,7 +956,7 @@ fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestRes
 
 fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
+    let ret: usize = redis::cmd("LPUSH")
         .arg("grupo_amigas")
         .arg("jacinta")
         .arg("leonela")
@@ -900,12 +964,13 @@ fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
         .arg("leonilda")
         .arg("murcia")
         .query(&mut con)?;
-    if ret == "9".to_string() {
+    if ret == 9 {
+        // if ret == "9".to_string() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "9".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
@@ -947,6 +1012,114 @@ fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: "error - not list type".to_string(),
             got: ret,
+        }));
+    }
+}
+
+fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("frutas_raras")
+        .arg("granada")
+        .arg("mango")
+        .arg("morango")
+        .arg("anana")
+        .arg("kinoto")
+        .query(&mut con)?;
+    if ret == 9 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 9.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("gorilas_y_mandriles")
+        .arg("gorila_gutierrez")
+        .arg("gorila_sosa")
+        .arg("mandril_gonzalez")
+        .arg("mandril_galvan")
+        .query(&mut con)?;
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 0.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("4")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("20")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("-3")
+        .arg("3")
+        .query(&mut con)?;
+    println!("{:?}", ret);
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
         }));
     }
 }
@@ -1067,7 +1240,7 @@ fn test_string_mget() -> TestResult {
         .arg("mget_1")
         .arg("mget_2")
         .query(&mut con)?;
-    println!("RES MGET: {:?}", ret);
+
     if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
         return Ok(());
     } else {
@@ -1157,6 +1330,7 @@ pub fn test_keys_touch() -> TestResult {
     };
 
 }
+<<<<<<< HEAD
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
@@ -1168,7 +1342,38 @@ pub fn test_set_add() -> TestResult {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
+    expected: String::from("2"),
+    got: ret.to_string(),
+}))
+};
+}
+
+pub fn test_set_scard() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SCARD").arg("set_values_1").query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
             expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("set_values_1")
+        .arg("value_1")
+        .query(&mut con)?;
+
+    return if ret == 1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
             got: ret.to_string(),
         }))
     };

@@ -1,4 +1,4 @@
-use super::commands::command_pubsub;
+use super::commands::{command_pubsub, command_set};
 use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
 use crate::services::commands::{command_list, command_set};
@@ -141,7 +141,7 @@ pub fn handle_command(
                     return Some(command_key::get_ttl(&array, database));
                 }
                 "lpush" => {
-                    return Some(command_list::lpush(&array, database));
+                    return Some(command_list::lpush_version_2(&array, database));
                 }
                 "lindex" => {
                     return Some(command_list::get_index(&array, database));
@@ -154,6 +154,18 @@ pub fn handle_command(
                 }
                 "sadd" => {
                     return Some(command_set::add(&array, database));
+                }
+                "lpushx" => {
+                    return Some(command_list::lpushx(&array, database));
+                }
+                "scard" => {
+                    return Some(command_set::scard(&array, database));
+                }
+                "sismember" => {
+                    return Some(command_set::sismember(&array, database));
+                }
+                "lrange" => {
+                    return Some(command_list::lrange(&array, database));
                 }
                 _ => {}
             }
