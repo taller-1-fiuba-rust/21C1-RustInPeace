@@ -80,7 +80,7 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
     RespType::RArray(vec![])
 }
 
-/// Publica un mensaje en todos en el canal pedido.
+/// Publica un mensaje en el canal pedido.
 ///
 /// A cada cliente suscrito al canal especificado se le envía, además del mensaje, el canal por el cual llega
 /// Este comando devuelve la cantidad de clientes que recibieron el mensaje.
