@@ -1,18 +1,34 @@
 use super::parser_service::{parse_request, parse_response};
 use super::worker_service::ThreadPool;
+use crate::domain::entities::client::Client;
 use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
-// use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
-// use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 
-/// Recibe una refencia mutable de tipo Server, la base de datos Database y la configuración Config
+// macro_rules! select {
+//     (
+//         $($name:pat = $rx:ident.$meth:ident() => $code:expr),+
+//     ) => ({
+//         use $crate::sync::mpsc::Select;
+//         let sel = Select::new();
+//         $( let mut $rx = sel.handle(&$rx); )+
+//         unsafe {
+//             $( $rx.add(); )+
+//         }
+//         let ret = sel.wait();
+//         $( if ret == $rx.id() { let $name = $rx.$meth(); $code } else )+
+//         { unreachable!() }
+//     })
+// }
+
+/// Inicia la conexion TCP
+///
 /// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
 /// que va a escuchar mensajes hasta que se le envíe una señal de "shutdown".
 pub fn init(
@@ -23,45 +39,62 @@ pub fn init(
     server_sender: Sender<WorkerMessage>,
 ) {
     let pool = ThreadPool::new(4);
+    // let drop = Arc::new(AtomicBool::new(false));
 
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
-    let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
+    // let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
+            // loop {
+            // select!{
+            //     stream = listener.incoming() => {
             for stream in listener.incoming() {
                 match stream {
                     Ok(stream) => {
                         let tx = server_sender.clone();
                         let conf_lock = conf.clone();
                         let cloned_database = database.clone();
-                        let stop = stop_signal_sender.clone();
+                        // let stop = stop_signal_sender.clone();
                         pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock, stop)
+                            handle_connection(stream, tx, cloned_database, conf_lock);
+                            //, stop);
                         });
-
-                        if let Ok(drop) = stop_signal_receiver.recv() {
-                            if drop {
-                                save_database(database);
-                                break;
-                            }
-                        }
+                        // drop = stop_signal_receiver.recv() => {
+                        //     if drop {
+                        //         println!("DROP");
+                        //         save_database(database);
+                        //         break;
+                        //     }
+                        // }
                     }
                     Err(_) => {
                         println!("Couldn't get stream");
                         continue;
                     }
                 }
+                // },
+                // drop = stop_signal_receiver.recv() => {
+                //     if drop {
+                //         println!("DROP");
+                //         save_database(database);
+                //         break;
+                //     }
+                // }
+                // }
             }
         }
         Err(_) => {
             println!("Listener couldn't be created");
         }
     }
+    save_database(database);
     println!("Shutting down.");
 }
 
+/// Guarda la base de datos en el archivo especificado en la configuracion.
+///
 /// Recibe una base de datos de tipo Database protegida por un RwLock
 /// y guarda la información en su correspondiente archivo
 fn save_database(database: Arc<RwLock<Database>>) {
@@ -80,6 +113,8 @@ fn save_database(database: Arc<RwLock<Database>>) {
     }
 }
 
+/// Lee e interpreta mensajes del cliente.
+///
 /// Recibe un stream proveniente de la conexión TCP, un sender de mensajes de tipo WorkerMessage, una base de datos de tipo Database dentro de un RwLock
 /// la configuración config dentro de un RwLock y un sender de mensajes de tipo booleano stop.
 /// Lee el stream de datos recibido del cliente, lo decodifica, mediante la función handle_command realiza la operación que corresponda y luego
@@ -90,9 +125,13 @@ pub fn handle_connection(
     tx: Sender<WorkerMessage>,
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
-    stop: Sender<bool>,
+    // stop: Sender<bool>,
+    // drop: Arc<AtomicBool>
 ) {
     let client_addrs = stream.peer_addr().unwrap();
+    let client = Client::new(client_addrs, stream.try_clone().unwrap());
+    tx.send(WorkerMessage::AddClient(client)).unwrap();
+
     log(
         format!("Connection to address {} established\r\n", client_addrs),
         &tx,
@@ -124,20 +163,22 @@ pub fn handle_connection(
                             client_addrs,
                         ))
                         .unwrap();
+                        println!("{:?}", parsed_request);
+                        // if check_shutdown(&parsed_request) {
+                        //     // drop.store(true, Ordering::Relaxed);
+                        //     // println!("{:?}", drop.load(Ordering::Relaxed));
+                        //     stop.send(true).unwrap();
+                        //     tx.send(WorkerMessage::Stop(true)).unwrap();
+                        //     break;
+                        // }
 
-                        if check_shutdown(&parsed_request) {
-                            stop.send(true).unwrap();
-                            tx.send(WorkerMessage::Stop(true)).unwrap();
-                            break;
-                        }
-                        stop.send(false).unwrap();
                         if let Some(res) = handle_command(
                             parsed_request,
                             &tx,
                             client_addrs,
                             &database,
                             &config,
-                            &stream,
+                            stream.try_clone().unwrap(),
                         ) {
                             let response = parse_response(res);
                             log(
@@ -158,6 +199,7 @@ pub fn handle_connection(
                         continue;
                     }
                 }
+                // stop.send(false).unwrap();
             }
             Err(e) => {
                 println!("Closing connection: {:?}", e);
@@ -181,7 +223,7 @@ fn _verbose(msg: String, tx: &Sender<WorkerMessage>) {
 
 /// Recibe una solicitud request de tipo &RespType y valida si es el comando "SHUTDOWN"
 /// Devuelve true si lo es, false si no
-fn check_shutdown(request: &RespType) -> bool {
+fn _check_shutdown(request: &RespType) -> bool {
     if let RespType::RArray(array) = request {
         if let RespType::RBulkString(cmd) = &array[0] {
             if cmd == "shutdown" {

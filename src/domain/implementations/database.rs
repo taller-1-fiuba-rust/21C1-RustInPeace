@@ -319,7 +319,6 @@ impl Database {
     /// use std::time::{SystemTime, Duration};
     /// use std::thread::sleep;
     ///
-    /// // Agrego los datos en la base de datos
     /// let mut db = Database::new("dummy_db_doc_reboot2.csv".to_string());
     ///
     /// //Le pongo vencimiento en now
@@ -358,6 +357,30 @@ impl Database {
         self.items.get(&key).unwrap().get_value_type()
     }
 
+    /// Copia el valor almacenado en una clave origen a una clave destino.
+    ///
+    /// Si el parámetro `replace` es true, entonces reemplaza el valor almacenado en la clave destino
+    /// por el valor de la clave origen. Si es false y la clave destino ya existe, devuelve None.
+    /// Si la clave destino no existe, se crea.
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType};
+    ///
+    /// let mut db = Database::new("dummy_db_copy.csv".to_string());
+    /// db.add("dolly".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("sheep".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// db.copy(String::from("dolly"), String::from("clone"), true);
+    ///
+    /// let copied = db.get_live_item("clone").unwrap();
+    /// if let ValueType::StringType(str) = copied.get_value() {
+    ///    assert_eq!(str, &String::from("sheep"));
+    /// }
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_copy.csv");
+    /// ```
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         return if let Some(source_item) = self.get_live_item(&source) {
             let new_value = source_item.get_copy_of_value();
@@ -389,7 +412,28 @@ impl Database {
         }
     }
 
-    ///renombra una clave, conservando su valor actual
+    /// Renombra una clave.
+    ///
+    /// Si la clave existe, se renombra y sobreescribe con una copia del valor almacenado.
+    /// En ese caso, el método devuelve true, sino false.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_rename.csv".to_string());
+    /// db.add("dolly".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("sheep".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let renamed = db.rename_key(String::from("dolly"), String::from("newdolly"));
+    ///
+    /// assert_eq!(renamed, true);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_rename.csv");
+    /// ```
     pub fn rename_key(&mut self, current_key: String, new_key: String) -> bool {
         let item = self.get_mut_live_item(&current_key);
         if let Some(item) = item {
@@ -402,7 +446,29 @@ impl Database {
         }
     }
 
-    //------------------------------------------------
+    /// Concatena un string al string almacenado en la clave especificada.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, concatena el string especificado
+    /// al final del existente. Si la clave no existe, se crea con el string como valor.
+    /// Devuelve la longitud del nuevo string almacenado.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_append.csv".to_string());
+    /// db.add("field".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("first".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let len = db.append_string("field", "name");
+    ///
+    /// assert_eq!(len, 9);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_append.csv");
+    /// ```
     pub fn append_string(&mut self, key: &str, string: &str) -> usize {
         match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
@@ -428,6 +494,30 @@ impl Database {
         }
     }
 
+    /// Decrementa el valor del numero almacenado en la clave especificada.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, decrementa el valor almacenado
+    /// en las unidades especificadas. Si la clave no existe, se crea con el valor 0 y luego se realiza la operación.
+    /// Si el valor almacenado en la clave no es de tipo String o si no puede ser representado como un numero entero,
+    /// devuelve error, sino devuelve el nuevo valor resultado de la operación.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_decrement.csv".to_string());
+    /// db.add("edad".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("25".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let nueva_edad = db.decrement_key_by("edad", 10).unwrap();
+    ///
+    /// assert_eq!(nueva_edad, 15);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_decrement.csv");
+    /// ```
     pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
         match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
@@ -455,6 +545,30 @@ impl Database {
         }
     }
 
+    /// Incrementa el valor del numero almacenado en la clave especificada.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, incrementa el valor almacenado
+    /// en las unidades especificadas. Si la clave no existe, se crea con el valor 0 y luego se realiza la operación.
+    /// Si el valor almacenado en la clave no es de tipo String o si no puede ser representado como un numero entero,
+    /// devuelve error, sino devuelve el nuevo valor resultado de la operación.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// // Agrego los datos en la base de datos
+    /// let mut db = Database::new("dummy_db_increment.csv".to_string());
+    /// db.add("edad".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("25".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let nueva_edad = db.increment_key_by("edad", 10).unwrap();
+    ///
+    /// assert_eq!(nueva_edad, 35);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_increment.csv");
+    /// ```
     pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
         let item = self.get_mut_live_item(&key.to_string()).unwrap(); //TODO acá no deberia haber un unwrap.
                                                                       //chequear la documentación para devolver lo correcto en caso que no haya key.
@@ -483,13 +597,10 @@ impl Database {
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                Some(str)
-            } else {
-                None
+                return Some(str);
             }
-        } else {
-            None
         }
+        None
     }
 
     /// Devuelve la clave si el valor asociado es un string, sino devuelve nil
@@ -559,7 +670,28 @@ impl Database {
             None
         }
     }
-
+    /// Retorna la cantidad de elementos almacenados en el Set de la clave especificada.
+    ///
+    /// Si la clave no existe, devuelve 0.
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    /// use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_setlen.csv".to_string());
+    /// let mut set = HashSet::new();
+    /// set.insert("25".to_string());
+    /// set.insert("40".to_string());
+    /// let vt = ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    /// db.add("edades".to_string(), vt);
+    ///
+    /// let len = db.get_len_of_set("edades");
+    ///
+    /// assert_eq!(len, 2);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_setlen.csv");
+    /// ```
     pub fn get_len_of_set(&mut self, key: &str) -> usize {
         let item = self.get_live_item(key);
         match item {

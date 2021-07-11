@@ -42,19 +42,19 @@ impl Drop for ThreadPool {
     fn drop(&mut self) {
         println!("Sending terminate message to all workers.");
 
-        for _ in &self.workers {
-            match self.sender.send(Message::Terminate) {
-                Ok(_) => {} //
-                Err(_) => {
-                    println!("Oops! Failed sending terminate message");
-                }
-            }
-        }
+        // for _ in &self.workers {
+        //     match self.sender.send(Message::Terminate) {
+        //         Ok(_) => {} //
+        //         Err(_) => {
+        //             println!("Oops! Failed sending terminate message");
+        //         }
+        //     }
+        // }
 
         println!("Shutting down all workers.");
 
-        for worker in &mut self.workers {
-            worker.shutdown();
-        }
+        // for worker in &mut self.workers {
+        //     worker.shutdown();
+        // }
     }
 }

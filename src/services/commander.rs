@@ -16,9 +16,54 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
-/// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
-/// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
-/// Lee la primera palabra de la operación para disparar la acción que corresponda.
+/// Delega el comando ingresado por el cliente al servicio de comandos que corresponda.
+///
+/// Los comandos posibles son:
+/// * monitor
+/// * info
+/// * config
+/// * dbsize
+/// * flushdb
+/// * copy
+/// * del
+/// * exists
+/// * persist
+/// * rename
+/// * expire
+/// * expireat
+/// * sort
+/// * keys
+/// * touch
+/// * type
+/// * append
+/// * decrby
+/// * incrby
+/// * get
+/// * getdel
+/// * getset
+/// * copy
+/// * strlen
+/// * get
+/// * mget
+/// * mset
+/// * subscribe
+/// * unsubscribe
+/// * punsubscribe
+/// * pubsub
+/// * publish
+/// * ttl
+/// * command
+/// * lpush
+/// * lpushx
+/// * llen
+/// * lrange
+/// * lindex
+/// * lpop
+/// * sadd
+/// * scard
+/// * sismember
+/// * smembers
+/// * srem
 /// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 pub fn handle_command(
     operation: RespType,
@@ -26,7 +71,7 @@ pub fn handle_command(
     addrs: SocketAddr,
     database: &Arc<RwLock<Database>>,
     config: &Arc<RwLock<Config>>,
-    stream: &TcpStream,
+    stream: TcpStream,
 ) -> Option<RespType> {
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
@@ -127,17 +172,33 @@ pub fn handle_command(
                     return Some(command_string::set(&array, database));
                 }
                 "subscribe" => {
-                    command_pubsub::subscribe(&array, tx, addrs, stream);
+                    return Some(command_pubsub::subscribe(&array, tx, addrs, stream));
                 }
                 "unsubscribe" => {
-                    command_pubsub::unsubscribe(&array, tx, addrs);
-                    return Some(RespType::RNullBulkString());
+                    return Some(command_pubsub::unsubscribe(&array, tx, addrs));
+                }
+                "punsubscribe" => {
+                    //no se pide implementar esta funcion pero la agrego hardcodeada -por ahora- porque el cliente Redis la llama despues de un subscribe
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("unsubscribe")),
+                        RespType::RBulkString(String::from("foo")),
+                        RespType::RInteger(0),
+                    ]));
+                }
+                "pubsub" => {
+                    return Some(command_pubsub::pubsub(&array, tx));
                 }
                 "publish" => {
                     return Some(command_pubsub::publish(&array, tx));
                 }
                 "ttl" => {
                     return Some(command_key::get_ttl(&array, database));
+                }
+                "command" => {
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("append")),
+                        RespType::RBulkString(String::from("pubsub")),
+                    ]))
                 }
                 "lpush" => {
                     return Some(command_list::lpush_version_2(&array, database));
