@@ -1,19 +1,21 @@
-use std::{net::{SocketAddr, TcpStream}, sync::mpsc::{self, Sender}};
+use std::{
+    net::{SocketAddr, TcpStream},
+    sync::mpsc::{self, Sender},
+};
 
-use crate::{domain::entities::message::WorkerMessage, services::{parser_service, utils::resp_type::RespType}};
+use crate::{domain::entities::message::WorkerMessage, services::utils::resp_type::RespType};
 
 /// Suscribe un cliente al canal indicado.
-/// Para suscribirlo, crea un canal mpsc y envia un WorkerMessage Subscribe mediante el sender tx
-/// En el WorkerMessage se envian el canal al que se quiere suscribir, la direccion del cliente que se suscribe y
-/// un sender para que desde otro hilo de ejecución se puedan enviar mensajes al nuevo canal creado
-/// En un loop for se reciben todos los mensajes que lleguen al canal al que fue suscrito el cliente
+///
+/// Una vez que el cliente se suscribe a un canal, no puede ejecutar ningún otro comando.
+/// `Subscribe` es una función bloqueante, sólo recibe mensajes que hayan sido publicados al canal.
+/// Devuelve el nombre del canal y la cantidad de clientes suscritos al canal
 pub fn subscribe(
     cmd: &[RespType],
     tx: &Sender<WorkerMessage>,
     addrs: SocketAddr,
     stream: TcpStream,
 ) -> RespType {
-    //creo channel para comunicar
     let (messages_sender, messages_receiver) = mpsc::channel();
 
     for channel in &cmd[1..] {
@@ -22,49 +24,66 @@ pub fn subscribe(
                 channel.to_string(),
                 addrs,
                 messages_sender.clone(),
-                stream.try_clone().unwrap()
+                stream.try_clone().unwrap(),
             ))
             .unwrap();
 
             if let Ok(n_channels) = messages_receiver.recv() {
                 //el integer es la cantidad de canales que esta escuchando
-                return RespType::RArray(vec![RespType::RBulkString(String::from("subscribe")), RespType::RBulkString(channel.to_string()), RespType::RInteger(n_channels)]);
+                return RespType::RArray(vec![
+                    RespType::RBulkString(String::from("subscribe")),
+                    RespType::RBulkString(channel.to_string()),
+                    RespType::RInteger(n_channels),
+                ]);
             }
         }
     }
     RespType::RArray(vec![])
 }
 
-// Desuscribe un cliente del canal indicado
-//Unsubscribes the client from the given channels, or from all of them if none is given.
-//When no channels are specified, the client is unsubscribed from all the previously subscribed channels.
-//In this case, a message for every unsubscribed channel will be sent to the client.
+/// Desuscribe un cliente del canal indicado.
+///
+/// Si no se espefica un canal, se lo desuscribe de todos a los que se haya suscrito.
+/// Devuelve el nombre del canal y la cantidad de suscriptores actualizada.
 pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();
     if cmd.len() > 1 {
         for channel in &cmd[1..] {
             if let RespType::RBulkString(channel) = channel {
-                tx.send(WorkerMessage::Unsubscribe(channel.to_string(), addrs, messages_sender.clone()))
-                    .unwrap();
+                tx.send(WorkerMessage::Unsubscribe(
+                    channel.to_string(),
+                    addrs,
+                    messages_sender.clone(),
+                ))
+                .unwrap();
 
                 if let Ok(n_channels) = messages_receiver.recv() {
-                    return RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(channel.to_string()), RespType::RInteger(n_channels)]);
+                    return RespType::RArray(vec![
+                        RespType::RBulkString(String::from("unsubscribe")),
+                        RespType::RBulkString(channel.to_string()),
+                        RespType::RInteger(n_channels),
+                    ]);
                 }
             }
         }
     } else {
-        tx.send(WorkerMessage::UnsubscribeAll(addrs, messages_sender)).unwrap();
+        tx.send(WorkerMessage::UnsubscribeAll(addrs, messages_sender))
+            .unwrap();
         if let Ok(n_channels) = messages_receiver.recv() {
-            return RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString("all".to_string()), RespType::RInteger(n_channels)]);
+            return RespType::RArray(vec![
+                RespType::RBulkString(String::from("unsubscribe")),
+                RespType::RBulkString("all".to_string()),
+                RespType::RInteger(n_channels),
+            ]);
         }
     }
     RespType::RArray(vec![])
 }
 
-/// Publica un mensaje en todos en el canal pedido
-///In a Redis Cluster clients can publish to every node. The cluster makes sure that published messages are forwarded as needed,
-///so clients can subscribe to any channel by connecting to any one of the nodes.
-///Return value -> Integer reply: the number of clients that received the message.
+/// Publica un mensaje en todos en el canal pedido.
+///
+/// A cada cliente suscrito al canal especificado se le envía, además del mensaje, el canal por el cual llega
+/// Este comando devuelve la cantidad de clientes que recibieron el mensaje.
 pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     if let RespType::RBulkString(channel) = &cmd[1] {
         if let RespType::RBulkString(message) = &cmd[2] {
@@ -84,7 +103,10 @@ pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     RespType::RInteger(0)
 }
 
+/// Lista canales activos o el numero de suscriptores de los canales especificados.
 ///
+/// Si el comando es seguido por "channels" se listan todos los canales activos
+/// Si el comando es seguido por "numsub" se listan los canales especificados y el numero de suscriptores
 pub fn pubsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     if let RespType::RBulkString(command) = &cmd[1] {
         match command.as_str() {
@@ -100,26 +122,28 @@ pub fn pubsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     RespType::RArray(vec![])
 }
 
+/// Lista canales activos.
+///
+/// Canales activos son aquellos que tengan al menos un suscriptor.
+/// Si se especifica un patrón, se listan los canales cuyo nombre cumplan el patrón,
+/// sino se listan todos.
 fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     let (response_sender, response_receiver) = mpsc::channel();
     if cmd.len() >= 3 {
         if let RespType::RBulkString(pattern) = &cmd[2] {
             tx.send(WorkerMessage::Channels(
                 response_sender,
-                Some(pattern.to_string())
+                Some(pattern.to_string()),
             ))
             .unwrap();
-    
+
             if let Ok(res) = response_receiver.recv() {
                 return RespType::RArray(res);
             }
         }
     } else {
-        tx.send(WorkerMessage::Channels(
-            response_sender,
-            None
-        ))
-        .unwrap();
+        tx.send(WorkerMessage::Channels(response_sender, None))
+            .unwrap();
 
         if let Ok(res) = response_receiver.recv() {
             return RespType::RArray(res);
@@ -128,6 +152,10 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     RespType::RArray(vec![])
 }
 
+/// Devuelve el numero de suscriptores por cada canal.
+///
+/// Retorna una lista de canales y su cantidad de suscriptores en la forma (canal, cantidad)
+/// El orden de la lista es el mismo que en los parametros del comando [chequear esto]
 fn pubsub_numsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();
     let mut channels = Vec::new();
@@ -136,11 +164,8 @@ fn pubsub_numsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
             channels.push(channel.to_string());
         }
     }
-    tx.send(WorkerMessage::Numsub(
-        channels,
-        messages_sender.clone(),
-    ))
-    .unwrap();
+    tx.send(WorkerMessage::Numsub(channels, messages_sender))
+        .unwrap();
 
     if let Ok(res) = messages_receiver.recv() {
         return RespType::RArray(res);

@@ -73,7 +73,11 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if database.read().unwrap().key_exists(current_key.to_string()) {
+                if database
+                    .write()
+                    .unwrap()
+                    .key_exists(current_key.to_string())
+                {
                     key_found += 1;
                 }
             }
@@ -124,11 +128,11 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .unwrap();
             let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
             let result = db.expire_key(key, &new_time.to_string());
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -144,11 +148,11 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
-            if result {
-                return RespType::RInteger(1);
+            return if result {
+                RespType::RInteger(1)
             } else {
-                return RespType::RInteger(0);
-            }
+                RespType::RInteger(0)
+            };
         }
     }
     RespType::RInteger(0)
@@ -165,25 +169,14 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(current_key) = &cmd[1] {
         let mut sorted_list: Vec<&String> = Vec::new();
         let mut auxiliary_vec = Vec::new();
-        //let mut auxiliary_vec_2 = Vec::new();
-        let database_lock = database.read().unwrap();
-        //aca atrapo "myList", que (si existe) es una key en la database
-        let my_list_value = database_lock
-            .search_item_by_key(current_key.to_string())
-            .unwrap();
-        if aux_hash_map.contains_key("BY") {
-            if let RespType::RBulkString(pat) = aux_hash_map.get("BY").unwrap() {
-                let elements = my_list_value.get_value_version_2().unwrap();
-                //genero un vec_aux para guardar los "values" guardados en myList
-                //(la que se pide ordenar) como String. Facilita la comparacion para
-                //hallar el patron solicitado
-                let mut vec_resptype_to_string = Vec::new();
-                for aux in elements {
-                    vec_resptype_to_string.push(aux.to_string());
-                }
-                let mut tuple_vector; //= Vec::new();
-                tuple_vector = database_lock
-                    .get_values_of_external_keys_that_match_a_pattern(vec_resptype_to_string, pat)
+        let mut database_lock = database.write().unwrap();
+        if aux_hash_map.contains_key("by") {
+            if let RespType::RBulkString(pat) = aux_hash_map.get("by").unwrap() {
+                let mut tuple_vector = database_lock
+                    .get_values_and_associated_external_key_values(
+                        pat.to_string(),
+                        current_key.to_string(),
+                    )
                     .unwrap();
                 tuple_vector.sort_by_key(|k| k.1.clone());
                 for val in tuple_vector {
@@ -192,13 +185,13 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 for j in &auxiliary_vec {
                     sorted_list.push(j)
                 }
-                if aux_hash_map.contains_key("DESC") {
+                if aux_hash_map.contains_key("desc") {
                     sorted_list.reverse()
                 }
-                if (aux_hash_map.contains_key("LOWER")) || (aux_hash_map.contains_key("UPPER")) {
-                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("LOWER").unwrap() {
+                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
+                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
                         if let RespType::RBulkString(upper_bound) =
-                            aux_hash_map.get("UPPER").unwrap()
+                            aux_hash_map.get("upper").unwrap()
                         {
                             let min = lower_bound.parse::<usize>().unwrap();
                             let max = upper_bound.parse::<usize>().unwrap();
@@ -208,24 +201,29 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 }
             }
         } else {
-            if aux_hash_map.contains_key("DESC") {
-                //ordeno descendentemente
-                sorted_list = my_list_value.sort_descending().unwrap();
-            } else {
-                //ordeno ascendentemente
-                sorted_list = my_list_value.sort().unwrap();
-            }
-            if (aux_hash_map.contains_key("LOWER")) || (aux_hash_map.contains_key("UPPER")) {
-                if let RespType::RBulkString(lower_bound) = aux_hash_map.get("LOWER").unwrap() {
-                    if let RespType::RBulkString(upper_bound) = aux_hash_map.get("UPPER").unwrap() {
-                        let min = lower_bound.parse::<usize>().unwrap();
-                        let max = upper_bound.parse::<usize>().unwrap();
-                        sorted_list = sorted_list[min..max].to_vec();
+            let my_list_value_optional = database_lock.get_live_item(current_key);
+            if let Some(my_list_value) = my_list_value_optional {
+                if aux_hash_map.contains_key("desc") {
+                    //ordeno descendentemente
+                    sorted_list = my_list_value.sort_descending().unwrap();
+                } else {
+                    //ordeno ascendentemente
+                    sorted_list = my_list_value.sort().unwrap();
+                }
+                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
+                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
+                        if let RespType::RBulkString(upper_bound) =
+                            aux_hash_map.get("upper").unwrap()
+                        {
+                            let min = lower_bound.parse::<usize>().unwrap();
+                            let max = upper_bound.parse::<usize>().unwrap();
+                            sorted_list = sorted_list[min..max].to_vec();
+                            //sorted_list = sort_vec_by_min_max_values(lower_bound, upper_, sorted_list);
+                        }
                     }
                 }
             }
         }
-
         sorted_list
             .into_iter()
             .for_each(|value| vector.push(RespType::RBulkString(value.to_string())));
@@ -248,16 +246,106 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         RespType::RBulkString("No matching keys".to_string())
     }
 }
-
+/// Actualiza el `last_access_time` de las keys recibidas.
+///
+/// A partir de una lista de `keys` enviadas, se encarga de actualizar con now
+/// el `last_access_time`de la key. Si la key no existe o expiró se ignora.
+/// Devuelve la cantidad de keys actualizadas.
+///
+/// # Ejemplos
+///
+/// 1. Actualiza dos `keys` válidas:
+///
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::SystemTime;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+///
+/// // Agrego los datos en la base
+///
+/// let db = Database::new("dummy_db_doc_touch1.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let mut timeout_10seg = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+/// timeout_10seg += 10;
+///
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_10seg)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 2) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
+/// ```
+/// 2. Itenta actualizar 2 `keys` donde una está expirada y la otra no existe en la database
+/// ```
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use std::time::{SystemTime, Duration};
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_key;
+/// use std::thread::sleep;
+///
+/// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+///
+/// let timeout_now = SystemTime::now()
+///  .duration_since(SystemTime::UNIX_EPOCH)
+///   .unwrap().as_secs();
+///
+/// sleep(Duration::from_secs(1));
+///
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
+/// KeyAccessTime::Volatile(timeout_now)
+/// ));
+///
+/// //Ejecuto el comando con los parámetros necesarios:
+/// let res = command_key::touch(&vec![
+/// RespType::RBulkString("TOUCH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("verduras".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 0) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_doc_touch2.csv");
+/// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
     let mut db = database.write().unwrap();
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if db.key_exists(current_key.to_string()) {
-                    db.reboot_time(current_key.to_string());
-                    number_of_touched_keys += 1;
+                if db.reboot_time(current_key.to_string()).is_some() {
+                    number_of_touched_keys += 1
                 }
             }
         }
@@ -266,56 +354,78 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let db = database.read().unwrap();
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
-        if db.key_exists(current_key.to_string()) {
-            tipo = db.get_type_of_value(current_key.to_string());
+        if database
+            .write()
+            .unwrap()
+            .key_exists(current_key.to_string())
+        {
+            tipo = database
+                .read()
+                .unwrap()
+                .get_type_of_value(current_key.to_string());
         }
     }
     RespType::RBulkString(tipo)
 }
 
-//--------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
+
+fn _sort_vec_by_min_max_values(
+    lower_bound: &str,
+    upper_bound: &str,
+    sorted_list: Vec<&String>,
+) -> Vec<String> {
+    let min = lower_bound.parse::<usize>().unwrap();
+    let max = upper_bound.parse::<usize>().unwrap();
+    let list = sorted_list[min..max].to_vec();
+    let mut aux = vec![];
+    for elemento in list {
+        aux.push(elemento.to_string());
+    }
+    aux
+}
+
 /// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
 fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
     let mut aux_hash_map = HashMap::new();
-    let keys = vec!["BY", "LIMIT", "GET", "ASC", "DESC", "ALPHA", "STORE"];
-    let mut current_position;
-    for key in keys {
-        current_position = cmd
-            .iter()
-            .position(|x| x == &RespType::RBulkString(key.to_string()));
-        if current_position != None {
-            if (key == "ASC") || (key == "DESC") || (key == "ALPHA") {
-                aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-            } else if (key == "BY") || (key == "STORE") {
-                aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-            } else if key == "LIMIT" {
-                aux_hash_map.insert("LOWER".to_string(), &cmd[current_position.unwrap() + 1]);
-                aux_hash_map.insert("UPPER".to_string(), &cmd[current_position.unwrap() + 2]);
+    let mut posicion = 1;
+    for argumento in cmd.iter().skip(1) {
+        if let RespType::RBulkString(arg) = argumento {
+            if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
+                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+            } else if (arg == "by") || (arg == "store") {
+                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
+            } else if arg == "limit" {
+                aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
+                aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
+            } else {
+                aux_hash_map.insert("key".to_string(), argumento);
             }
-            // } else if (key == "GET") {
-            // }
         }
+        posicion += 1;
     }
     aux_hash_map
 }
+
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
 /// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.write().unwrap();
-            match db._get_items().get(key) {
-                None => return RespType::RNegative(-2),
-                Some(item) => {
-                    return match item.get_timeout() {
-                        KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                        KeyAccessTime::Persistent => RespType::RInteger(0),
-                    }
-                }
-            }
+            let mut db = database.write().unwrap();
+            return match db.get_live_item(key) {
+                None => RespType::RSignedNumber(-2),
+                Some(item) => match item.get_timeout() {
+                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                    KeyAccessTime::Persistent => RespType::RInteger(0),
+                },
+            };
         }
     }
     RespType::RInteger(0)
@@ -354,71 +464,3 @@ fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
         println!("{:?}: {:?}", key, value)
     }
 }
-
-//--------------------------------------------------------------------
-//let mut vector = Vec::new();
-// if aux_hash_map.contains_key("ALPHA"){
-//     //ordeno alfabeticamente
-// }
-// if aux_hash_map.contains_key("DESC")
-
-// if let RespType::RBulkString(current_key) = &cmd[1] {
-//     let database_lock = database.read().unwrap();
-//     let current_list = database_lock.search_item_by_key(current_key.to_string()).unwrap();
-//     //let mut vector = Vec::new();
-//     if cmd.len()>2 {
-//         if let RespType::RBulkString(current_inst) = &cmd[2] {
-//             if (current_inst.to_string() == "DESC") || ((current_inst.to_string() == "ALPHA")&&(&cmd[3]=="DESC") ){
-//                 let sorted_list_desc = current_list.sort_descending().unwrap().into_iter();
-//                 //let mut vector = Vec::new();
-//                 sorted_list_desc.into_iter().for_each(|value| {
-//                     vector.push(RespType::RBulkString(value.to_string()))
-//                 });
-//                 //return RespType::RArray(vector);
-//             }
-
-//             if current_inst.to_string() == "LIMIT" {
-//                 if cmd.len()>4 {
-//                     let min = &cmd[3];
-//                     let max = &cmd[4];
-
-//                     if let RespType::RBulkString(current_inst) = &cmd[5] {
-
-//                     }
-
-//                 } else {
-//                     let sorted_list = current_list.sort().unwrap();
-//                     let sorted_list_shorten = sorted_list[min..max].to_vec();
-//                     sorted_list_shorten.into_iter().for_each(|value| {
-//                         vector.push(RespType::RBulkString(value.to_string()))
-//                     });
-//                 }
-
-//                 }
-
-//             } else {
-
-//             }
-//         }
-//     } else {
-//         let sorted_list = current_list.sort().unwrap();
-//         sorted_list.into_iter().for_each(|value| {
-//             vector.push(RespType::RBulkString(value.to_string()))
-//         });
-//     }
-
-// }
-//     //tengo un ValueType (que puede ser List o Set - String no figura en el pryecto, hay que preg )
-// //ValueType::ListType();
-// RespType::RArray(vector)
-//}
-
-//     for n in cmd.iter().skip(1) {
-//         //            key_in_db = database.search_by_key()
-//         if let RespType::RBulkString(actual_key) = n {
-//             if let Some(_key) = database.read().unwrap().search_item_by_key(actual_key) {
-//                 key_found = 1;
-//             }
-//         }
-//     }
-// }

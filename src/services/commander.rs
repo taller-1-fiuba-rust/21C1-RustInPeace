@@ -1,10 +1,10 @@
-use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
-use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
 use crate::domain::implementations::database::Database;
+use crate::services::commands::{command_pubsub, command_set};
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
+    services::commands::command_list,
     services::commands::command_server,
     services::commands::command_string,
 };
@@ -16,8 +16,54 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
-/// Segun el comando recibido, delega la implementación al commander que corresponda.
-/// Lee la primera palabra de la operación para disparar la acción que corresponda.
+/// Delega el comando ingresado por el cliente al servicio de comandos que corresponda.
+///
+/// Los comandos posibles son:
+/// * monitor
+/// * info
+/// * config
+/// * dbsize
+/// * flushdb
+/// * copy
+/// * del
+/// * exists
+/// * persist
+/// * rename
+/// * expire
+/// * expireat
+/// * sort
+/// * keys
+/// * touch
+/// * type
+/// * append
+/// * decrby
+/// * incrby
+/// * get
+/// * getdel
+/// * getset
+/// * copy
+/// * strlen
+/// * get
+/// * mget
+/// * mset
+/// * subscribe
+/// * unsubscribe
+/// * punsubscribe
+/// * pubsub
+/// * publish
+/// * ttl
+/// * command
+/// * lpush
+/// * lpushx
+/// * llen
+/// * lrange
+/// * lindex
+/// * lpop
+/// * sadd
+/// * scard
+/// * sismember
+/// * smembers
+/// * srem
 /// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 pub fn handle_command(
     operation: RespType,
@@ -91,7 +137,7 @@ pub fn handle_command(
                     return Some(command_key::sort(&array, database));
                 }
                 "keys" => return Some(command_key::keys(&array, database)),
-                "touch" => return Some(command_key::keys(&array, database)),
+                "touch" => return Some(command_key::touch(&array, database)),
                 "type" => {
                     return Some(command_key::get_type(&array, database));
                 }
@@ -116,16 +162,28 @@ pub fn handle_command(
                 "strlen" => {
                     return Some(command_string::strlen(&array, database));
                 }
+                "mget" => {
+                    return Some(command_string::mget(&array, database));
+                }
+                "mset" => {
+                    return Some(command_string::mset(&array, database));
+                }
+                "set" => {
+                    return Some(command_string::set(&array, database));
+                }
                 "subscribe" => {
                     return Some(command_pubsub::subscribe(&array, tx, addrs, stream));
                 }
                 "unsubscribe" => {
                     return Some(command_pubsub::unsubscribe(&array, tx, addrs));
-                    // return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("foo")), RespType::RInteger(1)]));
                 }
                 "punsubscribe" => {
                     //no se pide implementar esta funcion pero la agrego hardcodeada -por ahora- porque el cliente Redis la llama despues de un subscribe
-                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("unsubscribe")), RespType::RBulkString(String::from("foo")), RespType::RInteger(0)]));
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("unsubscribe")),
+                        RespType::RBulkString(String::from("foo")),
+                        RespType::RInteger(0),
+                    ]));
                 }
                 "pubsub" => {
                     return Some(command_pubsub::pubsub(&array, tx));
@@ -137,7 +195,43 @@ pub fn handle_command(
                     return Some(command_key::get_ttl(&array, database));
                 }
                 "command" => {
-                    return Some(RespType::RArray(vec![RespType::RBulkString(String::from("append")), RespType::RBulkString(String::from("pubsub"))]))
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("append")),
+                        RespType::RBulkString(String::from("pubsub")),
+                    ]))
+                }
+                "lpush" => {
+                    return Some(command_list::lpush_version_2(&array, database));
+                }
+                "lindex" => {
+                    return Some(command_list::get_index(&array, database));
+                }
+                "llen" => {
+                    return Some(command_list::llen(&array, database));
+                }
+                "lpop" => {
+                    return Some(command_list::lpop(&array, database));
+                }
+                "sadd" => {
+                    return Some(command_set::add(&array, database));
+                }
+                "lpushx" => {
+                    return Some(command_list::lpushx(&array, database));
+                }
+                "lrange" => {
+                    return Some(command_list::lrange(&array, database));
+                }
+                "scard" => {
+                    return Some(command_set::scard(&array, database));
+                }
+                "sismember" => {
+                    return Some(command_set::sismember(&array, database));
+                }
+                "smembers" => {
+                    return Some(command_set::smembers(&array, database));
+                }
+                "srem" => {
+                    return Some(command_set::srem(&array, database));
                 }
                 _ => {}
             }
@@ -145,535 +239,3 @@ pub fn handle_command(
     }
     None
 }
-
-pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
-    if let Ok(write_guard) = database.write() {
-        let mut db = write_guard;
-        db.add(key, value)
-    }
-}
-
-// #[test]
-// fn test_001_returns_dbsize() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let _file = File::create("filename_dbsize".to_string());
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let db = Database::new("filename_dbsize".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let conf = Arc::new(RwLock::new(config));
-//     let operation = RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8081);
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_dbsize".to_string());
-// }
-
-// #[test]
-// fn test_002_shows_server_info() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("info".to_string()),
-//         RespType::RBulkString("server".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename".to_string());
-// }
-
-// #[test]
-// fn test_003_cleans_db_items() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_3".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let operation = RespType::RArray(vec![RespType::RBulkString("flushdb".to_string())]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let operation_check_dbsize =
-//         RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
-//     handle_command(
-//         operation_check_dbsize,
-//         &tx,
-//         addrs,
-//         &database,
-//         &conf,
-//         &stream,
-//     );
-//     let _ = std::fs::remove_file("filename_3".to_string());
-// }
-
-// #[test]
-// fn test_004_deletes_a_key_from_db() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_4".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("del".to_string()),
-//         RespType::RBulkString("clave_1".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let operation_check_dbsize =
-//         RespType::RArray(vec![RespType::RBulkString("dbsize".to_string())]);
-//     handle_command(
-//         operation_check_dbsize,
-//         &tx,
-//         addrs,
-//         &database,
-//         &conf,
-//         &stream,
-//     );
-//     let _ = std::fs::remove_file("filename_4".to_string());
-// }
-
-// #[test]
-// fn test_005_check_if_key_exists_throws_zero() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_5".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("exists".to_string()),
-//         RespType::RBulkString("clave_3".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_5".to_string());
-// }
-
-// #[test]
-// fn test_006_check_if_key_exists_throws_one() {
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_6".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("exists".to_string()),
-//         RespType::RBulkString("clave_1".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_6".to_string());
-// }
-
-// #[test]
-// fn test_007_sort_ascending() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_7".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_7".to_string());
-// }
-
-// #[test]
-// fn test_008_sort_descending() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_7".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//         RespType::RBulkString("DESC".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _removed = std::fs::remove_file("filename_7".to_string());
-// }
-
-// #[test]
-// fn test_009_sort_ascending_first_4_elements() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_101".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//         RespType::RBulkString("LIMIT".to_string()),
-//         RespType::RBulkString("0".to_string()),
-//         RespType::RBulkString("4".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _removed = std::fs::remove_file("filename_101".to_string());
-// }
-
-// #[test]
-// fn test_010_sort_descending_first_4_elements() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_701".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "15".to_string(),
-//             "18".to_string(),
-//             "12".to_string(),
-//             "54".to_string(),
-//             "22".to_string(),
-//             "45".to_string(),
-//         ]),
-//         //value: ValueType::StringType("1".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("2".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edades_amigos".to_string(), vt_1);
-//     load_data_in_db(&database, "edades_familiares".to_string(), vt_2);
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("edades_amigos".to_string()),
-//         RespType::RBulkString("LIMIT".to_string()),
-//         RespType::RBulkString("0".to_string()),
-//         RespType::RBulkString("4".to_string()),
-//         RespType::RBulkString("DESC".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     handle_command(operation, &tx, addrs, &database, &conf);
-//     let _removed = std::fs::remove_file("filename_701".to_string());
-// }
-
-// #[test]
-// fn test_011_sort_by_external_key_value_using_pattern_ascending() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_7".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["15".to_string()]),
-//         value: ValueType::StringType("10".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("20".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_3 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["11".to_string()]),
-//         value: ValueType::StringType("10".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_4 = ValueTimeItem {
-//         value: ValueType::StringType("40".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_5 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["1".to_string()]),
-//         value: ValueType::StringType("50".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_6 = ValueTimeItem {
-//         value: ValueType::StringType("60".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_7 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "ignacio".to_string(),
-//             "pepo".to_string(),
-//             "silvina".to_string(),
-//             "lucila".to_string(),
-//         ]),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edad_juana".to_string(), vt_1);
-//     load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
-//     load_data_in_db(&database, "edad_ignacio".to_string(), vt_3);
-//     load_data_in_db(&database, "edad_pepo".to_string(), vt_4);
-//     load_data_in_db(&database, "juana".to_string(), vt_5);
-//     load_data_in_db(&database, "lucila_edad".to_string(), vt_6);
-//     load_data_in_db(&database, "familiares".to_string(), vt_7);
-
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("familiares".to_string()),
-//         RespType::RBulkString("BY".to_string()),
-//         RespType::RBulkString("edad_".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_7".to_string());
-// }
-
-// #[test]
-// fn test_012_sort_by_external_key_value_using_pattern_descending() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_7".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["15".to_string()]),
-//         value: ValueType::StringType("10".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("20".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_3 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["11".to_string()]),
-//         value: ValueType::StringType("30".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_4 = ValueTimeItem {
-//         value: ValueType::StringType("40".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_5 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["1".to_string()]),
-//         value: ValueType::StringType("50".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_6 = ValueTimeItem {
-//         value: ValueType::StringType("60".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_7 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "ignacio".to_string(),
-//             "pepo".to_string(),
-//             "silvina".to_string(),
-//             "lucila".to_string(),
-//         ]),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edad_juana".to_string(), vt_1);
-//     load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
-//     load_data_in_db(&database, "edad_ignacio".to_string(), vt_3);
-//     load_data_in_db(&database, "edad_pepo".to_string(), vt_4);
-//     load_data_in_db(&database, "juana".to_string(), vt_5);
-//     load_data_in_db(&database, "lucila_edad".to_string(), vt_6);
-//     load_data_in_db(&database, "familiares".to_string(), vt_7);
-
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("sort".to_string()),
-//         RespType::RBulkString("familiares".to_string()),
-//         RespType::RBulkString("BY".to_string()),
-//         RespType::RBulkString("edad_".to_string()),
-//         RespType::RBulkString("DESC".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _removed = std::fs::remove_file("filename_7".to_string());
-// }
-
-// #[test]
-// fn test_013_gets_value_type_list() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let _file = File::create("filename_13".to_string());
-//     let db = Database::new("filename_13".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["15".to_string()]),
-//         value: ValueType::StringType("10".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("20".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-
-//     let vt_7 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "ignacio".to_string(),
-//             "pepo".to_string(),
-//             "silvina".to_string(),
-//             "lucila".to_string(),
-//         ]),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edad_juana".to_string(), vt_1);
-//     load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
-//     load_data_in_db(&database, "familiares".to_string(), vt_7);
-
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("type".to_string()),
-//         RespType::RBulkString("familiares".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_13".to_string());
-// }
-
-// #[test]
-// fn test_014_gets_value_type_string() {
-//     use crate::domain::entities::key_value_item::KeyAccessTime;
-//     use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
-
-//     use std::net::{IpAddr, Ipv4Addr};
-//     let db = Database::new("filename_13".to_string());
-//     let database = Arc::new(RwLock::new(db));
-//     //se rellena la database
-//     let vt_1 = ValueTimeItem {
-//         // value: ValueType::ListType(vec!["15".to_string()]),
-//         value: ValueType::StringType("10".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     let vt_2 = ValueTimeItem {
-//         value: ValueType::StringType("20".to_string()),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-
-//     let vt_7 = ValueTimeItem {
-//         value: ValueType::ListType(vec![
-//             "ignacio".to_string(),
-//             "pepo".to_string(),
-//             "silvina".to_string(),
-//             "lucila".to_string(),
-//         ]),
-//         timeout: KeyAccessTime::Volatile(0),
-//     };
-//     load_data_in_db(&database, "edad_juana".to_string(), vt_1);
-//     load_data_in_db(&database, "edad_silvina".to_string(), vt_2);
-//     load_data_in_db(&database, "familiares".to_string(), vt_7);
-
-//     //se relleno la database
-//     let operation = RespType::RArray(vec![
-//         RespType::RBulkString("type".to_string()),
-//         RespType::RBulkString("edad_juana".to_string()),
-//     ]);
-//     let (tx, _sx) = std::sync::mpsc::channel();
-//     let addrs = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     let config = Config::new(String::from("./src/redis.conf"));
-//     let conf = Arc::new(RwLock::new(config));
-//     let stream = TcpStream::connect(addrs).unwrap();
-//     handle_command(operation, &tx, addrs, &database, &conf, &stream);
-//     let _ = std::fs::remove_file("filename_13".to_string());
-// }

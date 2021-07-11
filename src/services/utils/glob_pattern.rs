@@ -1,7 +1,7 @@
 /// Determina si una cadena de caracteres sigue un patrón glob [glob-style pattern].
 ///
 /// # Examples
-/// 
+///
 /// ```
 /// use proyecto_taller_1::services::utils::glob_pattern::g_match;
 ///
@@ -36,10 +36,7 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
                 // verifico recursivamente que lo que siga al asterisco coincida con el string dado
                 // por ej. '*.md' hace match con 'cualquiercosa.md'
                 for i in string_pos..(string.len() + 1) {
-                    if g_match(
-                        &pattern[pattern_pos + 1..],
-                        &string[i..]
-                    ) {
+                    if g_match(&pattern[pattern_pos + 1..], &string[i..]) {
                         return true;
                     }
                 }
@@ -56,7 +53,7 @@ pub fn g_match(pattern: &[u8], string: &[u8]) -> bool {
                 }
             }
             b'\\' => {
-                // '\' hace que el caracter que le siga se lea como un caracter comun, no como 
+                // '\' hace que el caracter que le siga se lea como un caracter comun, no como
                 // caracter especial. Por ejemplo, que se pueda leer el caracter '?' sin considerarlo
                 // parte del patron
                 pattern_pos += 1;
@@ -145,7 +142,10 @@ fn test_05_backslash_is_match() {
 
 #[test]
 fn test_06_multiple_wildcards_is_match() {
-    assert_eq!(g_match(b"*max-*-entries*", b"hash-max-zipmap-entries"), true);
+    assert_eq!(
+        g_match(b"*max-*-entries*", b"hash-max-zipmap-entries"),
+        true
+    );
 }
 
 #[test]

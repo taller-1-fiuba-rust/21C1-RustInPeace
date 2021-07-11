@@ -4,13 +4,17 @@ use std::net::{SocketAddr, TcpStream};
 pub struct Client {
     addrs: SocketAddr,
     stream: TcpStream,
-    subscriber: bool
+    subscriber: bool,
 }
 
 impl Client {
     pub fn new(addrs: SocketAddr, stream: TcpStream) -> Self {
         let subscriber = false;
-        Client { addrs, stream, subscriber }
+        Client {
+            addrs,
+            stream,
+            subscriber,
+        }
     }
 
     pub fn get_stream(&self) -> &TcpStream {
