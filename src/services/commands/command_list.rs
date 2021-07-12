@@ -4,53 +4,6 @@ use crate::services::utils::resp_type::RespType;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use std::usize;
-//use std::collections::HashMap;
-//use std::str::FromStr;
-//use std::time::SystemTime;
-
-///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
-/// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
-/// cantidad de elementos guardados en esa key
-///DEPRECATED
-// pub fn _lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-//     let mut new_database = database.write().unwrap();
-//     let mut vec_aux = vec![];
-//     if let RespType::RBulkString(key) = &cmd[1] {
-//         for n in cmd.iter().skip(2).rev() {
-//             if let RespType::RBulkString(value) = n {
-//                 vec_aux.push(value.to_string());
-//             }
-//         }
-//         if new_database.key_exists(key.to_string()) {
-//             //let coso = new_database.
-//             if let ValueType::ListType(current_value) = new_database
-//                 .get_live_item(key)
-//                 .unwrap()
-//                 .get_value()
-//                 .to_owned()
-//             {
-//                 RespType::RBulkString(
-//                     actualizar_list_type_value(
-//                         key.to_string(),
-//                         current_value,
-//                         vec_aux,
-//                         new_database,
-//                     )
-//                     .to_string(),
-//                 )
-//             } else {
-//                 RespType::RBulkString("error - not list type".to_string())
-//             }
-//         } else {
-//             RespType::RBulkString(
-//                 actualizar_list_type_value(key.to_string(), vec![], vec_aux, new_database)
-//                     .to_string(),
-//             )
-//         }
-//     } else {
-//         RespType::RError("empty request".to_string())
-//     }
-// }
 
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
@@ -117,7 +70,7 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
 /// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
 /// cantidad de elementos guardados en esa key
-pub fn lpush_version_2(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {

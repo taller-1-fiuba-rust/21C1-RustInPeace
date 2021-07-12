@@ -117,7 +117,7 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// GRUPO [KEYS]:  Configura un tiempo de expiracion sobre una clave (la clave se dice que
 /// es volatil). Luego de ese tiempo de expiracion, la clave es automaticamente eliminada.
 /// El comando recibe 2 parámetros: la key y el tiempo de expiración (en segundos)
-/// Devuele 1 si pudo ser seteado, o 0 en caso contrario.
+/// Devuelve 1 si pudo ser seteado, o 0 en caso contrario.
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
@@ -141,7 +141,7 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// GRUPO [KEYS]:  Configura un tiempo de expiracion sobre una clave (la clave se dice que
 /// es volatil). Luego de ese tiempo de expiracion, la clave es automaticamente eliminada.
 /// El comando recibe 2 parámetros: la key y el nuevo timestamp
-/// Devuele 1 si pudo ser seteado, o 0 en caso contrario.
+/// Devuelve 1 si pudo ser seteado, o 0 en caso contrario.
 pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
