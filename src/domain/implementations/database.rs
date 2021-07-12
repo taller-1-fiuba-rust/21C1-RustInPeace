@@ -834,12 +834,38 @@ impl Database {
         expire_at
     }
 
-    //agregar tests unitarios
+    /// Elimina y retorna los primeros elementos de la lista almacenada en la clave especificada.
+    ///
+    /// Por defecto, elimina el primer elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
+    /// los primeros count elementos.
+    /// Si la clave no existe, retorna nil. Si existe, retorna una lista con los elementos eliminados.
+    /// # Examples
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    /// use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_pop.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile"), String::from("uruguay")];
+    /// let vt = ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Persistent);
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let removed = db.pop_elements_from_list("paises", 1).unwrap();
+    ///
+    /// assert_eq!(removed, vec![String::from("argentina")]);
+    ///
+    /// let removed = db.pop_elements_from_list("paises", 2).unwrap();
+    ///
+    /// assert_eq!(removed, vec![String::from("brasil"), String::from("chile")]);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_pop.csv");
+    /// ```
     pub fn pop_elements_from_list(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
         let mut popped_elements = Vec::new();
         if let Some(item) = self.get_mut_live_item(key) {
             if let ValueType::ListType(mut list) = item.get_copy_of_value() {
-                popped_elements = list.drain(..count).collect();
+                popped_elements = list.drain(..count).collect(); //validar count < len
+                item.set_value(ValueType::ListType(list));
             }
         } else {
             return None;
@@ -1945,4 +1971,51 @@ fn test_37_remove_member_from_list_type_returns_none() {
     assert!(removed.is_none());
 
     let _ = std::fs::remove_file("file036".to_string());
+}
+
+#[test]
+fn test_38_pop_one_element_from_list_returns_popped_element() {
+    let mut db = Database::new("file037".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.pop_elements_from_list("saludo", 1).unwrap();
+    assert_eq!(removed, vec![String::from("hola")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert_eq!(item, &vec![String::from("chau")]);
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file037".to_string());
+}
+
+#[test]
+fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
+    let mut db = Database::new("file038".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hola".to_string(),
+            "chau".to_string(),
+            "hello".to_string(),
+            "bye".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.pop_elements_from_list("saludo", 2).unwrap();
+    assert_eq!(removed, vec![String::from("hola"), String::from("chau")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert!(item.contains(&String::from("hello")) && item.contains(&String::from("bye")));
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file038".to_string());
 }
