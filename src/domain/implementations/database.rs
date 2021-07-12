@@ -709,37 +709,27 @@ impl Database {
 
     pub fn is_member_of_set(&mut self, key: &str, member: &str) -> usize {
         let item = self.get_live_item(key);
-        match item {
-            Some(item) => {
-                if let ValueType::SetType(item) = item.get_value() {
-                    match item.get(member) {
-                        Some(_) => 1,
-                        None => 0,
-                    }
-                } else {
-                    0
+        if let Some(item) = item {
+            if let ValueType::SetType(item) = item.get_value() {
+                if item.get(member).is_some() {
+                    return 1;
                 }
             }
-            None => 0,
         }
+        0
     }
 
     pub fn get_members_of_set(&mut self, key: &str) -> Vec<&String> {
         let item = self.get_live_item(key);
         let mut members = Vec::new();
-        match item {
-            Some(item) => {
-                if let ValueType::SetType(item) = item.get_value() {
-                    item.iter().for_each(|member| {
-                        members.push(member);
-                    });
-                    members
-                } else {
-                    members
-                }
+        if let Some(item) = item {
+            if let ValueType::SetType(item) = item.get_value() {
+                item.iter().for_each(|member| {
+                    members.push(member);
+                });
             }
-            None => members,
         }
+        members
     }
 
     pub fn remove_member_from_set(&mut self, key: &str, member: &str) -> Option<bool> {
@@ -762,6 +752,7 @@ impl Database {
     }
 
     // falta opcion get
+    // agregar tests unitarios
     pub fn set_string(
         &mut self,
         key: &str,
@@ -841,6 +832,19 @@ impl Database {
             _ => {}
         }
         expire_at
+    }
+
+    //agregar tests unitarios
+    pub fn pop_elements_from_list(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
+        let mut popped_elements = Vec::new();
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::ListType(mut list) = item.get_copy_of_value() {
+                popped_elements = list.drain(..count).collect();
+            }
+        } else {
+            return None;
+        }
+        Some(popped_elements)
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */

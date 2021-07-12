@@ -237,6 +237,28 @@ fn test_main() {
     );
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
 
+    let added_item_22 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "argentina".to_string(),
+            "brasil".to_string(),
+            "uruguay".to_string(),
+            "chile".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("paises"), added_item_22);
+
+    let added_item_23 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "jujuy".to_string(),
+            "mendoza".to_string(),
+            "corrientes".to_string(),
+            "misiones".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("provincias"), added_item_23);
+
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
@@ -517,6 +539,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lindex",
         func: test_list_index,
+    },
+    Test {
+        name: "list command: lpop mylist",
+        func: test_list_lpop,
+    },
+    Test {
+        name: "list command: lpop mylist 2",
+        func: test_list_lpop_with_count,
     },
     Test {
         name: "set command: sadd",
@@ -1353,6 +1383,37 @@ pub fn test_list_index() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("pomelo"),
             got: ret,
+        }))
+    };
+}
+
+pub fn test_list_lpop() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPOP").arg("paises").query(&mut con)?;
+
+    return if ret == String::from("argentina") {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("argentina"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_list_lpop_with_count() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LPOP")
+        .arg("provincias")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("jujuy")) && ret.contains(&String::from("mendoza")) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!("{:?}", vec![String::from("jujuy"), String::from("mendoza")]),
+            got: format!("{:?}", ret),
         }))
     };
 }
