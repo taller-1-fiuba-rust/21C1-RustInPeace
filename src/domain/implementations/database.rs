@@ -11,6 +11,7 @@ use std::io::{self};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct Database {
@@ -388,7 +389,7 @@ impl Database {
             match self.get_mut_live_item(&destination) {
                 Some(dest) => {
                     if replace {
-                        dest._set_value(new_value);
+                        dest.set_value(new_value);
                         Some(())
                     } else {
                         None
@@ -475,7 +476,7 @@ impl Database {
                 if let ValueType::StringType(old_value) = item.get_copy_of_value() {
                     let len = old_value.len() + string.len();
                     let new_value = ValueType::StringType(old_value + string);
-                    item._set_value(new_value);
+                    item.set_value(new_value);
                     len
                 } else {
                     0
@@ -524,7 +525,7 @@ impl Database {
                 if let ValueType::StringType(str) = item.get_copy_of_value() {
                     let str_as_number = str.parse::<i64>()?;
                     let new_value = ValueType::StringType((str_as_number - decr).to_string());
-                    item._set_value(new_value);
+                    item.set_value(new_value);
                     Ok(str_as_number - decr)
                 } else {
                     //hay que devolver algo posta aca
@@ -575,7 +576,7 @@ impl Database {
         if let ValueType::StringType(str) = item.get_copy_of_value() {
             let str_as_number = str.parse::<i64>()?;
             let new_value = ValueType::StringType((str_as_number + incr).to_string());
-            item._set_value(new_value);
+            item.set_value(new_value);
             return Ok(str_as_number + incr);
         } else {
             //devolver error
@@ -655,7 +656,7 @@ impl Database {
         if let Some(item) = item_optional {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                item._set_value(ValueType::StringType(new_value.to_string()));
+                item.set_value(ValueType::StringType(new_value.to_string()));
                 // self.replace_value_on_key(
                 //     key.to_string(),
                 //     ValueType::StringType(new_value.to_string()),
@@ -758,6 +759,88 @@ impl Database {
             }
         }
         None
+    }
+
+    // falta opcion get
+    pub fn set_string(
+        &mut self,
+        key: &str,
+        value: &str,
+        timeout: (&String, Option<&String>),
+        set_if_exists: Option<&String>,
+        _get: Option<&String>,
+    ) -> bool {
+        let mut set_if_non_existing = false;
+        let mut set_if_existing = false;
+
+        if let Some(exists) = set_if_exists {
+            if exists == "nx" {
+                set_if_non_existing = true;
+            } else if exists == "xx" {
+                set_if_existing = true;
+            }
+        }
+
+        let expire_at = self.get_expire_at(timeout);
+        let item = self.get_mut_live_item(key);
+        match item {
+            Some(item) => {
+                if set_if_existing || !set_if_non_existing {
+                    item.set_value(ValueType::StringType(value.to_string()));
+                    if expire_at != 0 {
+                        item.set_timeout(KeyAccessTime::Volatile(expire_at));
+                    }
+                    return true;
+                }
+            }
+            None => {
+                if set_if_non_existing || !set_if_existing {
+                    let value = ValueType::StringType(value.to_string());
+                    let mut time = KeyAccessTime::Persistent;
+                    if expire_at != 0 {
+                        time = KeyAccessTime::Volatile(expire_at);
+                    }
+                    let new_item = ValueTimeItem::new_now(value, time);
+                    self.add(key.to_string(), new_item);
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn get_expire_at(&mut self, timeout: (&String, Option<&String>)) -> u64 {
+        let mut expire_at = 0;
+        match timeout.0.as_str() {
+            "ex" => {
+                if let Some(ex) = timeout.1 {
+                    expire_at = ex.parse::<u64>().unwrap();
+                }
+            }
+            "px" => {
+                if let Some(px) = timeout.1 {
+                    expire_at = px.parse::<u64>().unwrap() / 1000;
+                }
+            }
+            "exat" => {
+                if let Some(exat) = timeout.1 {
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = exat.parse::<u64>().unwrap() + now.as_secs();
+                }
+            }
+            "pxat" => {
+                if let Some(pxat) = timeout.1 {
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = pxat.parse::<u64>().unwrap() / 1000 + now.as_secs();
+                }
+            }
+            _ => {}
+        }
+        expire_at
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */

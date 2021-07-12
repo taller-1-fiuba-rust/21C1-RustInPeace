@@ -338,7 +338,6 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
-
     Test {
         name: "server command: config get verbose",
         func: test_config_get_verbose,
@@ -466,6 +465,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: mget key_1 mykey",
         func: test_string_mget,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue",
+        func: test_string_set,
     },
     Test {
         name: "list command: push values into key - list type",
@@ -1303,6 +1306,23 @@ fn test_string_mget() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("hola chau"),
             got: format!("{} {}", ret[0], ret[1]),
+        }));
+    }
+}
+
+fn test_string_set() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("mykeyset")
+        .arg("valueset")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
         }));
     }
 }

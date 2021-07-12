@@ -201,7 +201,7 @@ pub fn handle_command(
                     ]))
                 }
                 "lpush" => {
-                    return Some(command_list::lpush_version_2(&array, database));
+                    return Some(command_list::lpush(&array, database));
                 }
                 "lindex" => {
                     return Some(command_list::get_index(&array, database));

@@ -1,7 +1,6 @@
 use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
-use std::collections::HashMap;
 use std::vec;
 use std::{
     convert::TryInto,
@@ -180,104 +179,44 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    //A hashpam is created to store all info about the SORT operation
-    let aux_hash_map = generate_hashmap(cmd);
-    let mut _new_database = database.write().unwrap();
-    if let RespType::RBulkString(_current_key) = aux_hash_map.get("key").unwrap() {
-        if let RespType::RBulkString(_current_value) = aux_hash_map.get("value").unwrap() {
-            if aux_hash_map.contains_key("ex") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("EX").unwrap() {
-                    //set "key":"value" con EX valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("px") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("PX").unwrap() {
-                    //set "key":"value" con PX valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("exat") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("EXAT").unwrap() {
-                    //set "key":"value" con EXAT valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("pxat") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("PXAT").unwrap() {
-                    //set "key":"value" con PXAT valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("keepttl") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("KEEPTTL").unwrap() {
-                    //set "key":"value" con KEEPTTL valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("nx") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("NX").unwrap() {
-                    //set "key":"value" con NX valor desde el hashmap
-                }
-            } else if aux_hash_map.contains_key("xx") {
-                if let RespType::RBulkString(_time_to_set) = aux_hash_map.get("XX").unwrap() {
-                    //set "key":"value" con XX valor desde el hashmap
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(value) = &cmd[2] {
+                let options = generate_options(cmd);
+                let mut db = database.write().unwrap();
+                let timeout = (&options[0].0.to_owned(), options[0].1);
+                if db.set_string(key, value, timeout, options[1].1, options[2].1) {
+                    return RespType::RBulkString(String::from("Ok"));
+                } else {
+                    return RespType::RNullBulkString();
                 }
             }
         }
     }
-    RespType::RBulkString("Ok".to_string())
+    RespType::RNullBulkString()
 }
 
-//--------------------------------------------------------------------
-/// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
-// fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
-//     let mut aux_hash_map = HashMap::new();
-//     let keys = vec![
-//         "SET", "EX", "PX", "EXAT", "PXAT", "KEEPTTL", "NX", "XX ", "GET",
-//     ];
-//     let mut current_position;
-//     for key in keys {
-//         current_position = cmd
-//             .iter()
-//             .position(|x| x == &RespType::RBulkString(key.to_string()));
-//         if current_position != None {
-//             if key == "SET" {
-//                 aux_hash_map.insert("key".to_string(), &cmd[current_position.unwrap() + 1]);
-//                 aux_hash_map.insert("value".to_string(), &cmd[current_position.unwrap() + 2]);
-//                 aux_hash_map.insert(key.to_string(), &RespType::RInteger(1));
-//             } else if key == "EX"
-//                 || key == "PX"
-//                 || key == "EXAT"
-//                 || key == "PXAT"
-//                 || key == "KEEPTLL"
-//             {
-//                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//             } else if key == "NX" || key == "XX" {
-//                 aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//             }
-//             // else {
-//             //     aux_hash_map.insert(key.to_string(), &cmd[current_position.unwrap() + 1]);
-//             // }
-//         }
-//     }
-//     aux_hash_map
-//}
-
-fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
-    let mut aux_hash_map = HashMap::new();
-    let mut posicion = 1;
-    for argumento in cmd.iter().skip(1) {
+fn generate_options(cmd: &[RespType]) -> Vec<(String, Option<&String>)> {
+    let mut options = vec![
+        (String::from("expire_at"), None),
+        (String::from("set_if_exists"), None),
+        (String::from("get_old_value"), None),
+    ];
+    for (pos, argumento) in cmd.iter().skip(3).enumerate() {
         if let RespType::RBulkString(arg) = argumento {
-            if (arg == "ex")
-                || (arg == "px")
-                || (arg == "exat")
-                || (arg == "pxat")
-                || (arg == "keeptll")
-                || (arg == "nx")
-                || (arg == "xx")
+            if (arg == "ex") || (arg == "px") || (arg == "exat") || (arg == "pxat")
+            // || (arg == "keepttl") -> no entiendo que hace
             {
-                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
-            } else if arg == "set" {
-                aux_hash_map.insert("key".to_string(), &cmd[posicion + 1]);
-                aux_hash_map.insert("value".to_string(), &cmd[posicion + 2]);
-                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+                if let RespType::RBulkString(expire_at) = &cmd[pos + 1] {
+                    options[0].0 = arg.to_string();
+                    options[0].1 = Some(expire_at);
+                }
+            } else if arg == "xx" || arg == "nx" {
+                options[1].1 = Some(arg);
+            } else if arg == "get" {
+                options[2].1 = Some(arg);
             }
-            // else {
-            //     aux_hash_map.insert("key".to_string(), argumento);
-            // }
         }
-        posicion += 1;
     }
-    aux_hash_map
+    options
 }
