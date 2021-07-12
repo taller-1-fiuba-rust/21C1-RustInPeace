@@ -20,12 +20,22 @@ pub fn info(cmd: &[RespType]) -> RespType {
 
     match option.as_str() {
         "server" => {
+            //tcp_port:6379
+            //process_id:1597960
+            //config_file:/etc/redis/redis.conf
             RespType::RBulkString("# Server\r\nredis_version:6.2.3\r\nredis_git_sha1:00000000\r\nredis_git_dirty:0\r\nredis_build_id:ea3be5cbc55dfd19\r\n".to_string())
         }
         "clients" => {
+            //connected_clients:2
             RespType::RBulkString("# Clients\r\nconnected_clients:2\r\ncluster_connections:0\r\nmaxclients:10000\r\n".to_string())
         }
+        // "memory" => {}
+        //current_save_keys_total:0
         "persistence" => RespType::RNullArray(),
+        //total_connections_received:583301
+        //total_commands_processed:25927996
+        //expired_keys:66363
+        //pubsub_channels:0
         // "stats" => {}
         // "replication" => {}
         // "cpu" => {}
