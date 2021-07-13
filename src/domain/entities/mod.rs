@@ -1,3 +1,4 @@
+pub mod client;
 pub mod config;
 pub mod key_value_item;
 pub mod key_value_item_serialized;

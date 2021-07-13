@@ -3,7 +3,7 @@ pub enum RespType {
     RSimpleString(String),
     RError(String),
     RInteger(usize),
-    RNegative(isize),
+    RSignedNumber(isize),
     RBulkString(String),
     RArray(Vec<RespType>),
     RNullBulkString(),

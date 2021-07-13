@@ -1,11 +1,10 @@
-use super::commands::command_pubsub;
 use super::utils::resp_type::RespType;
-use crate::domain::entities::key_value_item::ValueTimeItem; //, ValueType};
 use crate::domain::implementations::database::Database;
-use crate::services::commands::command_list;
+use crate::services::commands::{command_pubsub, command_set};
 use crate::{
     domain::entities::{config::Config, message::WorkerMessage},
     services::commands::command_key,
+    services::commands::command_list,
     services::commands::command_server,
     services::commands::command_string,
 };
@@ -17,9 +16,54 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
-/// Recibe una operacion operation de tipo RespType, un sender tx de mensajes de tipo WorkerMessage, la dirección del cliente addrs de tipo SocketAddrs
-/// la base de datos database dentro de un RwLock y la configuración config dentro de un RwLock
-/// Lee la primera palabra de la operación para disparar la acción que corresponda.
+/// Delega el comando ingresado por el cliente al servicio de comandos que corresponda.
+///
+/// Los comandos posibles son:
+/// * monitor
+/// * info
+/// * config
+/// * dbsize
+/// * flushdb
+/// * copy
+/// * del
+/// * exists
+/// * persist
+/// * rename
+/// * expire
+/// * expireat
+/// * sort
+/// * keys
+/// * touch
+/// * type
+/// * append
+/// * decrby
+/// * incrby
+/// * get
+/// * getdel
+/// * getset
+/// * copy
+/// * strlen
+/// * get
+/// * mget
+/// * mset
+/// * subscribe
+/// * unsubscribe
+/// * punsubscribe
+/// * pubsub
+/// * publish
+/// * ttl
+/// * command
+/// * lpush
+/// * lpushx
+/// * llen
+/// * lrange
+/// * lindex
+/// * lpop
+/// * sadd
+/// * scard
+/// * sismember
+/// * smembers
+/// * srem
 /// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 pub fn handle_command(
     operation: RespType,
@@ -76,32 +120,39 @@ pub fn handle_command(
                 "mget" => return Some(command_string::mget(&array, database)),
                 "mset" => return Some(command_string::mset(&array, database)),
                 "set" => return Some(command_string::set(&array, database)),
-                "subscribe" => command_pubsub::subscribe(&array, tx, addrs, stream),
-                "unsubscribe" => {
-                    command_pubsub::unsubscribe(&array, tx, addrs);
-                    return Some(RespType::RNullBulkString());
+                "subscribe" => return Some(command_pubsub::subscribe(&array, tx, addrs, stream)),
+                "unsubscribe" => return Some(command_pubsub::unsubscribe(&array, tx, addrs)),
+                "punsubscribe" => {
+                    //no se pide implementar esta funcion pero la agrego hardcodeada -por ahora- porque el cliente Redis la llama despues de un subscribe
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("unsubscribe")),
+                        RespType::RBulkString(String::from("foo")),
+                        RespType::RInteger(0),
+                    ]));
                 }
+                "pubsub" => return Some(command_pubsub::pubsub(&array, tx)),
                 "publish" => return Some(command_pubsub::publish(&array, tx)),
                 "ttl" => return Some(command_key::get_ttl(&array, database)),
+                "command" => {
+                    return Some(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("append")),
+                        RespType::RBulkString(String::from("pubsub")),
+                    ]))
+                }
+                "lpush" => return Some(command_list::lpush(&array, database)),
                 "lindex" => return Some(command_list::get_index(&array, database)),
+                "llen" => return Some(command_list::llen(&array, database)),
+                "lpop" => return Some(command_list::lpop(&array, database)),
+                "sadd" => return Some(command_set::add(&array, database)),
+                "lpushx" => return Some(command_list::lpushx(&array, database)),
+                "lrange" => return Some(command_list::lrange(&array, database)),
+                "scard" => return Some(command_set::scard(&array, database)),
+                "sismember" => return Some(command_set::sismember(&array, database)),
+                "smembers" => return Some(command_set::smembers(&array, database)),
+                "srem" => return Some(command_set::srem(&array, database)),
                 _ => {}
             }
         }
     }
     None
-}
-
-pub fn load_data_in_db(database: &Arc<RwLock<Database>>, key: String, value: ValueTimeItem) {
-    if let Ok(write_guard) = database.write() {
-        let mut db = write_guard;
-        db.add(key, value)
-    }
-}
-
-pub fn get_database_size(database: &Arc<RwLock<Database>>) -> usize {
-    if let Ok(write_guard) = database.read() {
-        write_guard.get_size()
-    } else {
-        0
-    }
 }

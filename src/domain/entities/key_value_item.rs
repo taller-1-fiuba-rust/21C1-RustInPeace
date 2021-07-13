@@ -141,8 +141,25 @@ impl ValueTimeItem {
     pub fn get_copy_of_value(&self) -> ValueType {
         self.value.clone()
     }
+    pub fn get_copy_of_timeout(&self) -> KeyAccessTime {
+        match self.timeout {
+            KeyAccessTime::Persistent => KeyAccessTime::Persistent,
+            KeyAccessTime::Volatile(timeout) => KeyAccessTime::Volatile(timeout),
+        }
+    }
+    pub fn is_expired(&self) -> bool {
+        let kat = self.get_timeout();
+        if let KeyAccessTime::Volatile(timeout) = kat {
+            let now = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            return timeout < &now;
+        }
+        false
+    }
 
-    pub fn _set_value(&mut self, new_value: ValueType) {
+    pub fn set_value(&mut self, new_value: ValueType) {
         self.value = new_value;
     }
 
