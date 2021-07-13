@@ -599,7 +599,7 @@ impl Database {
                 key.to_string(),
                 ValueTimeItem::new_now(
                     ValueType::StringType(new_value.to_string()),
-                    KeyAccessTime::Volatile(3423423),
+                    KeyAccessTime::Persistent,
                 ),
             );
             Ok(new_value)
