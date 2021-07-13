@@ -1,5 +1,6 @@
 use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+use crate::errors::database_error::DatabaseError;
 use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
 use std::vec;
 use std::{
@@ -64,7 +65,7 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
-            return match db.get_value_by_key(key) {
+            return match db.get_string_value_by_key(key) {
                 Some(str) => RespType::RBulkString(str),
                 None => {
                     //nil - testear
@@ -83,9 +84,11 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
                 if db.key_exists(current_key.to_string()) {
-                    let actual_string_value =
-                        RespType::RBulkString(db.get_value_by_key_or_nil(current_key).unwrap());
-                    vec_keys_with_string_values.push(actual_string_value)
+                    if let Some(actual_value) = db.get_string_value_by_key(current_key) {
+                        vec_keys_with_string_values.push(RespType::RBulkString(actual_value));
+                    } else {
+                        return RespType::RNullBulkString();
+                    }
                 }
             }
         }
@@ -110,12 +113,14 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
             match db.getdel_value_by_key(key) {
-                Some(str) => {
+                Ok(str) => {
                     return RespType::RBulkString(str);
                 }
-                None => {
-                    //nil - testear
-                    return RespType::RNullBulkString();
+                Err(e) => {
+                    if let DatabaseError::MissingKey() = e {
+                        return RespType::RNullBulkString();
+                    }
+                    return RespType::RError(e.to_string());
                 }
             }
         }
@@ -129,12 +134,14 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             let mut db = database.write().unwrap();
             if let RespType::RBulkString(new_value) = &cmd[2] {
                 match db.getset_value_by_key(key, new_value) {
-                    Some(str) => {
+                    Ok(str) => {
                         return RespType::RBulkString(str);
                     }
-                    None => {
-                        //nil - testear
-                        return RespType::RNullBulkString();
+                    Err(e) => {
+                        if let DatabaseError::MissingKey() = e {
+                            return RespType::RNullBulkString();
+                        }
+                        return RespType::RError(e.to_string());
                     }
                 }
             }
