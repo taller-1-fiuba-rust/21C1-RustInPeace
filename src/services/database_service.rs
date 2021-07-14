@@ -5,6 +5,11 @@ use std::time::Duration;
 
 const TIME_TO_SAVE_IN_FILE: u64 = 60 * 5; // in secs
 
+//! Servicio para manejar la bajada a un archivo de la base de datos en memoria !
+
+/// Itera infinitamente y cada 5 minutos hace una bajada de los datos en memoria
+/// a un archivo definido en el archivo de configuración.
+///
 pub fn dump_to_file(database: Arc<RwLock<Database>>) {
     loop {
         save_database(database.clone());
@@ -15,7 +20,7 @@ pub fn dump_to_file(database: Arc<RwLock<Database>>) {
 /// Guarda la base de datos en el archivo especificado en la configuracion.
 ///
 /// Recibe una base de datos de tipo Database protegida por un RwLock
-/// y guarda la información en su correspondiente archivo
+/// y guarda la información en su correspondiente archivo.
 fn save_database(database: Arc<RwLock<Database>>) {
     println!("Saving database to dump");
     let x = Arc::try_unwrap(database).unwrap_err();
