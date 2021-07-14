@@ -3,11 +3,11 @@ use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
-const TIME_TO_SAVE_IN_FILE: u64 = 60 * 5; // in secs
+const TIME_TO_SAVE_IN_FILE: u64 = 60 * 2; // in secs
 
 //! Servicio para manejar la bajada a un archivo de la base de datos en memoria !
 
-/// Itera infinitamente y cada 5 minutos hace una bajada de los datos en memoria
+/// Itera infinitamente y cada 2 minutos hace una bajada de los datos en memoria
 /// a un archivo definido en el archivo de configuración.
 ///
 pub fn dump_to_file(database: Arc<RwLock<Database>>) {
