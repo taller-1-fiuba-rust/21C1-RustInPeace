@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
+use std::fmt::Debug;
 
 // macro_rules! select {
 //     (
@@ -39,57 +40,34 @@ pub fn init(
     server_sender: Sender<WorkerMessage>,
 ) {
     let pool = ThreadPool::new(4);
-    // let drop = Arc::new(AtomicBool::new(false));
-
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
-    // let (stop_signal_sender, stop_signal_receiver) = mpsc::channel();
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
-            // loop {
-            // select!{
-            //     stream = listener.incoming() => {
             for stream in listener.incoming() {
                 match stream {
                     Ok(stream) => {
                         let tx = server_sender.clone();
                         let conf_lock = conf.clone();
                         let cloned_database = database.clone();
-                        // let stop = stop_signal_sender.clone();
                         pool.spawn(|| {
                             handle_connection(stream, tx, cloned_database, conf_lock);
-                            //, stop);
                         });
-                        // drop = stop_signal_receiver.recv() => {
-                        //     if drop {
-                        //         println!("DROP");
-                        //         save_database(database);
-                        //         break;
-                        //     }
-                        // }
+
                     }
                     Err(_) => {
                         println!("Couldn't get stream");
                         continue;
                     }
                 }
-                // },
-                // drop = stop_signal_receiver.recv() => {
-                //     if drop {
-                //         println!("DROP");
-                //         save_database(database);
-                //         break;
-                //     }
-                // }
-                // }
+
             }
         }
         Err(_) => {
             println!("Listener couldn't be created");
         }
     }
-    save_database(database);
     println!("Shutting down.");
 }
 
@@ -99,18 +77,13 @@ pub fn init(
 /// y guarda la información en su correspondiente archivo
 fn save_database(database: Arc<RwLock<Database>>) {
     println!("Saving dump before shutting down");
-    let x = Arc::try_unwrap(database);
-    match x {
-        Ok(t) => {
-            match t.try_read() {
-                Ok(n) => n.save_items_to_file(),
-                Err(_) => unreachable!(),
-            };
-        }
-        Err(_) => {
-            println!("Database couldn't be saved into file");
-        }
-    }
+    let x = Arc::try_unwrap(database).unwrap_err();
+
+    match x.try_read() {
+        Ok(n) => n.save_items_to_file(),
+        Err(_) => println!("Database couldn't be saved into file"),
+    };
+
 }
 
 /// Lee e interpreta mensajes del cliente.
