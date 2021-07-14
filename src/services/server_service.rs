@@ -5,13 +5,13 @@ use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
+use crate::services::database_service::dump_to_file;
 use crate::services::utils::resp_type::RespType;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use crate::services::database_service::dump_to_file;
 
 // macro_rules! select {
 //     (
@@ -60,14 +60,12 @@ pub fn init(
                         pool.spawn(|| {
                             handle_connection(stream, tx, cloned_database, conf_lock);
                         });
-
                     }
                     Err(_) => {
                         println!("Couldn't get stream");
                         continue;
                     }
                 }
-
             }
         }
         Err(_) => {

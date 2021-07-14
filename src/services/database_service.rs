@@ -1,11 +1,11 @@
-use std::time::Duration;
-use std::thread;
-use std::sync::{Arc, RwLock};
 use crate::domain::implementations::database::Database;
+use std::sync::{Arc, RwLock};
+use std::thread;
+use std::time::Duration;
 
 const TIME_TO_SAVE_IN_FILE: u64 = 60 * 5; // in secs
 
-pub fn dump_to_file(database: Arc<RwLock<Database>>){
+pub fn dump_to_file(database: Arc<RwLock<Database>>) {
     loop {
         save_database(database.clone());
         thread::sleep(Duration::from_secs(TIME_TO_SAVE_IN_FILE));
@@ -23,5 +23,4 @@ fn save_database(database: Arc<RwLock<Database>>) {
         Ok(n) => n.save_items_to_file(),
         Err(_) => println!("Database couldn't be saved into file"),
     };
-
 }
