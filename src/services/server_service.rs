@@ -10,7 +10,8 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
-use std::fmt::Debug;
+use std::thread;
+use crate::services::database_service::dump_to_file;
 
 // macro_rules! select {
 //     (
@@ -42,9 +43,14 @@ pub fn init(
     let pool = ThreadPool::new(4);
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
+    let cloned_db = database.clone();
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
+            // Creo un thread para que vaya iterando mientras el server esté up
+            thread::spawn(move || {
+                dump_to_file(cloned_db);
+            });
             for stream in listener.incoming() {
                 match stream {
                     Ok(stream) => {
@@ -69,21 +75,6 @@ pub fn init(
         }
     }
     println!("Shutting down.");
-}
-
-/// Guarda la base de datos en el archivo especificado en la configuracion.
-///
-/// Recibe una base de datos de tipo Database protegida por un RwLock
-/// y guarda la información en su correspondiente archivo
-fn save_database(database: Arc<RwLock<Database>>) {
-    println!("Saving dump before shutting down");
-    let x = Arc::try_unwrap(database).unwrap_err();
-
-    match x.try_read() {
-        Ok(n) => n.save_items_to_file(),
-        Err(_) => println!("Database couldn't be saved into file"),
-    };
-
 }
 
 /// Lee e interpreta mensajes del cliente.
