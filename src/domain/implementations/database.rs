@@ -802,6 +802,7 @@ impl Database {
             .write(true)
             .append(false)
             .create(true)
+            .truncate(true)
             .open(self.dbfilename.to_string())
             .unwrap();
 
