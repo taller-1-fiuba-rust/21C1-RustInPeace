@@ -24,9 +24,8 @@ impl Display for RespType {
                 let mut concatenated_elements = String::new();
                 for e in array {
                     if let RespType::RBulkString(str) = e {
-                        concatenated_elements.push_str("\"");
                         concatenated_elements.push_str(str);
-                        concatenated_elements.push_str("\" ");
+                        concatenated_elements.push_str(" ");
                     }
                 }
                 write!(f, "{}", concatenated_elements)
@@ -34,14 +33,5 @@ impl Display for RespType {
             RespType::RNullBulkString() => write!(f, "(nil)"),
             RespType::RNullArray() => write!(f, "(nil)"),
         }
-        // let mut comma_separated = String::new();
-
-        // for str in &self.0[0..self.0.len() - 1] {
-        //     comma_separated.push_str(str);
-        //     comma_separated.push_str(", ");
-        // }
-
-        // comma_separated.push_str(&self.0[self.0.len() - 1].to_string());
-        // write!(f, "{}", comma_separated)
     }
 }

@@ -207,6 +207,12 @@ pub fn handle_connection(
             }
         }
     }
+
+    tx.send(WorkerMessage::CloseClient(client_addrs)).unwrap();
+    log(
+        format!("Connection to address {} closed\r\n", client_addrs),
+        &tx,
+    );
 }
 
 /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage

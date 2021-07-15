@@ -20,6 +20,7 @@ pub enum WorkerMessage {
     NewOperation(RespType, SocketAddr),
     SetMonitor(SocketAddr),
     AddClient(Client),
+    CloseClient(SocketAddr),
     Stop(bool),
     Subscribe(String, SocketAddr, Sender<usize>, TcpStream),
     Unsubscribe(String, SocketAddr, Sender<usize>),

@@ -1,7 +1,7 @@
 use super::client::Client;
 use super::message::WorkerMessage;
 use crate::domain::implementations::logger_impl::Logger;
-use crate::domain::implementations::operation_register_impl::OperationRegister;
+// use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::parser_service;
 use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
@@ -83,11 +83,13 @@ impl Server {
                     }
                 },
                 WorkerMessage::SetMonitor(addrs) => {
-                    // self.print_last_operations_by_client(stream);
                     self.set_client_to_monitor_state(addrs);
                 }
                 WorkerMessage::AddClient(client) => {
                     self.clients.push(client);
+                }
+                WorkerMessage::CloseClient(addrs) => {
+                    self.remove_client(addrs);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
                     self.check_monitor(operation, addrs);
@@ -169,38 +171,31 @@ impl Server {
         verbose
     }
 
-    /// Actualiza la lista de comandos registrados.
+    /// Retiene todos los clientes cuya direccion sea distinta a la que se quiere eliminar.
+    fn remove_client(&mut self, addrs: SocketAddr) {
+        self.clients.retain(|client| client.get_address() != &addrs);
+    }
+
+    /// Envia el ultimo comando recibido a los clientes que esten en estado "monitor".
     ///
-    /// Recibe una nueva operación de un cliente y la agrega a la lista de operaciones
-    /// Busca al cliente por dirección. Si es un cliente nuevo, primero lo agrega con un OperationRegister vacio
-    /// luego agrega la nueva operacion
+    /// Verifica si hay algun cliente monitoreando los comandos enviados al servidor.
+    /// Si lo hay, le envia el ultimo comando ejecutado.
     pub fn check_monitor(&mut self, operation: RespType, addrs: SocketAddr) {
         self.clients.iter_mut().for_each(|client| {
             if *client.is_monitoring() {
-                client.write_to_stream(format!("[{}] {}", addrs, operation).as_bytes());
+                let msg = parser_service::parse_response(RespType::RBulkString(format!("[{}] {}", addrs, operation)));
+                client.write_to_stream(msg.as_bytes());
             }
         });
-        // let last_operations = self
-        //     .clients_operations
-        //     .entry(addrs.to_string())
-        //     .or_insert_with(|| OperationRegister::new(100));
-        // last_operations.store_operation(operation);
     }
 
-    // Escribe sobre el stream cliente todas las operaciones hechas al servidor
-    // pub fn print_last_operations_by_client(&self, mut stream: TcpStream) {
-    //     self.clients_operations.iter().for_each(|client| {
-    //         client.1.get_operations().iter().for_each(|operation| {
-    //             let op = format!("[{}] {}", client.0, operation);
-    //             stream.write_all(op.as_bytes()).unwrap();
-    //             stream.flush().unwrap();
-    //         })
-    //     });
-    // }
+    /// Cambia el estado de un cliente a "monitor".
+    ///
+    /// El cliente pasa a un estado de "debug" donde solo puede recibir los comandos que se ejecutan en el servidor.
     fn set_client_to_monitor_state(&mut self, addrs: SocketAddr) {
         self.clients.iter_mut().for_each(|client| {
             if client.get_address() == &addrs {
-                //stream Ok
+                client.write_to_stream(parser_service::parse_response(RespType::RBulkString(String::from("Ok"))).as_bytes());
                 client.set_monitoring(true);
             }
         });
@@ -347,68 +342,3 @@ impl Server {
         sender.send(list).unwrap();
     }
 }
-
-// #[test]
-// fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
-//     // use super::config::Config;
-//     use super::server::Server;
-//     use std::net::{IpAddr, Ipv4Addr};
-
-//     // let verbose = 0;
-//     // let timeout = 0;
-//     let port = "8080".to_string();
-//     let verbose = "1".to_string();
-//     let logfile = "./src/dummy_1.log".to_string();
-
-//     let mut server = Server::new(port, logfile, verbose).unwrap();
-//     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-//     let mut operation_register = OperationRegister::new(100);
-//     operation_register.store_operation(dummy_operation.clone());
-
-//     let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     server.update_clients_operations(dummy_operation, dir);
-//     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
-//     assert_eq!(
-//         saved_operations.get_operations(),
-//         operation_register.get_operations()
-//     );
-
-//     std::fs::remove_file("./src/dummy_1.log").unwrap();
-// }
-
-// #[test]
-// fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
-//     // use super::config::Config;
-//     use super::server::Server;
-//     use std::net::{IpAddr, Ipv4Addr};
-
-//     // let verbose = 0;
-//     // let timeout = 0;
-//     let port = "8080".to_string();
-//     let verbose = "1".to_string();
-//     let logfile = "./src/dummy.log".to_string();
-
-//     let mut server = Server::new(port, logfile, verbose).unwrap();
-//     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-//     let dummy_operation_2 = RespType::RArray(vec![
-//         RespType::RBulkString(String::from("set")),
-//         RespType::RBulkString(String::from("key")),
-//         RespType::RBulkString(String::from("value")),
-//     ]);
-
-//     let mut operation_register = OperationRegister::new(100);
-//     operation_register.store_operation(dummy_operation.clone());
-//     operation_register.store_operation(dummy_operation_2.clone());
-
-//     let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     server.update_clients_operations(dummy_operation, dir);
-//     server.update_clients_operations(dummy_operation_2, dir);
-
-//     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
-//     assert_eq!(
-//         saved_operations.get_operations(),
-//         operation_register.get_operations()
-//     );
-
-//     std::fs::remove_file("./src/dummy.log").unwrap();
-// }
