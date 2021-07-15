@@ -2,12 +2,12 @@ use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
-use std::net::TcpStream;
+use std::net::{SocketAddr};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 
-pub fn monitor(tx: &Sender<WorkerMessage>, stream: TcpStream) {
-    tx.send(WorkerMessage::MonitorOp(stream)).unwrap();
+pub fn monitor(tx: &Sender<WorkerMessage>, addrs: SocketAddr) {
+    tx.send(WorkerMessage::SetMonitor(addrs)).unwrap();
 }
 
 pub fn info(cmd: &[RespType]) -> RespType {

@@ -23,7 +23,7 @@ pub struct Server {
     verbose: String,
     logger: Logger,
     clients: Vec<Client>,
-    clients_operations: HashMap<String, OperationRegister>,
+    // clients_operations: HashMap<String, OperationRegister>,
     channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
 }
@@ -41,7 +41,7 @@ impl Server {
         let receiver = receiver;
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
-        let clients_operations = HashMap::new();
+        // let clients_operations = HashMap::new();
         //tener canales, publicadores y subscriptores
         let channels = HashMap::new();
         let clients = Vec::new();
@@ -52,7 +52,7 @@ impl Server {
             verbose,
             logger,
             clients,
-            clients_operations,
+            // clients_operations,
             channels,
             receiver,
         })
@@ -82,14 +82,15 @@ impl Server {
                         println!("Logging error: {}", e);
                     }
                 },
-                WorkerMessage::MonitorOp(stream) => {
-                    self.print_last_operations_by_client(stream);
+                WorkerMessage::SetMonitor(addrs) => {
+                    // self.print_last_operations_by_client(stream);
+                    self.set_client_to_monitor_state(addrs);
                 }
                 WorkerMessage::AddClient(client) => {
                     self.clients.push(client);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
-                    self.update_clients_operations(operation, addrs);
+                    self.check_monitor(operation, addrs);
                 }
                 WorkerMessage::Stop(_) => {
                     break;
@@ -173,22 +174,35 @@ impl Server {
     /// Recibe una nueva operación de un cliente y la agrega a la lista de operaciones
     /// Busca al cliente por dirección. Si es un cliente nuevo, primero lo agrega con un OperationRegister vacio
     /// luego agrega la nueva operacion
-    pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
-        let last_operations = self
-            .clients_operations
-            .entry(addrs.to_string())
-            .or_insert_with(|| OperationRegister::new(100));
-        last_operations.store_operation(operation);
+    pub fn check_monitor(&mut self, operation: RespType, addrs: SocketAddr) {
+        self.clients.iter_mut().for_each(|client| {
+            if *client.is_monitoring() {
+                client.write_to_stream(format!("[{}] {}", addrs, operation).as_bytes());
+            }
+        });
+        // let last_operations = self
+        //     .clients_operations
+        //     .entry(addrs.to_string())
+        //     .or_insert_with(|| OperationRegister::new(100));
+        // last_operations.store_operation(operation);
     }
 
     // Escribe sobre el stream cliente todas las operaciones hechas al servidor
-    pub fn print_last_operations_by_client(&self, mut stream: TcpStream) {
-        self.clients_operations.iter().for_each(|client| {
-            client.1.get_operations().iter().for_each(|operation| {
-                let op = format!("[{}] {}", client.0, operation);
-                stream.write_all(op.as_bytes()).unwrap();
-                stream.flush().unwrap();
-            })
+    // pub fn print_last_operations_by_client(&self, mut stream: TcpStream) {
+    //     self.clients_operations.iter().for_each(|client| {
+    //         client.1.get_operations().iter().for_each(|operation| {
+    //             let op = format!("[{}] {}", client.0, operation);
+    //             stream.write_all(op.as_bytes()).unwrap();
+    //             stream.flush().unwrap();
+    //         })
+    //     });
+    // }
+    fn set_client_to_monitor_state(&mut self, addrs: SocketAddr) {
+        self.clients.iter_mut().for_each(|client| {
+            if client.get_address() == &addrs {
+                //stream Ok
+                client.set_monitoring(true);
+            }
         });
     }
 
