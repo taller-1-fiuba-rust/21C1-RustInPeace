@@ -1,6 +1,6 @@
 pub mod commander;
 pub mod commands;
-// pub mod config_service_borrar;
+pub mod database_service;
 pub mod parser_service;
 pub mod server_service;
 pub mod utils;

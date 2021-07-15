@@ -1005,8 +1005,8 @@ impl Database {
     pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
             .write(true)
-            .append(true)
-            .create_new(false)
+            .append(false)
+            .create(true)
             .open(self.dbfilename.to_string())
             .unwrap();
 
