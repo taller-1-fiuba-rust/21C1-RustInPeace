@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Formatter, Error}};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum RespType {
@@ -25,11 +25,11 @@ impl Display for RespType {
                 for e in array {
                     if let RespType::RBulkString(str) = e {
                         concatenated_elements.push_str(str);
-                        concatenated_elements.push_str(" ");
+                        concatenated_elements.push(' ');
                     }
                 }
                 write!(f, "{}", concatenated_elements)
-            },
+            }
             RespType::RNullBulkString() => write!(f, "(nil)"),
             RespType::RNullArray() => write!(f, "(nil)"),
         }

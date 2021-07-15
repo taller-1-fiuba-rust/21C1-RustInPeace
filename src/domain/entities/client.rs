@@ -1,4 +1,7 @@
-use std::{io::Write, net::{SocketAddr, TcpStream}};
+use std::{
+    io::Write,
+    net::{SocketAddr, TcpStream},
+};
 
 #[derive(Debug)]
 pub struct Client {
@@ -16,7 +19,7 @@ impl Client {
             addrs,
             stream,
             subscriber,
-            monitoring
+            monitoring,
         }
     }
 

@@ -183,7 +183,10 @@ impl Server {
     pub fn check_monitor(&mut self, operation: RespType, addrs: SocketAddr) {
         self.clients.iter_mut().for_each(|client| {
             if *client.is_monitoring() {
-                let msg = parser_service::parse_response(RespType::RBulkString(format!("[{}] {}", addrs, operation)));
+                let msg = parser_service::parse_response(RespType::RBulkString(format!(
+                    "[{}] {}",
+                    addrs, operation
+                )));
                 client.write_to_stream(msg.as_bytes());
             }
         });
@@ -195,7 +198,10 @@ impl Server {
     fn set_client_to_monitor_state(&mut self, addrs: SocketAddr) {
         self.clients.iter_mut().for_each(|client| {
             if client.get_address() == &addrs {
-                client.write_to_stream(parser_service::parse_response(RespType::RBulkString(String::from("Ok"))).as_bytes());
+                client.write_to_stream(
+                    parser_service::parse_response(RespType::RBulkString(String::from("Ok")))
+                        .as_bytes(),
+                );
                 client.set_monitoring(true);
             }
         });
