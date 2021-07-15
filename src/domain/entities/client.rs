@@ -1,19 +1,25 @@
-use std::net::{SocketAddr, TcpStream};
+use std::{
+    io::Write,
+    net::{SocketAddr, TcpStream},
+};
 
 #[derive(Debug)]
 pub struct Client {
     addrs: SocketAddr,
     stream: TcpStream,
     subscriber: bool,
+    monitoring: bool,
 }
 
 impl Client {
     pub fn new(addrs: SocketAddr, stream: TcpStream) -> Self {
         let subscriber = false;
+        let monitoring = false;
         Client {
             addrs,
             stream,
             subscriber,
+            monitoring,
         }
     }
 
@@ -35,5 +41,17 @@ impl Client {
 
     pub fn set_subscribe(&mut self, subs: bool) {
         self.subscriber = subs;
+    }
+
+    pub fn is_monitoring(&self) -> &bool {
+        &self.monitoring
+    }
+
+    pub fn set_monitoring(&mut self, monitor: bool) {
+        self.monitoring = monitor;
+    }
+
+    pub fn write_to_stream(&mut self, message: &[u8]) {
+        self.stream.write_all(message).unwrap();
     }
 }

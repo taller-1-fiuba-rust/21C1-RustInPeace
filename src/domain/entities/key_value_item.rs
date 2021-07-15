@@ -159,7 +159,7 @@ impl ValueTimeItem {
         false
     }
 
-    pub fn _set_value(&mut self, new_value: ValueType) {
+    pub fn set_value(&mut self, new_value: ValueType) {
         self.value = new_value;
     }
 

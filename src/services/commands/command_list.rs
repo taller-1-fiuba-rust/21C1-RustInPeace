@@ -1,56 +1,9 @@
-use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item::ValueType;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 use std::usize;
-//use std::collections::HashMap;
-//use std::str::FromStr;
-//use std::time::SystemTime;
-
-///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
-/// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
-/// cantidad de elementos guardados en esa key
-///DEPRECATED
-// pub fn _lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-//     let mut new_database = database.write().unwrap();
-//     let mut vec_aux = vec![];
-//     if let RespType::RBulkString(key) = &cmd[1] {
-//         for n in cmd.iter().skip(2).rev() {
-//             if let RespType::RBulkString(value) = n {
-//                 vec_aux.push(value.to_string());
-//             }
-//         }
-//         if new_database.key_exists(key.to_string()) {
-//             //let coso = new_database.
-//             if let ValueType::ListType(current_value) = new_database
-//                 .get_live_item(key)
-//                 .unwrap()
-//                 .get_value()
-//                 .to_owned()
-//             {
-//                 RespType::RBulkString(
-//                     actualizar_list_type_value(
-//                         key.to_string(),
-//                         current_value,
-//                         vec_aux,
-//                         new_database,
-//                     )
-//                     .to_string(),
-//                 )
-//             } else {
-//                 RespType::RBulkString("error - not list type".to_string())
-//             }
-//         } else {
-//             RespType::RBulkString(
-//                 actualizar_list_type_value(key.to_string(), vec![], vec_aux, new_database)
-//                     .to_string(),
-//             )
-//         }
-//     } else {
-//         RespType::RError("empty request".to_string())
-//     }
-// }
 
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
@@ -76,48 +29,38 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut db = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
-        if new_database.key_exists(key.to_string()) {
-            if let ValueType::ListType(current_value) = new_database
-                .get_live_item(key)
-                .unwrap()
-                .get_value()
-                .to_owned()
-            {
-                if cmd.len() == 2 {
-                    if let RespType::RBulkString(cantidad) = &cmd[2] {
-                        let popped_elements = pop_elements_from_db(
-                            cantidad.parse::<usize>().unwrap(),
-                            key.to_string(),
-                            current_value,
-                            new_database,
-                        );
-                        return RespType::RArray(popped_elements);
-                    } else {
-                        return RespType::RBulkString("empty".to_string());
-                    }
+        if cmd.len() == 3 {
+            if let RespType::RBulkString(cantidad) = &cmd[2] {
+                let popped_elements =
+                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                if let Some(popped) = popped_elements {
+                    let mut p = Vec::new();
+                    popped.iter().for_each(|element| {
+                        p.push(RespType::RBulkString(element.to_string()));
+                    });
+                    return RespType::RArray(p);
                 } else {
-                    let popped_elements =
-                        pop_elements_from_db(1, key.to_string(), current_value, new_database);
-                    if let RespType::RBulkString(sole_value) = &popped_elements[0] {
-                        return RespType::RBulkString(sole_value.to_string());
-                    }
+                    return RespType::RNullBulkString();
                 }
             }
-            RespType::RError("error - not list type".to_string())
         } else {
-            RespType::RBulkString("nil".to_string())
+            let popped_elements = db.pop_elements_from_list(key, 1);
+            if let Some(popped_element) = popped_elements {
+                if !popped_element.is_empty() {
+                    return RespType::RBulkString(popped_element[0].to_owned());
+                }
+            }
         }
-    } else {
-        RespType::RError("empty request".to_string())
     }
+    RespType::RBulkString("empty".to_string()) //Error o nil?
 }
 
 ///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
 /// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
 /// cantidad de elementos guardados en esa key
-pub fn lpush_version_2(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
@@ -315,48 +258,3 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     }
     RespType::RError(String::from("Invalid command lindex"))
 }
-
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-
-pub fn pop_elements_from_db(
-    cantidad: usize,
-    key: String,
-    mut old_vec: Vec<String>,
-    mut database: RwLockWriteGuard<Database>,
-) -> Vec<RespType> {
-    let mut vec_aux = vec![];
-    for _n in 0..cantidad {
-        let current_element = old_vec.pop().unwrap().to_string();
-        vec_aux.push(RespType::RBulkString(current_element));
-    }
-    let mut vec_to_stored = vec![];
-    for elemento in &vec_aux {
-        if let RespType::RBulkString(elem) = elemento {
-            vec_to_stored.push(elem.to_string());
-        }
-    }
-    let vt_item = ValueTimeItem::new_now(
-        ValueType::ListType(vec_to_stored),
-        KeyAccessTime::Persistent,
-    );
-    database.add(key, vt_item);
-    vec_aux
-}
-
-// pub fn actualizar_list_type_value(
-//     key: String,
-//     old_vec: Vec<String>,
-//     mut new_vec: Vec<String>,
-//     mut database: RwLockWriteGuard<Database>,
-// ) -> usize {
-//     let mut old_vector = old_vec;
-//     new_vec.append(&mut old_vector);
-//     let vec_len = new_vec.len();
-//     let vt_item = ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
-//     database.add(key, vt_item);
-//     vec_len
-// }

@@ -237,6 +237,28 @@ fn test_main() {
     );
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
 
+    let added_item_22 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "argentina".to_string(),
+            "brasil".to_string(),
+            "uruguay".to_string(),
+            "chile".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("paises"), added_item_22);
+
+    let added_item_23 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "jujuy".to_string(),
+            "mendoza".to_string(),
+            "corrientes".to_string(),
+            "misiones".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("provincias"), added_item_23);
+
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
@@ -338,7 +360,6 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
-
     Test {
         name: "server command: config get verbose",
         func: test_config_get_verbose,
@@ -468,6 +489,10 @@ const TESTS: &[Test] = &[
         func: test_string_mget,
     },
     Test {
+        name: "string command: set mykeyset setvalue",
+        func: test_string_set,
+    },
+    Test {
         name: "list command: push values into key - list type",
         func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
     },
@@ -514,6 +539,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lindex",
         func: test_list_index,
+    },
+    Test {
+        name: "list command: lpop mylist",
+        func: test_list_lpop,
+    },
+    Test {
+        name: "list command: lpop mylist 2",
+        func: test_list_lpop_with_count,
     },
     Test {
         name: "set command: sadd",
@@ -1307,6 +1340,23 @@ fn test_string_mget() -> TestResult {
     }
 }
 
+fn test_string_set() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("mykeyset")
+        .arg("valueset")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
 pub fn test_list_index() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("LINDEX")
@@ -1333,6 +1383,37 @@ pub fn test_list_index() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("pomelo"),
             got: ret,
+        }))
+    };
+}
+
+pub fn test_list_lpop() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LPOP").arg("paises").query(&mut con)?;
+
+    return if ret == String::from("argentina") {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("argentina"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_list_lpop_with_count() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LPOP")
+        .arg("provincias")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("jujuy")) && ret.contains(&String::from("mendoza")) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!("{:?}", vec![String::from("jujuy"), String::from("mendoza")]),
+            got: format!("{:?}", ret),
         }))
     };
 }

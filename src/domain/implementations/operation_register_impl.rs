@@ -1,8 +1,27 @@
 use crate::services::utils::resp_type::RespType;
 
+use std::fmt::{Display, Error, Formatter};
+
+#[derive(Debug)]
+pub struct Registro(Vec<String>);
+
+impl Display for Registro {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        let mut comma_separated = String::new();
+
+        for str in &self.0[0..self.0.len() - 1] {
+            comma_separated.push_str(str);
+            comma_separated.push_str(", ");
+        }
+
+        comma_separated.push_str(&self.0[self.0.len() - 1].to_string());
+        write!(f, "{}", comma_separated)
+    }
+}
+
 #[derive(Debug)]
 pub struct OperationRegister {
-    operations: Vec<Vec<String>>,
+    operations: Vec<Registro>,
     max_operations: usize,
 }
 
@@ -16,26 +35,24 @@ impl OperationRegister {
         }
     }
 
-    //pub fn set_max_operations(mut self, max:usize){
-    //    self.max_operations = max
-    //}
-
+    /// Guarda una operacion en el registro
     pub fn store_operation(&mut self, operation: RespType) {
         if let RespType::RArray(command_vector) = operation {
-            let mut vec_aux = Vec::<String>::new();
+            let mut vec_aux = Registro(Vec::<String>::new());
             for element in command_vector {
                 if let RespType::RBulkString(string) = element {
                     if self.operations.len() >= self.max_operations {
                         self.operations.swap_remove(0);
                     }
-                    vec_aux.push(string.to_string())
+                    vec_aux.0.push(string.to_string())
                 }
             }
             self.operations.push(vec_aux)
         }
     }
 
-    pub fn get_operations(&self) -> &Vec<Vec<String>> {
+    /// Devuelve la lista de operariones registradas
+    pub fn get_operations(&self) -> &Vec<Registro> {
         &self.operations
     }
 }
@@ -58,9 +75,23 @@ fn test_01_se_guardan_vectores_de_tipo_resptype_en_field_operations() {
     register.store_operation(vec_resp_type_a);
     register.store_operation(vec_resp_type_b);
     let vector_of_operations = register.get_operations();
-    for elemento in vector_of_operations {
-        println!("{:?}", elemento)
-    }
+
+    assert_eq!(
+        vector_of_operations[0].0,
+        vec![
+            String::from("set_a"),
+            String::from("key_a"),
+            String::from("value_a")
+        ]
+    );
+    assert_eq!(
+        vector_of_operations[1].0,
+        vec![
+            String::from("set_b"),
+            String::from("key_b"),
+            String::from("value_b")
+        ]
+    );
 }
 
 #[test]
@@ -88,7 +119,21 @@ fn test_02_se_elimina_el_primer_elemento_y_se_guarda_el_nuevo_cuando_esta_lleno(
     register.store_operation(vec_resp_type_b);
     register.store_operation(vec_resp_type_c);
     let vector_of_operations = register.get_operations();
-    for elemento in vector_of_operations {
-        println!("{:?}", elemento)
-    }
+
+    assert_eq!(
+        vector_of_operations[0].0,
+        vec![
+            String::from("set_b"),
+            String::from("key_b"),
+            String::from("value_b")
+        ]
+    );
+    assert_eq!(
+        vector_of_operations[1].0,
+        vec![
+            String::from("set_c"),
+            String::from("key_c"),
+            String::from("value_c")
+        ]
+    );
 }
