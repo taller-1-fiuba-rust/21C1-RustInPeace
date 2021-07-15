@@ -1,6 +1,7 @@
 use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
+use crate::errors::database_error::DatabaseError;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs::File;
@@ -8,7 +9,6 @@ use std::fs::OpenOptions;
 use std::io::BufRead;
 use std::io::Write;
 use std::io::{self};
-use std::num::ParseIntError;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
@@ -28,16 +28,14 @@ impl Database {
         db.load_items();
         db
     }
+
     pub fn _get_filename(&self) -> String {
         self.dbfilename.clone()
     }
+
     pub fn get_items(&self) -> &HashMap<String, ValueTimeItem> {
         &self.items
     }
-
-    // pub fn search_item_by_key(&self, key: String) -> Option<&ValueTimeItem> {
-    //     self.items.get(&key)
-    // }
 
     pub fn get_live_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
         let items = self.check_timeout_item(key);
@@ -519,17 +517,24 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_decrement.csv");
     /// ```
-    pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, ParseIntError> {
+    pub fn decrement_key_by(&mut self, key: &str, decr: i64) -> Result<i64, DatabaseError> {
         match self.get_mut_live_item(&key.to_string()) {
             Some(item) => {
                 if let ValueType::StringType(str) = item.get_copy_of_value() {
-                    let str_as_number = str.parse::<i64>()?;
-                    let new_value = ValueType::StringType((str_as_number - decr).to_string());
-                    item.set_value(new_value);
-                    Ok(str_as_number - decr)
+                    if let Ok(str_as_number) = str.parse::<i64>() {
+                        let new_value = ValueType::StringType((str_as_number - decr).to_string());
+                        item.set_value(new_value);
+                        Ok(str_as_number - decr)
+                    } else {
+                        Err(DatabaseError::InvalidParameter(String::from(
+                            "Decrement value can't be represented as integer",
+                        )))
+                    }
                 } else {
-                    //hay que devolver algo posta aca
-                    Ok(1)
+                    Err(DatabaseError::InvalidValueType(format!(
+                        "Invalid value type. Expected: String. Got: {}",
+                        item.get_value_type()
+                    )))
                 }
             }
             None => {
@@ -570,30 +575,65 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_increment.csv");
     /// ```
-    pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, ParseIntError> {
-        let item = self.get_mut_live_item(&key.to_string()).unwrap(); //TODO acá no deberia haber un unwrap.
-                                                                      //chequear la documentación para devolver lo correcto en caso que no haya key.
-        if let ValueType::StringType(str) = item.get_copy_of_value() {
-            let str_as_number = str.parse::<i64>()?;
-            let new_value = ValueType::StringType((str_as_number + incr).to_string());
-            item.set_value(new_value);
-            return Ok(str_as_number + incr);
+    pub fn increment_key_by(&mut self, key: &str, incr: i64) -> Result<i64, DatabaseError> {
+        if let Some(item) = self.get_mut_live_item(&key.to_string()) {
+            if let ValueType::StringType(str) = item.get_copy_of_value() {
+                if let Ok(str_as_number) = str.parse::<i64>() {
+                    let new_value = ValueType::StringType((str_as_number + incr).to_string());
+                    item.set_value(new_value);
+                    Ok(str_as_number + incr)
+                } else {
+                    Err(DatabaseError::InvalidParameter(String::from(
+                        "Increment value can't be represented as integer",
+                    )))
+                }
+            } else {
+                return Err(DatabaseError::InvalidValueType(format!(
+                    "Invalid value type. Expected: String. Got: {}",
+                    item.get_value_type()
+                )));
+            }
         } else {
-            //devolver error
+            let new_value = incr;
+            self.items.insert(
+                key.to_string(),
+                ValueTimeItem::new_now(
+                    ValueType::StringType(new_value.to_string()),
+                    KeyAccessTime::Persistent,
+                ),
+            );
+            Ok(new_value)
         }
-        let new_value = incr;
-        self.items.insert(
-            key.to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType(new_value.to_string()),
-                KeyAccessTime::Volatile(3423423),
-            ),
-        );
-        Ok(new_value)
     }
 
-    /// Devuelve la clave si el valor asociado es un string
-    pub fn get_value_by_key(&mut self, key: &str) -> Option<String> {
+    /// Devuelve el valor almacenado en `key` si dicho valor es de tipo String.
+    ///
+    /// Retorna `None` si la clave no existe o si el valor almacenado no es de tipo String.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_get_string".to_string());
+    /// let vt_1 = ValueTimeItem::new_now(
+    ///    ValueType::StringType("hola".to_string()),
+    ///    KeyAccessTime::Persistent,
+    /// );
+    /// let vt_2 = ValueTimeItem::new_now(
+    ///    ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+    ///    KeyAccessTime::Persistent,
+    /// );
+    /// db.add("saludo".to_string(), vt_1);
+    /// db.add("saludo_despido".to_string(), vt_2);
+    /// let aux = db.get_string_value_by_key("saludo").unwrap();
+    /// assert_eq!(aux, String::from("hola"));
+    /// let aux = db.get_string_value_by_key("saludo_despido");
+    /// assert!(aux.is_none());
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_get_string.csv");
+    /// ```
+    pub fn get_string_value_by_key(&mut self, key: &str) -> Option<String> {
         let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
@@ -604,23 +644,29 @@ impl Database {
         None
     }
 
-    /// Devuelve la clave si el valor asociado es un string, sino devuelve nil
-    pub fn get_value_by_key_or_nil(&self, key: &str) -> Option<String> {
-        let item = self.items.get(&key.to_string());
-        if let Some(item) = item {
-            let value = item.get_copy_of_value();
-            if let ValueType::StringType(str) = value {
-                Some(str)
-            } else {
-                Some("(nil)".to_string())
-            }
-        } else {
-            None
-        }
-    }
-
-    //agregar tests
+    /// Retorna la longitud del string almacenado en `key`.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, retorna la longitud del mismo.
+    /// Si la clave no existe, retorna 0. Retorna None si el valor almacenado no es de tipo String.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_strlen.csv".to_string());
+    /// db.add("mykey".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("myvalue".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let len = db.get_strlen_by_key("mykey").unwrap();
+    ///
+    /// assert_eq!(len, 7);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_strlen.csv");
+    /// ```
     pub fn get_strlen_by_key(&mut self, key: &str) -> Option<usize> {
+        //agregar tests
         let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
@@ -634,46 +680,95 @@ impl Database {
         }
     }
 
-    //agregar tests
-    pub fn getdel_value_by_key(&mut self, key: &str) -> Option<String> {
+    /// Obtiene el valor almacenado en `key` y luego elimina la clave.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, obtiene el valor y luego elimina la clave.
+    /// Retorna el valor obtenido. Si la clave no existe, retorna error `MissingKey`. Si el valor almacenado no es de tipo String
+    /// retorna error de tipo `InvalidValueType`.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_getdel.csv".to_string());
+    /// db.add("mykey".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("myvalue".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let deleted_value = db.getdel_value_by_key("mykey").unwrap();
+    ///
+    /// assert_eq!(deleted_value, String::from("myvalue"));
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_getdel.csv");
+    /// ```
+    pub fn getdel_value_by_key(&mut self, key: &str) -> Result<String, DatabaseError> {
+        //agregar tests
         let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 self.delete_key(key.to_string());
-                Some(str)
+                Ok(str)
             } else {
-                None
+                Err(DatabaseError::InvalidValueType(format!(
+                    "Invalid value type. Expected: String. Got: {}",
+                    item.get_value_type()
+                )))
             }
         } else {
-            None
+            Err(DatabaseError::MissingKey())
         }
     }
 
-    //agregar tests
-    pub fn getset_value_by_key(&mut self, key: &str, new_value: &str) -> Option<String> {
+    /// Obtiene el valor almacenado en `key` y luego actualiza la clave con `new_value`.
+    ///
+    /// Si la clave existe y el valor almacenado es de tipo String, obtiene el valor y luego actualiza la clave.
+    /// Retorna el valor obtenido. Si la clave no existe, retorna error `MissingKey`. Si el valor almacenado no es de tipo String
+    /// retorna error de tipo `InvalidValueType`.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_getset.csv".to_string());
+    /// db.add("mykey".to_string(),ValueTimeItem::new_now(
+    /// ValueType::StringType("myvalue".to_string()),
+    /// KeyAccessTime::Persistent
+    /// ));
+    /// let deleted_value = db.getset_value_by_key("mykey", "newvalue").unwrap();
+    ///
+    /// assert_eq!(deleted_value, String::from("myvalue"));
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_getset.csv");
+    /// ```
+    pub fn getset_value_by_key(
+        &mut self,
+        key: &str,
+        new_value: &str,
+    ) -> Result<String, DatabaseError> {
+        //agregar tests
         let item_optional = self.get_mut_live_item(&key.to_string());
         if let Some(item) = item_optional {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 item.set_value(ValueType::StringType(new_value.to_string()));
-                // self.replace_value_on_key(
-                //     key.to_string(),
-                //     ValueType::StringType(new_value.to_string()),
-                // );
-                Some(str)
+                Ok(str)
             } else {
-                //error
-                None
+                Err(DatabaseError::InvalidValueType(format!(
+                    "Invalid value type. Expected: String. Got: {}",
+                    item.get_value_type()
+                )))
             }
         } else {
-            //nil
-            None
+            Err(DatabaseError::MissingKey())
         }
     }
+
     /// Retorna la cantidad de elementos almacenados en el Set de la clave especificada.
     ///
-    /// Si la clave no existe, devuelve 0.
+    /// Si la clave no existe o el valor no es de tipo Set, devuelve 0.
     /// # Example
     /// ```
     /// use proyecto_taller_1::domain::implementations::database::Database;
@@ -709,37 +804,27 @@ impl Database {
 
     pub fn is_member_of_set(&mut self, key: &str, member: &str) -> usize {
         let item = self.get_live_item(key);
-        match item {
-            Some(item) => {
-                if let ValueType::SetType(item) = item.get_value() {
-                    match item.get(member) {
-                        Some(_) => 1,
-                        None => 0,
-                    }
-                } else {
-                    0
+        if let Some(item) = item {
+            if let ValueType::SetType(item) = item.get_value() {
+                if item.get(member).is_some() {
+                    return 1;
                 }
             }
-            None => 0,
         }
+        0
     }
 
     pub fn get_members_of_set(&mut self, key: &str) -> Vec<&String> {
         let item = self.get_live_item(key);
         let mut members = Vec::new();
-        match item {
-            Some(item) => {
-                if let ValueType::SetType(item) = item.get_value() {
-                    item.iter().for_each(|member| {
-                        members.push(member);
-                    });
-                    members
-                } else {
-                    members
-                }
+        if let Some(item) = item {
+            if let ValueType::SetType(item) = item.get_value() {
+                item.iter().for_each(|member| {
+                    members.push(member);
+                });
             }
-            None => members,
         }
+        members
     }
 
     pub fn remove_member_from_set(&mut self, key: &str, member: &str) -> Option<bool> {
@@ -762,6 +847,7 @@ impl Database {
     }
 
     // falta opcion get
+    // agregar tests unitarios (set new key, set existing key, set key timeout x2, set key set_if x2, set key timeout set_if x2, set key !set_if x2, set key timeout !set_if x2)
     pub fn set_string(
         &mut self,
         key: &str,
@@ -841,6 +927,42 @@ impl Database {
             _ => {}
         }
         expire_at
+    }
+
+    /// Elimina y retorna los primeros elementos de la lista almacenada en `key`.
+    ///
+    /// Por defecto, elimina el primer elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
+    /// los primeros `count` elementos.
+    /// Si la clave no existe, retorna `None`. Si existe, retorna una lista con los elementos eliminados.
+    /// # Examples
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_pop.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile"), String::from("uruguay")];
+    /// let vt = ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Persistent);
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let removed = db.pop_elements_from_list("paises", 1).unwrap();
+    /// assert_eq!(removed, vec![String::from("argentina")]);
+    ///
+    /// let removed = db.pop_elements_from_list("paises", 2).unwrap();
+    /// assert_eq!(removed, vec![String::from("brasil"), String::from("chile")]);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_pop.csv");
+    /// ```
+    pub fn pop_elements_from_list(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
+        let mut popped_elements = Vec::new();
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::ListType(mut list) = item.get_copy_of_value() {
+                popped_elements = list.drain(..count).collect(); //validar count < len
+                item.set_value(ValueType::ListType(list));
+            }
+        } else {
+            return None;
+        }
+        Some(popped_elements)
     }
 
     /* Si el servidor se reinicia se deben cargar los items del file */
@@ -1752,33 +1874,33 @@ fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("hola".to_string()),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Persistent,
     );
     let vt_2 = ValueTimeItem::new_now(
         ValueType::StringType("chau".to_string()),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Persistent,
     );
     let vt_3 = ValueTimeItem::new_now(
         ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-        KeyAccessTime::Volatile(0),
+        KeyAccessTime::Persistent,
     );
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
     let vt_4 = ValueTimeItem::new_now(ValueType::SetType(this_set), KeyAccessTime::Volatile(0));
-    db.items.insert("saludo".to_string(), vt_1);
-    db.items.insert("despido".to_string(), vt_2);
-    db.items.insert("saludo_despido".to_string(), vt_3);
-    db.items.insert("valores".to_string(), vt_4);
+    db.add("saludo".to_string(), vt_1);
+    db.add("despido".to_string(), vt_2);
+    db.add("saludo_despido".to_string(), vt_3);
+    db.add("valores".to_string(), vt_4);
 
-    let aux = db.get_value_by_key_or_nil("saludo").unwrap();
+    let aux = db.get_string_value_by_key("saludo").unwrap();
     assert_eq!(aux, String::from("hola"));
-    let aux = db.get_value_by_key_or_nil("despido").unwrap();
+    let aux = db.get_string_value_by_key("despido").unwrap();
     assert_eq!(aux, String::from("chau"));
-    let aux = db.get_value_by_key_or_nil("saludo_despido").unwrap();
-    assert_eq!(aux, String::from("(nil)"));
-    let aux = db.get_value_by_key_or_nil("valores").unwrap();
-    assert_eq!(aux, String::from("(nil)"));
+    let aux = db.get_string_value_by_key("saludo_despido");
+    assert!(aux.is_none());
+    let aux = db.get_string_value_by_key("valores");
+    assert!(aux.is_none());
     let _ = std::fs::remove_file("file025".to_string());
 }
 
@@ -1941,4 +2063,51 @@ fn test_37_remove_member_from_list_type_returns_none() {
     assert!(removed.is_none());
 
     let _ = std::fs::remove_file("file036".to_string());
+}
+
+#[test]
+fn test_38_pop_one_element_from_list_returns_popped_element() {
+    let mut db = Database::new("file037".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.pop_elements_from_list("saludo", 1).unwrap();
+    assert_eq!(removed, vec![String::from("hola")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert_eq!(item, &vec![String::from("chau")]);
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file037".to_string());
+}
+
+#[test]
+fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
+    let mut db = Database::new("file038".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hola".to_string(),
+            "chau".to_string(),
+            "hello".to_string(),
+            "bye".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.pop_elements_from_list("saludo", 2).unwrap();
+    assert_eq!(removed, vec![String::from("hola"), String::from("chau")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert!(item.contains(&String::from("hello")) && item.contains(&String::from("bye")));
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file038".to_string());
 }
