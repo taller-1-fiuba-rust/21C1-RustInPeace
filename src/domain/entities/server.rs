@@ -1,7 +1,7 @@
 use super::client::Client;
 use super::message::WorkerMessage;
 use crate::domain::implementations::logger_impl::Logger;
-use crate::domain::implementations::operation_register_impl::OperationRegister;
+// use crate::domain::implementations::operation_register_impl::OperationRegister;
 use crate::services::parser_service;
 use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
@@ -23,7 +23,7 @@ pub struct Server {
     verbose: String,
     logger: Logger,
     clients: Vec<Client>,
-    clients_operations: HashMap<String, OperationRegister>,
+    // clients_operations: HashMap<String, OperationRegister>,
     channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
 }
@@ -41,7 +41,7 @@ impl Server {
         let receiver = receiver;
         let logger_path = &logfile;
         let logger = Logger::new(logger_path)?;
-        let clients_operations = HashMap::new();
+        // let clients_operations = HashMap::new();
         //tener canales, publicadores y subscriptores
         let channels = HashMap::new();
         let clients = Vec::new();
@@ -52,7 +52,7 @@ impl Server {
             verbose,
             logger,
             clients,
-            clients_operations,
+            // clients_operations,
             channels,
             receiver,
         })
@@ -82,14 +82,17 @@ impl Server {
                         println!("Logging error: {}", e);
                     }
                 },
+                WorkerMessage::SetMonitor(addrs) => {
+                    self.set_client_to_monitor_state(addrs);
+                }
                 WorkerMessage::AddClient(client) => {
                     self.clients.push(client);
                 }
-                WorkerMessage::MonitorOp(addrs) => {
-                    self.print_last_operations_by_client(addrs);
+                WorkerMessage::CloseClient(addrs) => {
+                    self.remove_client(addrs);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
-                    self.update_clients_operations(operation, addrs);
+                    self.check_monitor(operation, addrs);
                 }
                 WorkerMessage::Stop(_) => {
                     break;
@@ -168,26 +171,40 @@ impl Server {
         verbose
     }
 
-    /// Actualiza la lista de comandos registrados.
-    ///
-    /// Recibe una nueva operación de un cliente y la agrega a la lista de operaciones
-    /// Busca al cliente por dirección. Si es un cliente nuevo, primero lo agrega con un OperationRegister vacio
-    /// luego agrega la nueva operacion
-    pub fn update_clients_operations(&mut self, operation: RespType, addrs: SocketAddr) {
-        let last_operations = self
-            .clients_operations
-            .entry(addrs.to_string())
-            .or_insert_with(|| OperationRegister::new(100));
-        last_operations.store_operation(operation);
+    /// Retiene todos los clientes cuya direccion sea distinta a la que se quiere eliminar.
+    fn remove_client(&mut self, addrs: SocketAddr) {
+        self.clients.retain(|client| client.get_address() != &addrs);
     }
 
-    //
-    pub fn print_last_operations_by_client(&self, addrs: String) {
-        if let Some(operations) = self.clients_operations.get(&addrs) {
-            for operation in operations.get_operations() {
-                println!("{:?}", operation)
+    /// Envia el ultimo comando recibido a los clientes que esten en estado "monitor".
+    ///
+    /// Verifica si hay algun cliente monitoreando los comandos enviados al servidor.
+    /// Si lo hay, le envia el ultimo comando ejecutado.
+    pub fn check_monitor(&mut self, operation: RespType, addrs: SocketAddr) {
+        self.clients.iter_mut().for_each(|client| {
+            if *client.is_monitoring() {
+                let msg = parser_service::parse_response(RespType::RBulkString(format!(
+                    "[{}] {}",
+                    addrs, operation
+                )));
+                client.write_to_stream(msg.as_bytes());
             }
-        }
+        });
+    }
+
+    /// Cambia el estado de un cliente a "monitor".
+    ///
+    /// El cliente pasa a un estado de "debug" donde solo puede recibir los comandos que se ejecutan en el servidor.
+    fn set_client_to_monitor_state(&mut self, addrs: SocketAddr) {
+        self.clients.iter_mut().for_each(|client| {
+            if client.get_address() == &addrs {
+                client.write_to_stream(
+                    parser_service::parse_response(RespType::RBulkString(String::from("Ok")))
+                        .as_bytes(),
+                );
+                client.set_monitoring(true);
+            }
+        });
     }
 
     /// Suscribe un cliente al channel
@@ -331,68 +348,3 @@ impl Server {
         sender.send(list).unwrap();
     }
 }
-
-// #[test]
-// fn test_01_se_guarda_una_operacion_de_tipo_info_en_operation_register() {
-//     // use super::config::Config;
-//     use super::server::Server;
-//     use std::net::{IpAddr, Ipv4Addr};
-
-//     // let verbose = 0;
-//     // let timeout = 0;
-//     let port = "8080".to_string();
-//     let verbose = "1".to_string();
-//     let logfile = "./src/dummy_1.log".to_string();
-
-//     let mut server = Server::new(port, logfile, verbose).unwrap();
-//     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-//     let mut operation_register = OperationRegister::new(100);
-//     operation_register.store_operation(dummy_operation.clone());
-
-//     let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     server.update_clients_operations(dummy_operation, dir);
-//     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
-//     assert_eq!(
-//         saved_operations.get_operations(),
-//         operation_register.get_operations()
-//     );
-
-//     std::fs::remove_file("./src/dummy_1.log").unwrap();
-// }
-
-// #[test]
-// fn test_02_se_guardan_multiples_operaciones_en_register_operation() {
-//     // use super::config::Config;
-//     use super::server::Server;
-//     use std::net::{IpAddr, Ipv4Addr};
-
-//     // let verbose = 0;
-//     // let timeout = 0;
-//     let port = "8080".to_string();
-//     let verbose = "1".to_string();
-//     let logfile = "./src/dummy.log".to_string();
-
-//     let mut server = Server::new(port, logfile, verbose).unwrap();
-//     let dummy_operation = RespType::RArray(vec![RespType::RBulkString(String::from("info"))]);
-//     let dummy_operation_2 = RespType::RArray(vec![
-//         RespType::RBulkString(String::from("set")),
-//         RespType::RBulkString(String::from("key")),
-//         RespType::RBulkString(String::from("value")),
-//     ]);
-
-//     let mut operation_register = OperationRegister::new(100);
-//     operation_register.store_operation(dummy_operation.clone());
-//     operation_register.store_operation(dummy_operation_2.clone());
-
-//     let dir = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-//     server.update_clients_operations(dummy_operation, dir);
-//     server.update_clients_operations(dummy_operation_2, dir);
-
-//     let saved_operations = server.clients_operations.get(&dir.to_string()).unwrap();
-//     assert_eq!(
-//         saved_operations.get_operations(),
-//         operation_register.get_operations()
-//     );
-
-//     std::fs::remove_file("./src/dummy.log").unwrap();
-// }
