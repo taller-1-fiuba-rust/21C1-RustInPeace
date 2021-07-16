@@ -57,18 +57,56 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RBulkString("empty".to_string()) //Error o nil?
 }
 
-///GRUPO [LIST]: guarda elementos nuevos a una lista. Si no existe, la crea. Si el tipo de dato de la *key*
-/// no es de tipo "lista", devuelve un error. En caso de que la operacion sea exitosa, se devuelve la
-/// cantidad de elementos guardados en esa key
-pub fn lpush(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+/// Guarda los elementos enviados por parámetro en una lista.
+///
+/// A partir de una `key` dada, se agregan los elementos que se envían. En caso que la lista no exista, se crea.
+/// Si el valor almacenado no es una lista, se devuelve un error.
+/// Hay dos formas de guardar los datos enviados: si se envía is_reverse en true, se guardarán de izquierda
+/// a derecha desde el head de la lista. En caso que is_reverse venga en false se insertarán desde el fondo de la lista.
+///
+/// # Example:
+///
+/// let db = Database::new("dummy_db_doc_list_push.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi","pomelo","sandia"]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::push(&vec![
+/// RespType::RBulkString("LPUSH".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("frutilla".to_string()),
+/// RespType::RBulkString("melon".to_string()),
+/// ], &database,true);
+///
+/// match res {
+/// RespType::RInteger(qty) => {
+/// assert_eq!(qty,2)
+///}
+/// _ => assert!(false)
+/// }
+/// let _ = std::fs::remove_file("dummy_db_doc_list_push.csv");
+/// ```
+
+pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
-        for n in cmd.iter().skip(2).rev() {
-            if let RespType::RBulkString(value) = n {
-                vec_aux.push(value.to_string());
+        if is_reverse {
+            for n in cmd.iter().skip(2).rev() {
+                if let RespType::RBulkString(value) = n {
+                    vec_aux.push(value.to_string());
+                }
+            }
+        } else {
+            for n in cmd.iter().skip(2) {
+                if let RespType::RBulkString(value) = n {
+                    vec_aux.push(value.to_string());
+                }
             }
         }
+
         if let Some(resultado) =
             new_database.push_new_values_into_existing_or_non_existing_key_value_pair(vec_aux, key)
         {

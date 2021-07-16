@@ -23,9 +23,9 @@ pub fn dump_to_file(database: Arc<RwLock<Database>>) {
 /// y guarda la información en su correspondiente archivo.
 fn save_database(database: Arc<RwLock<Database>>) {
     println!("Saving database to dump");
-    if let Ok(db) = Arc::try_unwrap(database).unwrap_err().try_read(){
+    if let Ok(db) = Arc::try_unwrap(database).unwrap_err().try_read() {
         db.save_items_to_file()
-    }else{
+    } else {
         println!("Database couldn't be saved into file");
     }
 }

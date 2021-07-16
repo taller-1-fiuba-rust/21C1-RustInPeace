@@ -584,6 +584,10 @@ const TESTS: &[Test] = &[
         name: "pubsub commands: subscribe pubsub channels numsub",
         func: test_pubsub,
     },
+    Test {
+        name: "rpush command: new list",
+        func: test_rpush_lista_inexistente
+    }
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -1567,6 +1571,27 @@ pub fn test_set_srem_removes_returns_error() -> TestResult {
             got: ret.unwrap(),
         }))
     };
+}
+
+fn test_rpush_lista_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSH")
+        .arg("clubes")
+        .arg("central")
+        .arg("boca")
+        .arg("river")
+        .arg("racing")
+        .arg("chacarita")
+        .query(&mut con)?;
+
+    if ret == 5 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "5".to_string(),
+            got: ret.to_string(),
+        }));
+    }
 }
 
 fn test_pubsub() -> TestResult {

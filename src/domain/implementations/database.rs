@@ -631,7 +631,7 @@ impl Database {
     /// let aux = db.get_string_value_by_key("saludo_despido");
     /// assert!(aux.is_none());
     ///
-    /// let _ = std::fs::remove_file("dummy_db_get_string.csv");
+    /// let _ = std::fs::remove_file("dummy_db_get_string");
     /// ```
     pub fn get_string_value_by_key(&mut self, key: &str) -> Option<String> {
         let item = self.get_live_item(&key.to_string());
