@@ -330,6 +330,12 @@ fn test_main() {
     );
     database.add(String::from("persistente"), added_persistent);
 
+    let added_item_30 = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["chocolate".to_string(), "frutilla".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("sabores"), added_item_30);
+
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
@@ -577,6 +583,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: rpop mylist 2",
         func: test_list_rpop_with_count,
+    },
+    Test {
+        name: "list command: rpushx sabores vainilla coco",
+        func: test_list_rpushx,
     },
     Test {
         name: "set command: sadd",
@@ -1478,6 +1488,24 @@ pub fn test_list_rpop_with_count() -> TestResult {
                 vec![String::from("catamarca"), String::from("chaco")]
             ),
             got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpushx() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSHX")
+        .arg("sabores")
+        .arg("vainilla")
+        .arg("coco")
+        .query(&mut con)?;
+
+    return if ret == 4 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 4.to_string(),
+            got: ret.to_string(),
         }))
     };
 }

@@ -287,3 +287,18 @@ pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RBulkString("empty".to_string()) //Error o nil?
 }
+
+pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    let mut new_elements = vec![];
+    if let RespType::RBulkString(key) = &cmd[1] {
+        for n in cmd.iter().skip(2).rev() {
+            if let RespType::RBulkString(value) = n {
+                new_elements.push(value.to_string());
+            }
+        }
+        RespType::RInteger(new_database.push_vec_to_list(new_elements, key))
+    } else {
+        RespType::RError("empty request".to_string())
+    }
+}
