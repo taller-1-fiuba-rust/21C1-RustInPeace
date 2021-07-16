@@ -259,6 +259,28 @@ fn test_main() {
     );
     database.add(String::from("provincias"), added_item_23);
 
+    let added_item_24 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "italia".to_string(),
+            "francia".to_string(),
+            "españa".to_string(),
+            "portugal".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("paises2"), added_item_24);
+
+    let added_item_25 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "chubut".to_string(),
+            "formosa".to_string(),
+            "chaco".to_string(),
+            "catamarca".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("provincias2"), added_item_25);
+
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
@@ -277,30 +299,30 @@ fn test_main() {
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_23 =
+    let added_item_list_26 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_remove_1"), added_item_list_23);
+    database.add(String::from("set_remove_1"), added_item_list_26);
 
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_24 =
+    let added_item_list_27 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_remove_2"), added_item_list_24);
+    database.add(String::from("set_remove_2"), added_item_list_27);
 
     let mut set = HashSet::new();
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_25 =
+    let added_item_list_28 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_remove_3"), added_item_list_25);
+    database.add(String::from("set_remove_3"), added_item_list_28);
 
-    let added_item_list_26 = ValueTimeItem::new_now(
+    let added_item_list_29 = ValueTimeItem::new_now(
         ValueType::ListType(vec!["item_1".to_string()]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("set_remove_4"), added_item_list_26);
+    database.add(String::from("set_remove_4"), added_item_list_29);
 
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
@@ -547,6 +569,14 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: lpop mylist 2",
         func: test_list_lpop_with_count,
+    },
+    Test {
+        name: "list command: rpop mylist",
+        func: test_list_rpop,
+    },
+    Test {
+        name: "list command: rpop mylist 2",
+        func: test_list_rpop_with_count,
     },
     Test {
         name: "set command: sadd",
@@ -1413,6 +1443,40 @@ pub fn test_list_lpop_with_count() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: format!("{:?}", vec![String::from("jujuy"), String::from("mendoza")]),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("RPOP").arg("paises2").query(&mut con)?;
+
+    return if ret == String::from("portugal") {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("portugal"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_list_rpop_with_count() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("RPOP")
+        .arg("provincias2")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("catamarca")) && ret.contains(&String::from("chaco")) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![String::from("catamarca"), String::from("chaco")]
+            ),
             got: format!("{:?}", ret),
         }))
     };
