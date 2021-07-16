@@ -78,8 +78,8 @@ pub fn handle_command(
             match actual_command.as_str() {
                 "monitor" => command_server::monitor(&tx, addrs),
                 "info" => {
-                    let infor_requiered = command_server::info(&array);
-                    println!("{:?}", infor_requiered);
+                    let info_required = command_server::info(&array);
+                    println!("{:?}", info_required);
                     return None;
                 }
                 "config" => {
@@ -139,7 +139,7 @@ pub fn handle_command(
                         RespType::RBulkString(String::from("pubsub")),
                     ]))
                 }
-                "lpush" => return Some(command_list::lpush(&array, database)),
+                "lpush" => return Some(command_list::push(&array, database, true)),
                 "lindex" => return Some(command_list::get_index(&array, database)),
                 "llen" => return Some(command_list::llen(&array, database)),
                 "lpop" => return Some(command_list::lpop(&array, database)),
@@ -150,6 +150,7 @@ pub fn handle_command(
                 "sismember" => return Some(command_set::sismember(&array, database)),
                 "smembers" => return Some(command_set::smembers(&array, database)),
                 "srem" => return Some(command_set::srem(&array, database)),
+                "rpush" => return Some(command_list::push(&array, database, false)),
                 _ => {}
             }
         }
