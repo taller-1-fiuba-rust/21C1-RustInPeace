@@ -296,3 +296,124 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     }
     RespType::RError(String::from("Invalid command lindex"))
 }
+
+/// Elimina y devuelve los últimos elementos de la lista almacenada en `key`.
+///
+/// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
+/// los últimos `count` elementos.
+/// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
+/// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del último elemento.
+/// Ante un error inesperado, devuelve Error `Invalid request`.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_rpop_command.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string(), "melon".to_string(), "ciruela".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::rpop(&vec![
+/// RespType::RBulkString("RPOP".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("3".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RArray(frutas_eliminadas) => {
+///     assert_eq!(frutas_eliminadas, vec![RespType::RBulkString("ciruela".to_string()),RespType::RBulkString("melon".to_string()), RespType::RBulkString("sandia".to_string())]) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_rpop_command.csv");
+/// ```
+pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut db = database.write().unwrap();
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if cmd.len() == 3 {
+            if let RespType::RBulkString(cantidad) = &cmd[2] {
+                let popped_elements =
+                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                if let Some(popped) = popped_elements {
+                    let mut p = Vec::new();
+                    popped.iter().for_each(|element| {
+                        p.push(RespType::RBulkString(element.to_string()));
+                    });
+                    return RespType::RArray(p);
+                } else {
+                    return RespType::RNullBulkString();
+                }
+            }
+        } else {
+            let popped_elements = db.rpop_elements_from_list(key, 1);
+            if let Some(popped_element) = popped_elements {
+                if !popped_element.is_empty() {
+                    return RespType::RBulkString(popped_element[0].to_owned());
+                }
+            } else {
+                return RespType::RNullBulkString();
+            }
+        }
+    }
+    RespType::RError("Invalid request".to_string())
+}
+
+/// Inserta los valores especificados al final de la lista almacenada en `key`.
+///
+/// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al final de la misma.
+/// Retorna un valor de tipo entero que representa la longitud de la lista luego de haber insertado los nuevos elementos.
+/// Ante un error inesperado, devuelve Error `Invalid request`.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_rpushx_command.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::rpushx(&vec![
+/// RespType::RBulkString("RPUSHX".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("melon".to_string()),
+/// RespType::RBulkString("sandia".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(len) => {
+///     assert_eq!(len, 5) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_rpushx_command.csv");
+/// ```
+pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut new_database = database.write().unwrap();
+    let mut new_elements = vec![];
+    if let RespType::RBulkString(key) = &cmd[1] {
+        for n in cmd.iter().skip(2) {
+            if let RespType::RBulkString(value) = n {
+                new_elements.push(value.to_string());
+            }
+        }
+        RespType::RInteger(new_database.push_vec_to_list(new_elements, key))
+    } else {
+        RespType::RError("Invalid request".to_string())
+    }
+}

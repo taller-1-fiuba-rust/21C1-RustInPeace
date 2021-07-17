@@ -229,6 +229,39 @@ impl Database {
         }
     }
 
+    /// Inserta nuevos elementos al final de la lista almacenada en `key`.
+    ///
+    /// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al final de la misma.
+    /// Retorna la longitud de la lista luego de haber insertado los nuevos elementos.
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_rpush.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile"), String::from("uruguay")];
+    /// let vt = ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Persistent);
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let len = db.push_vec_to_list(vec![String::from("bolivia"), String::from("paraguay")], "paises");
+    /// assert_eq!(len, 6);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_rpush.csv");
+    /// ```
+    pub fn push_vec_to_list(&mut self, new_elements: Vec<String>, key: &str) -> usize {
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::ListType(mut current_value) = item.get_copy_of_value() {
+                for element in new_elements {
+                    current_value.push(element);
+                }
+                let len = current_value.len();
+                item.set_value(ValueType::ListType(current_value));
+                return len;
+            }
+        }
+        0
+    }
+
     pub fn get_values_from_list_value_type(
         &mut self,
         key: &str,
@@ -957,6 +990,49 @@ impl Database {
         if let Some(item) = self.get_mut_live_item(key) {
             if let ValueType::ListType(mut list) = item.get_copy_of_value() {
                 popped_elements = list.drain(..count).collect(); //validar count < len
+                item.set_value(ValueType::ListType(list));
+            }
+        } else {
+            return None;
+        }
+        Some(popped_elements)
+    }
+
+    /// Elimina y retorna los últimos elementos de la lista almacenada en `key`.
+    ///
+    /// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
+    /// los últimos `count` elementos.
+    /// Si la clave no existe, retorna `None`. Si existe, retorna una lista con los elementos eliminados.
+    /// # Examples
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+    ///
+    /// let mut db = Database::new("dummy_db_rpop.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile"), String::from("uruguay")];
+    /// let vt = ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Persistent);
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let removed = db.rpop_elements_from_list("paises", 1).unwrap();
+    /// assert_eq!(removed, vec![String::from("uruguay")]);
+    ///
+    /// let removed = db.rpop_elements_from_list("paises", 2).unwrap();
+    /// assert_eq!(removed, vec![String::from("chile"), String::from("brasil")]);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_rpop.csv");
+    /// ```
+    pub fn rpop_elements_from_list(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
+        let mut popped_elements = Vec::new();
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::ListType(mut list) = item.get_copy_of_value() {
+                for _ in 0..count {
+                    match list.pop() {
+                        Some(last_element) => {
+                            popped_elements.push(last_element);
+                        }
+                        None => break,
+                    }
+                }
                 item.set_value(ValueType::ListType(list));
             }
         } else {
@@ -2111,4 +2187,115 @@ fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
     }
 
     let _ = std::fs::remove_file("file038".to_string());
+}
+
+#[test]
+fn test_40_rpop_one_element_from_list_returns_popped_element() {
+    let mut db = Database::new("file039".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.rpop_elements_from_list("saludo", 1).unwrap();
+    assert_eq!(removed, vec![String::from("chau")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert_eq!(item, &vec![String::from("hola")]);
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file039".to_string());
+}
+
+#[test]
+fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
+    let mut db = Database::new("file040".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hola".to_string(),
+            "chau".to_string(),
+            "hello".to_string(),
+            "bye".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let removed = db.rpop_elements_from_list("saludo", 2).unwrap();
+    assert_eq!(removed, vec![String::from("bye"), String::from("hello")]);
+    let item = db.get_live_item("saludo").unwrap();
+    if let ValueType::ListType(item) = item.get_value() {
+        assert!(item.contains(&String::from("hola")) && item.contains(&String::from("chau")));
+    } else {
+        assert!(false);
+    }
+
+    let _ = std::fs::remove_file("file040".to_string());
+}
+
+#[test]
+fn test_42_rpush_multiple_elements_to_list_returns_length() {
+    let mut db = Database::new("file041".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hola".to_string(),
+            "chau".to_string(),
+            "hello".to_string(),
+            "bye".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let len = db.push_vec_to_list(
+        vec![String::from("salut"), String::from("au revoir")],
+        "saludo",
+    );
+    assert_eq!(len, 6);
+
+    let _ = std::fs::remove_file("file041".to_string());
+}
+
+#[test]
+fn test_43_rpush_to_nonexisting_key_returns_zero() {
+    let mut db = Database::new("file042".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hola".to_string(),
+            "chau".to_string(),
+            "hello".to_string(),
+            "bye".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("despido".to_string(), vt);
+    let len = db.push_vec_to_list(
+        vec![String::from("salut"), String::from("au revoir")],
+        "saludo",
+    );
+    assert_eq!(len, 0);
+
+    let _ = std::fs::remove_file("file042".to_string());
+}
+
+#[test]
+fn test_44_rpush_to_string_returns_zero() {
+    let mut db = Database::new("file043".to_string());
+    let vt = ValueTimeItem::new_now(
+        ValueType::StringType("hola".to_string()),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("saludo".to_string(), vt);
+    let len = db.push_vec_to_list(
+        vec![String::from("salut"), String::from("au revoir")],
+        "saludo",
+    );
+    assert_eq!(len, 0);
+
+    let _ = std::fs::remove_file("file043".to_string());
 }
