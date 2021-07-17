@@ -11,6 +11,7 @@ use proyecto_taller_1::{
     },
     services::{server_service, worker_service::ThreadPool},
 };
+use redis::RedisError;
 
 use std::{
     collections::HashSet,
@@ -587,6 +588,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: rpushx sabores vainilla coco",
         func: test_list_rpushx,
+    },
+    Test {
+        name: "list command: rpushx paiseslimitrofes chile",
+        func: test_list_rpushx_nonexisting_key_returns_zero,
     },
     Test {
         name: "set command: sadd",
@@ -1505,6 +1510,23 @@ pub fn test_list_rpushx() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: 4.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_list_rpushx_nonexisting_key_returns_zero() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSHX")
+        .arg("paiseslimitrofes")
+        .arg("chile")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 0.to_string(),
             got: ret.to_string(),
         }))
     };
