@@ -1,5 +1,4 @@
 use crate::domain::entities::config::Config;
-// use crate::domain::entities::server;
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services;
@@ -12,8 +11,10 @@ use std::thread;
 
 static SERVER_ARGS: usize = 2;
 
-/// Toma un argumento de la linea de comandos con el path de la configuracion
-/// y la utiliza para inicializar el server y cargar la base de datos en memoria
+/// Inicia el servidor Redis
+///
+/// Toma un argumento de la linea de comandos con la dirección de la configuración
+/// y la utiliza para iniciar el server y cargar la base de datos en memoria.
 /// Imprime un mensaje de error si la creación del server falla
 pub fn run() {
     let argv = args().collect::<Vec<String>>();
