@@ -791,7 +791,7 @@ fn test_keys_expireat() -> TestResult {
 }
 fn test_keys_ttl() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("TTL").arg("key_1").query(&mut con)?;
+    let ret: usize = redis::cmd("TTL").arg("key_2").query(&mut con)?;
 
     return if ret > 0 {
         Ok(())
