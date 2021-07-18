@@ -59,6 +59,7 @@ fn test_main() {
     let config_file = String::from("./src/dummy_config.txt");
     let db_file = String::from("./src/dummy_database.txt");
     let log_file = String::from("./src/dummy_log.txt");
+    let config_path = config_file.clone();
 
     match std::fs::File::create(&config_file) {
         Ok(_) => {}
@@ -346,7 +347,8 @@ fn test_main() {
 
     let handle: thread::JoinHandle<()> = thread::spawn(|| {
         let h = thread::spawn(|| {
-            let mut server = Server::new(port_2, log_file, verbose, server_receiver).unwrap();
+            let mut server =
+                Server::new(port_2, log_file, verbose, server_receiver, config_path).unwrap();
             server.listen();
         });
 
@@ -632,6 +634,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "rpush command: new list",
         func: test_rpush_lista_inexistente
+    },
+    Test {
+        name: "info",
+        func: test_info
     }
 ];
 
@@ -1706,6 +1712,19 @@ fn test_rpush_lista_inexistente() -> TestResult {
             got: ret.to_string(),
         }));
     }
+}
+
+pub fn test_info() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
+    return if ret.is_ok() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: ret.err().unwrap().to_string(),
+        }))
+    };
 }
 
 fn test_pubsub() -> TestResult {

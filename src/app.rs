@@ -23,6 +23,7 @@ pub fn run() {
     }
 
     let path = &argv[1];
+    let config_path = path.clone();
     let config = Config::new(String::from(path));
     let dbfilename = config.get_attribute(String::from("dbfilename")).unwrap();
     let port = config.get_attribute(String::from("port")).unwrap();
@@ -34,17 +35,10 @@ pub fn run() {
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port_2 = port.clone();
     let t = thread::spawn(|| {
-        let mut server = Server::new(port_2, logfile, verbose, server_receiver).unwrap();
+        let mut server =
+            Server::new(port_2, logfile, verbose, server_receiver, config_path).unwrap();
         server.listen();
     });
-    // match &mut Server::new(port, logfile, verbose) {
-    // Ok(server) => {
     services::server_service::init(db, config, port, dir, server_sender);
-    // }
-    // Err(e) => {
-    //     println!("Error al crear el server");
-    //     println!("Mensaje de error: {:?}", e);
-    // }
-    // }
     t.join().unwrap();
 }
