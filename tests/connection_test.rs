@@ -677,11 +677,11 @@ fn test_config_set_maxmemory() -> TestResult {
         .arg("2mb")
         .query(&mut con)?;
 
-    if ret == String::from("ok") {
+    if ret == String::from("Ok") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("ok"),
+            expected: String::from("Ok"),
             got: ret,
         }));
     }
