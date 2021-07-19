@@ -256,7 +256,7 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
 /// .set_attribute(String::from("maxmemory"), String::from("2mb"))
 /// .unwrap();
 /// let mut c = Arc::new(RwLock::new(config));
-/// let res = command_server::config_get(&c, &RespType::RBulkString(String::from("maxmemory")));
+/// let res = command_server::config_get(&c, &vec![RespType::RBulkString(String::from("get")), RespType::RBulkString(String::from("maxmemory"))]);
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_get.txt").unwrap();
 /// ```
@@ -266,7 +266,10 @@ pub fn config_get(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
             if let Ok(conf) = config.read() {
                 let mut matches = Vec::new();
                 conf.get_all_attributes().iter().for_each(|attribute| {
-                    if glob_pattern::g_match(field_name.as_bytes(), attribute.0.to_owned().as_bytes()) {
+                    if glob_pattern::g_match(
+                        field_name.as_bytes(),
+                        attribute.0.to_owned().as_bytes(),
+                    ) {
                         matches.push(RespType::RBulkString(attribute.0.to_owned()));
                         matches.push(RespType::RBulkString(attribute.1.to_owned()));
                     }
@@ -293,9 +296,9 @@ pub fn config_get(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
 /// std::fs::File::create("./src/dummy_config_set.txt").unwrap();
 /// let mut config = Config::new("./src/dummy_config_set.txt".to_string());
 /// let mut c = Arc::new(RwLock::new(config));
-/// let res = command_server::config_set(&c, &RespType::RBulkString(String::from("maxmemory")), &RespType::RBulkString(String::from("2mb")));
+/// let res = command_server::config_set(&c, &vec![RespType::RBulkString(String::from("set")), RespType::RBulkString(String::from("maxmemory")), RespType::RBulkString(String::from("2mb"))]);
 /// assert_eq!(res, RespType::RSimpleString("Ok".to_string()));
-/// let res = command_server::config_get(&c, &RespType::RBulkString(String::from("maxmemory")));
+/// let res = command_server::config_get(&c, &vec![RespType::RBulkString(String::from("get")), RespType::RBulkString(String::from("maxmemory"))]);
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_set.txt").unwrap();
 /// ```

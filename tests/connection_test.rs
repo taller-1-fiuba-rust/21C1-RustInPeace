@@ -1115,10 +1115,7 @@ fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult
         .arg("grupo_amigas")
         .query(&mut con)?;
 
-    
-    if &ret[0] == &String::from("13")
-        && &ret[1] == &String::from("10")
-    {
+    if &ret[0] == &String::from("13") && &ret[1] == &String::from("10") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
