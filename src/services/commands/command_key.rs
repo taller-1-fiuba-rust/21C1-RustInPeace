@@ -259,7 +259,7 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
 /// use std::time::SystemTime;
 /// use proyecto_taller_1::services::utils::resp_type::RespType;
 /// use proyecto_taller_1::services::commands::command_key;
@@ -274,15 +274,13 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///   .unwrap().as_secs();
 /// timeout_10seg += 10;
 ///
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
-/// KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()])
+/// ).build());
 ///
-/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
-/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
-/// KeyAccessTime::Volatile(timeout_10seg)
-/// ));
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItemBuilder::new(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_10seg).build()
+/// );
 ///
 /// //Ejecuto el comando con los parámetros necesarios:
 /// let res = command_key::touch(&vec![
@@ -303,7 +301,7 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
 /// use std::time::{SystemTime, Duration};
 /// use proyecto_taller_1::services::utils::resp_type::RespType;
 /// use proyecto_taller_1::services::commands::command_key;
@@ -318,10 +316,9 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// sleep(Duration::from_secs(1));
 ///
-/// database.write().unwrap().add("verduras".to_string(),ValueTimeItem::new_now(
-/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()]),
-/// KeyAccessTime::Volatile(timeout_now)
-/// ));
+/// database.write().unwrap().add("verduras".to_string(),ValueTimeItemBuilder::new(
+/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_now).build()
+/// );
 ///
 /// //Ejecuto el comando con los parámetros necesarios:
 /// let res = command_key::touch(&vec![

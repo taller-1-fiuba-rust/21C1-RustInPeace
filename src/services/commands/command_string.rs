@@ -1,5 +1,5 @@
-use crate::domain::entities::key_value_item::KeyAccessTime;
-use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item::ValueTimeItemBuilder;
+use crate::domain::entities::key_value_item::ValueType;
 use crate::errors::database_error::DatabaseError;
 use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
 use std::vec;
@@ -171,10 +171,9 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         for (pos, e) in vec_aux.iter().enumerate().step_by(2) {
-            let vt_item = ValueTimeItem::new_now(
-                ValueType::StringType(vec_aux[pos + 1].to_string()),
-                KeyAccessTime::Persistent,
-            );
+            let vt_item = ValueTimeItemBuilder::new(
+                ValueType::StringType(vec_aux[pos + 1].to_string())
+            ).build();
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())
