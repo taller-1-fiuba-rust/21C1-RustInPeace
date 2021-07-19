@@ -2,17 +2,14 @@ extern crate redis;
 
 use proyecto_taller_1::{
     domain::{
-        entities::{
-            config::Config,
-            key_value_item::ValueType,
-            server::Server,
-        },
+        entities::{config::Config, key_value_item::ValueType, server::Server},
         implementations::database::Database,
     },
     services::{server_service, worker_service::ThreadPool},
 };
 use redis::RedisError;
 
+use proyecto_taller_1::domain::entities::key_value_item::ValueTimeItemBuilder;
 use std::{
     collections::HashSet,
     error::Error,
@@ -22,7 +19,6 @@ use std::{
     time::Duration,
     usize,
 };
-use proyecto_taller_1::domain::entities::key_value_item::ValueTimeItemBuilder;
 
 const ADDR: &str = "redis://127.0.0.1:8080/";
 
@@ -79,94 +75,103 @@ fn test_main() {
 
     let mut database = Database::new(db_file);
 
-    let added_item_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("value_key_1"))).with_timeout(1925487534).build();
+    let added_item_1 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_1")))
+            .with_timeout(1925487534)
+            .build();
 
     database.add(String::from("key_1"), added_item_1);
 
-    let added_item_2 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("value_key_2"))).with_timeout(1635597186).build();
+    let added_item_2 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_2")))
+            .with_timeout(1635597186)
+            .build();
 
     database.add(String::from("key_2"), added_item_2);
 
-    let added_item_3 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("value_key_3"))).with_timeout(1635597186).build();
+    let added_item_3 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_3")))
+            .with_timeout(1635597186)
+            .build();
 
     database.add(String::from("key_3"), added_item_3);
 
-    let added_item_4 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("value_key_4"))).with_timeout(1635597186).build();
+    let added_item_4 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_4")))
+            .with_timeout(1635597186)
+            .build();
 
     database.add(String::from("key_4"), added_item_4);
 
-    let added_item_5 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("Hello"))).with_timeout(1635597186).build();
+    let added_item_5 = ValueTimeItemBuilder::new(ValueType::StringType(String::from("Hello")))
+        .with_timeout(1635597186)
+        .build();
     database.add(String::from("mykey"), added_item_5);
 
-    let added_item_6 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("10"))).with_timeout(1635597186).build();
+    let added_item_6 = ValueTimeItemBuilder::new(ValueType::StringType(String::from("10")))
+        .with_timeout(1635597186)
+        .build();
     database.add(String::from("key_to_decr"), added_item_6);
 
-    let added_item_7 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("10"))).with_timeout(1635597186).build();
+    let added_item_7 = ValueTimeItemBuilder::new(ValueType::StringType(String::from("10")))
+        .with_timeout(1635597186)
+        .build();
 
     database.add(String::from("key_to_incr"), added_item_7);
 
-    let added_item_8 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("Hello"))).with_timeout(1635597186).build();
+    let added_item_8 = ValueTimeItemBuilder::new(ValueType::StringType(String::from("Hello")))
+        .with_timeout(1635597186)
+        .build();
 
     database.add(String::from("key_getdel"), added_item_8);
 
-    let added_item_9 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("OldValue"))).with_timeout(1635597186).build();
+    let added_item_9 = ValueTimeItemBuilder::new(ValueType::StringType(String::from("OldValue")))
+        .with_timeout(1635597186)
+        .build();
     database.add(String::from("key_getset"), added_item_9);
-    let added_item_10 = ValueTimeItemBuilder::new(
-        ValueType::StringType("hola".to_string())).build();
+    let added_item_10 =
+        ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string())).build();
     database.add(String::from("mget_1"), added_item_10);
-    let added_item_11 = ValueTimeItemBuilder::new(
-        ValueType::StringType("chau".to_string())
-    ).build();
+    let added_item_11 =
+        ValueTimeItemBuilder::new(ValueType::StringType("chau".to_string())).build();
     database.add(String::from("mget_2"), added_item_11);
 
-    let added_item_12 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "15".to_string(),
-            "18".to_string(),
-            "12".to_string(),
-            "54".to_string(),
-            "22".to_string(),
-            "45".to_string(),
-        ])).build();
+    let added_item_12 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "15".to_string(),
+        "18".to_string(),
+        "12".to_string(),
+        "54".to_string(),
+        "22".to_string(),
+        "45".to_string(),
+    ]))
+    .build();
 
     database.add(String::from("edades_amigos"), added_item_12);
 
-    let added_item_13 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("10"))
-    ).build();
+    let added_item_13 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("10"))).build();
     database.add(String::from("edad_maria"), added_item_13);
 
-    let added_item_14 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("11"))
-    ).build();
+    let added_item_14 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("11"))).build();
     database.add(String::from("edad_clara"), added_item_14);
 
-    let added_item_15 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("12"))
-    ).build();
+    let added_item_15 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("12"))).build();
     database.add(String::from("edad_josefina"), added_item_15);
 
-    let added_item_16 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("13"))).build();
+    let added_item_16 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("13"))).build();
 
     database.add(String::from("edad_luz"), added_item_16);
 
-    let added_item_17 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "clara".to_string(),
-            "maria".to_string(),
-            "luz".to_string(),
-            "josefina".to_string(),
-        ])).build();
+    let added_item_17 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "clara".to_string(),
+        "maria".to_string(),
+        "luz".to_string(),
+        "josefina".to_string(),
+    ]))
+    .build();
 
     database.add(String::from("grupo_amigas"), added_item_17);
 
@@ -176,207 +181,188 @@ fn test_main() {
     // );
     // database.add(String::from("edad_mariana"), added_item_18);
 
-    let added_item_18 = ValueTimeItemBuilder::new(
-        ValueType::StringType(String::from("55"))
-    ).build();
+    let added_item_18 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("55"))).build();
     database.add(String::from("edad_mariana"), added_item_18);
 
-    let added_item_list_19 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "pomelo".to_string(),
-            "sandia".to_string(),
-            "kiwi".to_string(),
-            "mandarina".to_string(),
-        ])
-    ).build();
+    let added_item_list_19 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "pomelo".to_string(),
+        "sandia".to_string(),
+        "kiwi".to_string(),
+        "mandarina".to_string(),
+    ]))
+    .build();
     database.add(String::from("frutas"), added_item_list_19);
 
-    let added_item_list_20 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "tamarindo".to_string(),
-            "grosella".to_string(),
-            "pomelo_negro".to_string(),
-            "coco".to_string(),
-        ])
-    ).build();
+    let added_item_list_20 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "tamarindo".to_string(),
+        "grosella".to_string(),
+        "pomelo_negro".to_string(),
+        "coco".to_string(),
+    ]))
+    .build();
     database.add(String::from("frutas_raras"), added_item_list_20);
 
-    let added_item_list_21 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "jinete_1".to_string(),
-            "jinete_2".to_string(),
-            "jinete_3".to_string(),
-            "jinete_4".to_string(),
-            "jinete_5".to_string(),
-            "jinete_6".to_string(),
-            "jinete_7".to_string(),
-            "jinete_8".to_string(),
-        ])
-    ).build();
+    let added_item_list_21 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "jinete_1".to_string(),
+        "jinete_2".to_string(),
+        "jinete_3".to_string(),
+        "jinete_4".to_string(),
+        "jinete_5".to_string(),
+        "jinete_6".to_string(),
+        "jinete_7".to_string(),
+        "jinete_8".to_string(),
+    ]))
+    .build();
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
 
-    let added_item_list_30 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])
-    ).build();
+    let added_item_list_30 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
     database.add(String::from("love_the_dog"), added_item_list_30);
 
-    let added_item_list_31 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "cat".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])
-    ).build();
+    let added_item_list_31 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "cat".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
     database.add(String::from("love_the_cat"), added_item_list_31);
 
-    let added_item_list_32 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "bunny".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])
-    ).build();
+    let added_item_list_32 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "bunny".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
     database.add(String::from("love_the_bunny"), added_item_list_32);
 
-    let added_item_22 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "argentina".to_string(),
-            "brasil".to_string(),
-            "uruguay".to_string(),
-            "chile".to_string(),
-        ])
-    ).build();
+    let added_item_22 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "argentina".to_string(),
+        "brasil".to_string(),
+        "uruguay".to_string(),
+        "chile".to_string(),
+    ]))
+    .build();
     database.add(String::from("paises"), added_item_22);
 
-    let added_item_23 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "jujuy".to_string(),
-            "mendoza".to_string(),
-            "corrientes".to_string(),
-            "misiones".to_string(),
-        ])
-    ).build();
+    let added_item_23 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "jujuy".to_string(),
+        "mendoza".to_string(),
+        "corrientes".to_string(),
+        "misiones".to_string(),
+    ]))
+    .build();
     database.add(String::from("provincias"), added_item_23);
 
-    let added_item_24 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "italia".to_string(),
-            "francia".to_string(),
-            "españa".to_string(),
-            "portugal".to_string(),
-        ])
-    ).build();
+    let added_item_24 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "italia".to_string(),
+        "francia".to_string(),
+        "españa".to_string(),
+        "portugal".to_string(),
+    ]))
+    .build();
     database.add(String::from("paises2"), added_item_24);
 
-    let added_item_25 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "chubut".to_string(),
-            "formosa".to_string(),
-            "chaco".to_string(),
-            "catamarca".to_string(),
-        ])
-    ).build();
+    let added_item_25 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "chubut".to_string(),
+        "formosa".to_string(),
+        "chaco".to_string(),
+        "catamarca".to_string(),
+    ]))
+    .build();
     database.add(String::from("provincias2"), added_item_25);
 
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_set_1 =
-        ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    let added_item_set_1 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("set_values_1"), added_item_set_1);
 
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_set_2 =
-        ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    let added_item_set_2 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("set_values_2"), added_item_set_2);
 
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_26 =
-        ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    let added_item_list_26 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("set_remove_1"), added_item_list_26);
 
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_27 =
-        ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    let added_item_list_27 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("set_remove_2"), added_item_list_27);
 
     let mut set = HashSet::new();
     set.insert("value_2".to_string());
     set.insert("value_3".to_string());
-    let added_item_list_28 =
-        ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    let added_item_list_28 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("set_remove_3"), added_item_list_28);
 
-    let added_item_list_29 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["item_1".to_string()])
-    ).build();
+    let added_item_list_29 =
+        ValueTimeItemBuilder::new(ValueType::ListType(vec!["item_1".to_string()])).build();
     database.add(String::from("set_remove_4"), added_item_list_29);
 
-    let added_persistent = ValueTimeItemBuilder::new(
-        ValueType::StringType("persistente".to_string())
-    ).build();
+    let added_persistent =
+        ValueTimeItemBuilder::new(ValueType::StringType("persistente".to_string())).build();
     database.add(String::from("persistente"), added_persistent);
 
-    let added_item_30 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["chocolate".to_string(), "frutilla".to_string()]),
-    ).build();
+    let added_item_30 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "chocolate".to_string(),
+        "frutilla".to_string(),
+    ]))
+    .build();
     database.add(String::from("sabores"), added_item_30);
 
-    let added_item_31 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "baldur".to_string(),
-            "odin".to_string(),
-            "freya".to_string(),
-            "mimir".to_string(),
-        ])
-    ).build();
+    let added_item_31 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "baldur".to_string(),
+        "odin".to_string(),
+        "freya".to_string(),
+        "mimir".to_string(),
+    ]))
+    .build();
     database.add(String::from("norse_gods"), added_item_31);
 
-    let added_item_32 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "hera".to_string(),
-            "afrodita".to_string(),
-            "chaos".to_string(),
-            "artemis".to_string(),
-        ])
-    ).build();
+    let added_item_32 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hera".to_string(),
+        "afrodita".to_string(),
+        "chaos".to_string(),
+        "artemis".to_string(),
+    ]))
+    .build();
     database.add(String::from("greek_gods"), added_item_32);
 
-    let added_item_33 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "isis".to_string(),
-            "osiris".to_string(),
-            "horus".to_string(),
-            "set".to_string(),
-        ])
-    ).build();
+    let added_item_33 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "isis".to_string(),
+        "osiris".to_string(),
+        "horus".to_string(),
+        "set".to_string(),
+    ]))
+    .build();
     database.add(String::from("egyptian_gods"), added_item_33);
 
     let (server_sender, server_receiver) = mpsc::channel();

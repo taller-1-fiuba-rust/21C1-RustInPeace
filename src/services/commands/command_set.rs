@@ -1,6 +1,6 @@
 //! Servicio que implementa todos los comandos de tipo Set
 
-use crate::domain::entities::key_value_item::{ValueType,ValueTimeItemBuilder};
+use crate::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashSet;
@@ -62,9 +62,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         // Creo el set
                         let mut set = HashSet::new();
                         set.insert(value_to_add.to_string());
-                        let vti = ValueTimeItemBuilder::new(
-                            ValueType::SetType(set)
-                        ).build();
+                        let vti = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
                         db.add(key.to_string(), vti);
                         RespType::RInteger(1)
                     }

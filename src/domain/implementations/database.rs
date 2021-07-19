@@ -190,8 +190,7 @@ impl Database {
                 let mut old_vector = current_value;
                 new_vec.append(&mut old_vector);
                 let vec_len = new_vec.len();
-                let vt_item =
-                    ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
+                let vt_item = ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
                 self.add(key.to_string(), vt_item);
                 return vec_len;
             }
@@ -211,8 +210,7 @@ impl Database {
                 let mut old_vector = current_value;
                 new_vec.append(&mut old_vector);
                 let vec_len = new_vec.len();
-                let vt_item =
-                    ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
+                let vt_item = ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
                 self.add(key.to_string(), vt_item);
                 Some(vec_len)
             } else {
@@ -220,8 +218,7 @@ impl Database {
             }
         } else {
             let vec_len = new_vec.len();
-            let vt_item =
-                ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
+            let vt_item = ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
             self.add(key.to_string(), vt_item);
             Some(vec_len)
         }
@@ -453,7 +450,12 @@ impl Database {
                 }
                 None => {
                     // Si no existe la key, la creo.
-                    self.add(destination, ValueTimeItemBuilder::new(new_value).with_key_access_time(timeout).build());
+                    self.add(
+                        destination,
+                        ValueTimeItemBuilder::new(new_value)
+                            .with_key_access_time(timeout)
+                            .build(),
+                    );
                     Some(())
                 }
             }
@@ -495,7 +497,12 @@ impl Database {
         if let Some(item) = item {
             let item_value = item.get_copy_of_value();
             let item_time = item.get_copy_of_timeout();
-            self.add(new_key, ValueTimeItemBuilder::new(item_value).with_key_access_time(item_time).build());
+            self.add(
+                new_key,
+                ValueTimeItemBuilder::new(item_value)
+                    .with_key_access_time(item_time)
+                    .build(),
+            );
             true
         } else {
             false
@@ -539,8 +546,7 @@ impl Database {
             None => {
                 self.items.insert(
                     key.to_string(),
-                    ValueTimeItemBuilder::new(
-                        ValueType::StringType(string.to_string())).build()
+                    ValueTimeItemBuilder::new(ValueType::StringType(string.to_string())).build(),
                 );
                 string.len()
             }
@@ -594,8 +600,7 @@ impl Database {
                 let new_value = 0 - decr;
                 self.items.insert(
                     key.to_string(),
-                    ValueTimeItemBuilder::new(
-                        ValueType::StringType(new_value.to_string())).build()
+                    ValueTimeItemBuilder::new(ValueType::StringType(new_value.to_string())).build(),
                 );
                 Ok(new_value)
             }
@@ -647,8 +652,7 @@ impl Database {
             let new_value = incr;
             self.items.insert(
                 key.to_string(),
-                ValueTimeItemBuilder::new(
-                    ValueType::StringType(new_value.to_string())).build()
+                ValueTimeItemBuilder::new(ValueType::StringType(new_value.to_string())).build(),
             );
             Ok(new_value)
         }
@@ -929,7 +933,9 @@ impl Database {
                     if expire_at != 0 {
                         time = KeyAccessTime::Volatile(expire_at);
                     }
-                    let new_item = ValueTimeItemBuilder::new(value).with_key_access_time(time).build();
+                    let new_item = ValueTimeItemBuilder::new(value)
+                        .with_key_access_time(time)
+                        .build();
                     self.add(key.to_string(), new_item);
                     return true;
                 }
@@ -1214,18 +1220,10 @@ mod tests {
     fn test_00_filter_keys_by_pattern() {
         let mut db = Database::new(String::from("./src/dummy_00.txt"));
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_1".to_string())
-        ).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_2".to_string())
-        ).build();
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_3".to_string())
-        ).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_4".to_string())
-        ).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string())).build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string())).build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("valor_3".to_string())).build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("valor_4".to_string())).build();
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         db.items
@@ -1253,9 +1251,8 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy.txt"));
         db.add(
             "clave_1".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("valor_1".to_string())
-        ).build());
+            ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string())).build(),
+        );
 
         let source = String::from("clave_1");
         let destination = String::from("clone");
@@ -1273,15 +1270,11 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy2.txt"));
         db.add(
             "clave_1".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("valor_1".to_string())
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string())).build(),
         );
         db.add(
             "clave_2".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("valor_2".to_string())
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string())).build(),
         );
 
         let source = String::from("clave_1");
@@ -1316,10 +1309,12 @@ mod tests {
     fn test_05_deletes_an_item_succesfully() {
         let mut db = Database::new("file2".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_1".to_string())).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_2".to_string())).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
 
@@ -1334,11 +1329,13 @@ mod tests {
         use crate::domain::entities::key_value_item::KeyAccessTime;
         let mut db = Database::new("file".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_1".to_string())).with_timeout(1825601548).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
+            .with_timeout(1825601548)
+            .build();
 
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_2".to_string())).with_timeout(1825601548).build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string()))
+            .with_timeout(1825601548)
+            .build();
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         //--------
@@ -1361,8 +1358,8 @@ mod tests {
         };
         db.add(
             String::from("nueva_key"),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType(String::from("222"))).build());
+            ValueTimeItemBuilder::new(ValueType::StringType(String::from("222"))).build(),
+        );
 
         assert_eq!(
             db.items.get("nueva_key").unwrap().get_value().to_string(),
@@ -1379,9 +1376,7 @@ mod tests {
         };
         db.items.insert(
             String::from("nueva_key"),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType(String::from("222"))
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType(String::from("222"))).build(),
         );
 
         assert_eq!(db.items.len(), 1);
@@ -1437,7 +1432,9 @@ mod tests {
 
         db.items.insert(
             "clave_2".to_string(),
-            ValueTimeItemBuilder::new(ValueType::ListType(list)).with_timeout(1231230).build()
+            ValueTimeItemBuilder::new(ValueType::ListType(list))
+                .with_timeout(1231230)
+                .build(),
         );
         let last_access_time = db
             .items
@@ -1468,12 +1465,13 @@ mod tests {
     fn test_13_size_in_memory_is_correct() {
         let mut db = Database::new("file1".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_1".to_string())).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("valor_2".to_string())
-        ).with_timeout(0).build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("apples_weight".to_string(), vt_2);
         std::fs::remove_file("file1").unwrap();
@@ -1485,9 +1483,7 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy_persist.txt"));
         let _res = db.items.insert(
             "clave_1".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("value".to_string())
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("value".to_string())).build(),
         );
 
         let item = db.items.get("clave_1").unwrap();
@@ -1503,9 +1499,7 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("Hello".to_string())
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("Hello".to_string())).build(),
         );
 
         let len = db.append_string(&"mykey".to_string(), &" World".to_string());
@@ -1527,9 +1521,7 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("10".to_string()),
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("10".to_string())).build(),
         );
 
         let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
@@ -1551,9 +1543,7 @@ mod tests {
         let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
         let _res = db.items.insert(
             "mykey".to_string(),
-            ValueTimeItemBuilder::new(
-                ValueType::StringType("Hello".to_string())
-            ).build()
+            ValueTimeItemBuilder::new(ValueType::StringType("Hello".to_string())).build(),
         );
 
         let res = db.decrement_key_by(&"mykey".to_string(), 3);
@@ -1566,18 +1556,18 @@ mod tests {
     ) {
         let mut db = Database::new("file10".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string()),
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())
-        ).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("weight_bananas".to_string(), vt_1);
         db.items.insert("weight_apples".to_string(), vt_2);
         db.items.insert("weight_kiwi".to_string(), vt_3);
@@ -1599,30 +1589,30 @@ mod tests {
     fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
         let mut db = Database::new("file11".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string()),
-        ).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
-        let vt_5 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string()),
-        ).with_timeout(0).build();
-        let vt_6 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
-        let vt_7 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())
-        ).with_timeout(0).build();
-        let vt_8 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("pablo".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1645,32 +1635,33 @@ mod tests {
     fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
         let mut db = Database::new("file12".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string())
-        ).with_timeout(0).build();
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())
-        ).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string())
-        ).with_timeout(0).build();
-        let vt_5 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_6 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
+        let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_7 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string()),
-        ).with_timeout(0).build();
+        let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_8 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string())).with_timeout(0).build();
+        let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
 
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
@@ -1694,30 +1685,30 @@ mod tests {
     fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
         let mut db = Database::new("file13".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string()),
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string()),
-        ).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
-        let vt_5 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string()),
-        ).with_timeout(0).build();
-        let vt_6 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string()),
-        ).with_timeout(0).build();
-        let vt_7 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string()),
-        ).with_timeout(0).build();
-        let vt_8 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1741,29 +1732,31 @@ mod tests {
     ) {
         let mut db = Database::new("file14".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string())).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
-        let vt_5 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_6 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string())
-        ).with_timeout(0).build();
-        let vt_7 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string()),
-        ).with_timeout(0).build();
-        let vt_8 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string()),
-        ).with_timeout(0).build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("juan".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1786,28 +1779,32 @@ mod tests {
     fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
         let mut db = Database::new("file15".to_string());
 
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_2 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string())).with_timeout(0).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_3 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())
-        ).with_timeout(0).build();
-        let vt_4 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string())).with_timeout(0).build();
+        let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
 
-        let vt_5 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())
-        ).with_timeout(0).build();
-        let vt_6 = ValueTimeItemBuilder::new(
-            ValueType::StringType("2".to_string())).with_timeout(0).build();
-        let vt_7 = ValueTimeItemBuilder::new(
-            ValueType::StringType("11".to_string())).with_timeout(0).build();
-        let vt_8 = ValueTimeItemBuilder::new(
-            ValueType::StringType("5".to_string())
-        ).with_timeout(0).build();
+        let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
+            .with_timeout(0)
+            .build();
+        let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
+            .with_timeout(0)
+            .build();
         db.items.insert("mia".to_string(), vt_1);
         db.items.insert("jose".to_string(), vt_2);
         db.items.insert("mariana".to_string(), vt_3);
@@ -1829,8 +1826,9 @@ mod tests {
     #[test]
     fn test_26_expire_key() {
         let mut db = Database::new("file100".to_string());
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())).with_timeout(1825601548).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(1825601548)
+            .build();
         db.items.insert("key123".to_string(), vt_1);
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -1850,10 +1848,10 @@ mod tests {
     #[test]
     fn test_22_reboot_time() {
         let mut db = Database::new("file022a".to_string());
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string()))
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
             .with_timeout(1925583652)
-            .with_last_access_time(u64::from_str("1211111").unwrap()).build();
+            .with_last_access_time(u64::from_str("1211111").unwrap())
+            .build();
 
         db.items.insert("key123".to_string(), vt_1);
         let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
@@ -1874,10 +1872,10 @@ mod tests {
     #[test]
     fn test_22_reboot_time_expired() {
         let mut db = Database::new("file022b".to_string());
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())).with_timeout(12123120).with_last_access_time(
-            u64::from_str("1211111").unwrap()
-        ).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(12123120)
+            .with_last_access_time(u64::from_str("1211111").unwrap())
+            .build();
         db.items.insert("key123".to_string(), vt_1);
         let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
         assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
@@ -1894,8 +1892,9 @@ mod tests {
     #[test]
     fn test_23_expired_passive_keys() {
         let mut db = Database::new("file023".to_string());
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())).with_timeout(1625326138).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(1625326138)
+            .build();
 
         db.items.insert("key123".to_string(), vt_1);
 
@@ -1912,8 +1911,9 @@ mod tests {
     #[test]
     fn test_24_retrieve_live_keys() {
         let mut db = Database::new("file024".to_string());
-        let vt_1 = ValueTimeItemBuilder::new(
-            ValueType::StringType("1".to_string())).with_timeout(1665326138).build();
+        let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
+            .with_timeout(1665326138)
+            .build();
 
         db.items.insert("key123".to_string(), vt_1);
 
@@ -1934,19 +1934,19 @@ fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
 
     let mut db = Database::new("file025".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("hola".to_string()),
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::StringType("chau".to_string()),
-    ).build();
-    let vt_3 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()]),
-    ).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("chau".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+    ]))
+    .build();
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::SetType(this_set)).with_timeout(0).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::SetType(this_set))
+        .with_timeout(0)
+        .build();
     db.add("saludo".to_string(), vt_1);
     db.add("despido".to_string(), vt_2);
     db.add("saludo_despido".to_string(), vt_3);
@@ -1990,8 +1990,9 @@ fn test_29_scard_de_set_devuelve_cero_si_no_existe() {
 
 #[test]
 fn test_30_scard_de_set_devuelve_cero_si_no_es_tipo_set() {
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("hola".to_string())).with_timeout(0).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string()))
+        .with_timeout(0)
+        .build();
     let mut db = Database::new("file028".to_string());
     db.items.insert("saludo".to_string(), vt_1);
 
@@ -2002,8 +2003,9 @@ fn test_30_scard_de_set_devuelve_cero_si_no_es_tipo_set() {
 
 #[test]
 fn test_31_ismember_de_set_devuelve_cero_si_no_es_tipo_set() {
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("hola".to_string())).with_timeout(0).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string()))
+        .with_timeout(0)
+        .build();
 
     let mut db = Database::new("file029".to_string());
     db.items.insert("saludo".to_string(), vt_1);
@@ -2109,9 +2111,11 @@ fn test_36_remove_member_from_non_existing_set_returns_false() {
 #[test]
 fn test_37_remove_member_from_list_type_returns_none() {
     let mut db = Database::new("file036".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()])
-    ).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let removed = db.remove_member_from_set("saludo", "value_1");
@@ -2123,9 +2127,11 @@ fn test_37_remove_member_from_list_type_returns_none() {
 #[test]
 fn test_38_pop_one_element_from_list_returns_popped_element() {
     let mut db = Database::new("file037".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()])
-    ).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let removed = db.pop_elements_from_list("saludo", 1).unwrap();
@@ -2143,13 +2149,13 @@ fn test_38_pop_one_element_from_list_returns_popped_element() {
 #[test]
 fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
     let mut db = Database::new("file038".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "hola".to_string(),
-            "chau".to_string(),
-            "hello".to_string(),
-            "bye".to_string(),
-        ])).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+        "hello".to_string(),
+        "bye".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let removed = db.pop_elements_from_list("saludo", 2).unwrap();
@@ -2167,8 +2173,11 @@ fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
 #[test]
 fn test_40_rpop_one_element_from_list_returns_popped_element() {
     let mut db = Database::new("file039".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec!["hola".to_string(), "chau".to_string()])).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let removed = db.rpop_elements_from_list("saludo", 1).unwrap();
@@ -2186,13 +2195,13 @@ fn test_40_rpop_one_element_from_list_returns_popped_element() {
 #[test]
 fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
     let mut db = Database::new("file040".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "hola".to_string(),
-            "chau".to_string(),
-            "hello".to_string(),
-            "bye".to_string(),
-        ])).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+        "hello".to_string(),
+        "bye".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let removed = db.rpop_elements_from_list("saludo", 2).unwrap();
@@ -2210,13 +2219,13 @@ fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
 #[test]
 fn test_42_rpush_multiple_elements_to_list_returns_length() {
     let mut db = Database::new("file041".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "hola".to_string(),
-            "chau".to_string(),
-            "hello".to_string(),
-            "bye".to_string(),
-        ])).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+        "hello".to_string(),
+        "bye".to_string(),
+    ]))
+    .build();
 
     db.items.insert("saludo".to_string(), vt);
     let len = db.push_vec_to_list(
@@ -2231,13 +2240,13 @@ fn test_42_rpush_multiple_elements_to_list_returns_length() {
 #[test]
 fn test_43_rpush_to_nonexisting_key_returns_zero() {
     let mut db = Database::new("file042".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "hola".to_string(),
-            "chau".to_string(),
-            "hello".to_string(),
-            "bye".to_string(),
-        ])).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "hola".to_string(),
+        "chau".to_string(),
+        "hello".to_string(),
+        "bye".to_string(),
+    ]))
+    .build();
 
     db.items.insert("despido".to_string(), vt);
     let len = db.push_vec_to_list(
@@ -2252,9 +2261,7 @@ fn test_43_rpush_to_nonexisting_key_returns_zero() {
 #[test]
 fn test_44_rpush_to_string_returns_zero() {
     let mut db = Database::new("file043".to_string());
-    let vt = ValueTimeItemBuilder::new(
-        ValueType::StringType("hola".to_string())
-    ).build();
+    let vt = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string())).build();
 
     db.items.insert("saludo".to_string(), vt);
     let len = db.push_vec_to_list(
@@ -2270,20 +2277,18 @@ fn test_44_rpush_to_string_returns_zero() {
 fn test_29_se_eliminan_3_elementos_de_value_list_type() {
     let mut db = Database::new("file044".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2300,19 +2305,18 @@ fn test_29_se_eliminan_3_elementos_de_value_list_type() {
 fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
     let mut db = Database::new("file045".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2328,20 +2332,18 @@ fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
 fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
     let mut db = Database::new("file046".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string()),
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2355,19 +2357,18 @@ fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
 fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
     let mut db = Database::new("file047".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2380,20 +2381,18 @@ fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
 fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo() {
     let mut db = Database::new("file048".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2406,20 +2405,18 @@ fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo(
 fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_negativos() {
     let mut db = Database::new("file049".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string()),
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
@@ -2432,20 +2429,18 @@ fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_n
 fn test_35_se_pisan_valores_en_value_de_tipo_list_type() {
     let mut db = Database::new("file17".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "juan".to_string(),
-            "pedro".to_string(),
-            "santiago".to_string(),
-            "mariano".to_string(),
-            "francisco".to_string(),
-            "domingo".to_string(),
-            "rolando".to_string(),
-            "fernando".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "juan".to_string(),
+        "pedro".to_string(),
+        "santiago".to_string(),
+        "mariano".to_string(),
+        "francisco".to_string(),
+        "domingo".to_string(),
+        "rolando".to_string(),
+        "fernando".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("nombres_masculinos".to_string(), vt_2);
@@ -2463,20 +2458,18 @@ fn test_35_se_pisan_valores_en_value_de_tipo_list_type() {
 fn test_36_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rango() {
     let mut db = Database::new("file17".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string()),
-    ).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "juan".to_string(),
-            "pedro".to_string(),
-            "santiago".to_string(),
-            "mariano".to_string(),
-            "francisco".to_string(),
-            "domingo".to_string(),
-            "rolando".to_string(),
-            "fernando".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "juan".to_string(),
+        "pedro".to_string(),
+        "santiago".to_string(),
+        "mariano".to_string(),
+        "francisco".to_string(),
+        "domingo".to_string(),
+        "rolando".to_string(),
+        "fernando".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("nombres_masculinos".to_string(), vt_2);
@@ -2489,19 +2482,18 @@ fn test_36_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rang
 fn test_36_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbound() {
     let mut db = Database::new("file17".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(
-        ValueType::StringType("1".to_string())).build();
-    let vt_2 = ValueTimeItemBuilder::new(
-        ValueType::ListType(vec![
-            "juan".to_string(),
-            "pedro".to_string(),
-            "santiago".to_string(),
-            "mariano".to_string(),
-            "francisco".to_string(),
-            "domingo".to_string(),
-            "rolando".to_string(),
-            "fernando".to_string(),
-        ])).build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "juan".to_string(),
+        "pedro".to_string(),
+        "santiago".to_string(),
+        "mariano".to_string(),
+        "francisco".to_string(),
+        "domingo".to_string(),
+        "rolando".to_string(),
+        "fernando".to_string(),
+    ]))
+    .build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("nombres_masculinos".to_string(), vt_2);

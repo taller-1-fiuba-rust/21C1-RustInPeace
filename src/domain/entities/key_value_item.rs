@@ -159,7 +159,7 @@ impl ValueTimeItem {
 pub struct ValueTimeItemBuilder {
     value: ValueType,
     timeout: KeyAccessTime,
-    last_access_time: u64
+    last_access_time: u64,
 }
 
 impl ValueTimeItemBuilder {
@@ -172,7 +172,7 @@ impl ValueTimeItemBuilder {
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_secs()
-            }
+            },
         }
     }
 
@@ -195,36 +195,34 @@ impl ValueTimeItemBuilder {
         ValueTimeItem {
             timeout: self.timeout,
             value: self.value,
-            last_access_time: self.last_access_time
+            last_access_time: self.last_access_time,
         }
     }
 }
 
-
-
 impl ValueTimeItem {
     /// Constructor
-     /*
-    pub fn new_now(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
-        ValueTimeItem {
-            value,
-            timeout: time,
-            last_access_time: {
-                SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            },
+    /*
+        pub fn new_now(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
+            ValueTimeItem {
+                value,
+                timeout: time,
+                last_access_time: {
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                },
+            }
         }
-    }
-    pub fn new(value: ValueType, time: KeyAccessTime, last_access_time: u64) -> ValueTimeItem {
-        ValueTimeItem {
-            value,
-            timeout: time,
-            last_access_time,
+        pub fn new(value: ValueType, time: KeyAccessTime, last_access_time: u64) -> ValueTimeItem {
+            ValueTimeItem {
+                value,
+                timeout: time,
+                last_access_time,
+            }
         }
-    }
-*/
+    */
     pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
         kvis.transform_to_item()
     }
@@ -368,13 +366,14 @@ impl ValueTimeItem {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType, ValueTimeItemBuilder};
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItemBuilder, ValueType};
     use std::collections::HashSet;
 
     #[test]
     fn test_001_key_value_item_string_created() {
         let kv_item = ValueTimeItemBuilder::new(ValueType::StringType("un_string".to_string()))
-            .with_timeout(0).build();
+            .with_timeout(0)
+            .build();
         assert_eq!(kv_item.get_value().to_string(), "un_string");
 
         match kv_item.get_timeout() {
@@ -389,8 +388,9 @@ mod tests {
         let mut un_set = HashSet::new();
         un_set.insert("un_set_string".to_string());
 
-        let kv_item =
-            ValueTimeItemBuilder::new(ValueType::SetType(un_set)).with_timeout(0).build();
+        let kv_item = ValueTimeItemBuilder::new(ValueType::SetType(un_set))
+            .with_timeout(0)
+            .build();
         assert_eq!(kv_item.value.to_string(), "un_set_string");
 
         match kv_item.timeout {
@@ -406,9 +406,9 @@ mod tests {
         un_list.push("un_list_string".to_string());
         un_list.push("otro_list_string".to_string());
 
-        let kv_item =
-            ValueTimeItemBuilder::new(ValueType::ListType(un_list)).with_timeout(0).build();
-
+        let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list))
+            .with_timeout(0)
+            .build();
 
         assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
 
@@ -421,8 +421,9 @@ mod tests {
 
     #[test]
     fn test_004_key_value_item_changes_to_persist() {
-        let mut kv_item = ValueTimeItemBuilder::new(
-            ValueType::StringType("un_string".to_string())).with_timeout(0).build();
+        let mut kv_item = ValueTimeItemBuilder::new(ValueType::StringType("un_string".to_string()))
+            .with_timeout(0)
+            .build();
 
         let res = kv_item.make_persistent();
         assert_eq!(res, true);
@@ -435,13 +436,14 @@ mod tests {
 
     #[test]
     fn test_005_list_of_numbers_is_sorted_ascending() {
-        let kv_item = ValueTimeItemBuilder::new(
-            ValueType::ListType(vec![
-                20.to_string(),
-                65.to_string(),
-                1.to_string(),
-                34.to_string(),
-            ])).with_timeout(0).build();
+        let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+            20.to_string(),
+            65.to_string(),
+            1.to_string(),
+            34.to_string(),
+        ]))
+        .with_timeout(0)
+        .build();
 
         let lista_ordenada = kv_item.sort().unwrap();
         println!("{:?}", lista_ordenada)
@@ -449,41 +451,42 @@ mod tests {
 
     #[test]
     fn test_006_list_of_numbers_is_sorted_descending() {
-        let kv_item = ValueTimeItemBuilder::new(
-            ValueType::ListType(vec![
-                20.to_string(),
-                65.to_string(),
-                1.to_string(),
-                34.to_string(),
-            ])
-        ).with_timeout(0).build();
+        let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+            20.to_string(),
+            65.to_string(),
+            1.to_string(),
+            34.to_string(),
+        ]))
+        .with_timeout(0)
+        .build();
         let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
         println!("{:?}", lista_ordenada_inversamente)
     }
 
     #[test]
     fn test_007_list_of_words_is_sorted_inverse_abc() {
-        let kv_item = ValueTimeItemBuilder::new(
-            ValueType::ListType(vec![
-                "juan".to_string(),
-                "domingo".to_string(),
-                "irma".to_string(),
-                "dominga".to_string(),
-            ])
-        ).with_timeout(0).build();
+        let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+            "juan".to_string(),
+            "domingo".to_string(),
+            "irma".to_string(),
+            "dominga".to_string(),
+        ]))
+        .with_timeout(0)
+        .build();
         let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
         println!("{:?}", lista_ordenada_inversamente)
     }
 
     #[test]
     fn test_008_list_of_words_is_sorted_abc() {
-        let kv_item = ValueTimeItemBuilder::new(
-            ValueType::ListType(vec![
-                "juan".to_string(),
-                "domingo".to_string(),
-                "irma".to_string(),
-                "dominga".to_string(),
-            ])).with_timeout(0).build();
+        let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+            "juan".to_string(),
+            "domingo".to_string(),
+            "irma".to_string(),
+            "dominga".to_string(),
+        ]))
+        .with_timeout(0)
+        .build();
         let lista_ordenada = kv_item.sort().unwrap();
         println!("{:?}", lista_ordenada)
     }

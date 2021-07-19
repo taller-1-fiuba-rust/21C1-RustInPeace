@@ -171,9 +171,9 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         for (pos, e) in vec_aux.iter().enumerate().step_by(2) {
-            let vt_item = ValueTimeItemBuilder::new(
-                ValueType::StringType(vec_aux[pos + 1].to_string())
-            ).build();
+            let vt_item =
+                ValueTimeItemBuilder::new(ValueType::StringType(vec_aux[pos + 1].to_string()))
+                    .build();
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())
