@@ -1,3 +1,5 @@
+//! Lee y actualiza los parámetros de configuración del servidor.
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Error;
@@ -12,31 +14,83 @@ pub struct Config {
 }
 
 impl Config {
+    /// Crea un `Config` con los parámetros especificados en el archivo que se encuentra en `path`.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::entities::config::Config;
+    ///
+    /// # std::fs::File::create("config.txt").unwrap();
+    /// let mut config = Config::new("config.txt".to_string());
+    /// # std::fs::remove_file("config.txt").unwrap();
+    /// ```
     pub fn new(path: String) -> Self {
         let config = lines_from_file(&path).unwrap();
-
         Config { config, path }
     }
 
+    /// Retorna el valor configurado en `attribute`.
+    ///
+    /// Si el atributo no existe, devuelve error `NotFound`.
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::entities::config::Config;
+    ///
+    /// # std::fs::File::create("config_get.txt").unwrap();
+    /// let mut config = Config::new("config_get.txt".to_string());
+    /// # config.set_attribute("maxmemory".to_string(), "2mb".to_string());
+    ///
+    /// assert_eq!(String::from("2mb"), config.get_attribute("maxmemory".to_string()).unwrap());
+    /// # std::fs::remove_file("config_get.txt").unwrap();
+    /// ```
     pub fn get_attribute(&self, attribute: String) -> Result<String, Error> {
         if let Some(value) = self.config.get(&attribute) {
-            if attribute == "*" {
-                let mut all_config = String::from("");
-                for (key, value) in &self.config {
-                    all_config += &format!("{} {}\n", key, value);
-                }
-                Ok(all_config)
-            } else {
-                Ok(value.to_string())
-            }
+            Ok(value.to_string())
         } else {
             Err(Error::from(ErrorKind::NotFound))
         }
     }
 
-    /// Recibe un atributo configurable attribute y un valor value
-    /// Si el atributo ya existe en la configuración, entonces lo actualiza con el valor "value"
-    /// si no existe, lo agrega con el valor value
+    /// Retorna un `HashMap` con todos los parámetros configurados.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::entities::config::Config;
+    ///
+    /// # std::fs::File::create("config_get_all.txt").unwrap();
+    /// let mut config = Config::new("config_get_all.txt".to_string());
+    /// # config.set_attribute("maxmemory".to_string(), "2mb".to_string());
+    /// # config.set_attribute("verbose".to_string(), "1".to_string());
+    /// let attributes = config.get_all_attributes();
+    ///
+    /// assert_eq!(&String::from("2mb"), attributes.get("maxmemory").unwrap());
+    /// assert_eq!(&String::from("1"), attributes.get("verbose").unwrap());
+    /// # std::fs::remove_file("config_get_all.txt").unwrap();
+    /// ```
+    pub fn get_all_attributes(&self) -> &HashMap<String, String> {
+        &self.config
+    }
+
+    /// Actualiza o crea un parámetro configurable.
+    ///
+    /// Si el atributo ya existe en la configuración, entonces lo actualiza con el valor especificado. Si no existe, lo agrega.
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::entities::config::Config;
+    ///
+    /// # std::fs::File::create("config_set.txt").unwrap();
+    /// let mut config = Config::new("config_set.txt".to_string());
+    /// config.set_attribute("maxmemory".to_string(), "2mb".to_string());
+    /// let attributes = config.get_all_attributes();
+    ///
+    /// assert_eq!(&String::from("2mb"), attributes.get("maxmemory").unwrap());
+    ///
+    /// config.set_attribute("maxmemory".to_string(), "3mb".to_string());
+    /// let attributes = config.get_all_attributes();
+    ///
+    /// assert_eq!(&String::from("3mb"), attributes.get("maxmemory").unwrap());
+    /// # std::fs::remove_file("config_set.txt").unwrap();
+    /// ```
     pub fn set_attribute(&mut self, attribute: String, value: String) -> Result<(), Error> {
         let entry = self.config.entry(attribute.clone());
         if let std::collections::hash_map::Entry::Occupied(mut e) = entry {
@@ -44,15 +98,22 @@ impl Config {
         } else {
             self.config.entry(attribute).or_insert(value);
         }
-        // if self.config.contains_key(&attribute) {
-        //     self.config.insert(attribute, value);
-        // } else {
-        //     self.config.entry(attribute).or_insert(value);
-        // }
         self.update_file()?;
         Ok(())
     }
 
+    /// Actualiza el archivo ubicado en `path`.
+    ///
+    /// Escribe en el archivo de configuración ubicado en `path` el contenido del HashMap `config`.
+    /// Devuelve Error si ocurre un error inesperado al crear el archivo o al escribir sobre él.
+    /// ```
+    /// use proyecto_taller_1::domain::entities::config::Config;
+    ///
+    /// # std::fs::File::create("config_update.txt").unwrap();
+    /// let mut config = Config::new("config_update.txt".to_string());
+    /// config.update_file();
+    /// # std::fs::remove_file("config_update.txt").unwrap();
+    /// ```
     pub fn update_file(&mut self) -> Result<(), Error> {
         let mut file = File::create(&self.path)?;
         let mut contents: String = String::from("");
@@ -64,6 +125,23 @@ impl Config {
     }
 }
 
+/// Lee las líneas del archivo ubicado en `path` y retorna un `HashMap`.
+///
+/// Lee cada línea en `path` de la forma `clave valor` y las guarda en un HashMap.
+/// Retorna error si el archivo no existe o si falla la obtención de las líneas del archivo.
+/// # Example
+/// ```
+/// use proyecto_taller_1::domain::entities::config::lines_from_file;
+/// use std::io::Write;
+///
+/// let mut file = std::fs::File::create("config_lines.txt").unwrap();
+/// file.write_all(format!("key value\nverbose 1\n").as_bytes()).unwrap();
+/// let hashmap = lines_from_file("config_lines.txt").unwrap();
+///
+/// assert_eq!(hashmap.get("key").unwrap(), &"value".to_string());
+/// assert_eq!(hashmap.get("verbose").unwrap(), &"1".to_string());
+/// # std::fs::remove_file("config_lines.txt").unwrap();
+/// ```
 pub fn lines_from_file(path: &str) -> Result<HashMap<String, String>, Error> {
     let file = File::open(path)?;
     let f = BufReader::new(file);
@@ -78,6 +156,7 @@ pub fn lines_from_file(path: &str) -> Result<HashMap<String, String>, Error> {
     }
     Ok(map)
 }
+
 #[test]
 fn test_01_config_sets_one_new_attribute_value() {
     std::fs::File::create("./src/dummy_redis.txt").unwrap();

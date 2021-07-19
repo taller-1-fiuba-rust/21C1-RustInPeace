@@ -2391,7 +2391,7 @@ fn test_44_rpush_to_string_returns_zero() {
 
 #[test]
 fn test_29_se_eliminan_3_elementos_de_value_list_type() {
-    let mut db = Database::new("file15".to_string());
+    let mut db = Database::new("file044".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2416,16 +2416,15 @@ fn test_29_se_eliminan_3_elementos_de_value_list_type() {
 
     let values_deleted =
         db.delete_elements_of_value_list("phrase", "3".to_string(), "my".to_string());
-    //let algo = tuplas.unwrap();
-    for (key, value) in db.get_items() {
-        println!("{:?} : {:?}", key, value);
-    }
+
     assert_eq!(3, values_deleted);
+
+    std::fs::remove_file("file044".to_string()).unwrap();
 }
 
 #[test]
 fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
-    let mut db = Database::new("file15".to_string());
+    let mut db = Database::new("file045".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2450,15 +2449,14 @@ fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
 
     let values_deleted =
         db.delete_elements_of_value_list("phrase", "0".to_string(), "my".to_string());
-    for (key, value) in db.get_items() {
-        println!("{:?} : {:?}", key, value);
-    }
+
     assert_eq!(4, values_deleted);
+    std::fs::remove_file("file045".to_string()).unwrap();
 }
 
 #[test]
 fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
-    let mut db = Database::new("file15".to_string());
+    let mut db = Database::new("file046".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2483,11 +2481,12 @@ fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
     let values_deleted =
         db.delete_elements_of_value_list("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, values_deleted);
+    std::fs::remove_file("file046".to_string()).unwrap();
 }
 
 #[test]
 fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
-    let mut db = Database::new("file16".to_string());
+    let mut db = Database::new("file047".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2511,11 +2510,12 @@ fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "2"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
+    std::fs::remove_file("file047".to_string()).unwrap();
 }
 
 #[test]
 fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo() {
-    let mut db = Database::new("file16".to_string());
+    let mut db = Database::new("file048".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2539,11 +2539,12 @@ fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo(
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(4, trozo_value_list_type.unwrap().len());
+    std::fs::remove_file("file048".to_string()).unwrap();
 }
 
 #[test]
 fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_negativos() {
-    let mut db = Database::new("file16".to_string());
+    let mut db = Database::new("file049".to_string());
 
     let vt_1 = ValueTimeItem::new_now(
         ValueType::StringType("1".to_string()),
@@ -2567,6 +2568,7 @@ fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_n
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
+    std::fs::remove_file("file049".to_string()).unwrap();
 }
 
 #[test]

@@ -477,6 +477,14 @@ const TESTS: &[Test] = &[
         name: "server command: config set maxmemory",
         func: test_config_set_maxmemory,
     },
+    Test {
+        name: "server command: config get *",
+        func: test_config_get_all,
+    },
+    Test {
+        name: "server command: config get",
+        func: test_config_get_returns_error_missing_parameter,
+    },
     // Test {
     //     name: "server command: dbsize",
     //     func: test_dbsize,
@@ -559,7 +567,7 @@ const TESTS: &[Test] = &[
     },
     Test {
         name: "string command: get only string value else nil",
-        func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil,
+        func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
     },
     Test {
         name: "string command: set multiple keys never fails",
@@ -765,12 +773,40 @@ fn test_config_get_verbose() -> TestResult {
         .arg("verbose")
         .query(&mut con)?;
 
-    if &ret[0] == &String::from("1") {
+    if &ret[1] == &String::from("1") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
-            got: String::from(&ret[0]),
+            got: String::from(&ret[1]),
+        }));
+    }
+}
+
+fn test_config_get_all() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("CONFIG").arg("get").arg("*").query(&mut con)?;
+
+    if ret[0].len() > 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Must contain verbose"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_config_get_returns_error_missing_parameter() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("CONFIG").arg("get").query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1115,7 +1151,7 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
-fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() -> TestResult {
+fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("MGET")
         .arg("edad_luz")
@@ -1124,16 +1160,12 @@ fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() -> T
         .arg("grupo_amigas")
         .query(&mut con)?;
 
-    if &ret[0] == &String::from("13")
-        && &ret[1] == &String::from("10")
-        && &ret[2] == &String::from("(nil)")
-        && &ret[3] == &String::from("(nil)")
-    {
+    if &ret[0] == &String::from("13") && &ret[1] == &String::from("10") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("13 10 (nil) (nil)"),
-            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+            expected: String::from("13 10"),
+            got: format!("{} {}", ret[0], ret[1]),
         }));
     }
 }
