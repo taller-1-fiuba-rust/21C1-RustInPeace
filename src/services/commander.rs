@@ -1,3 +1,6 @@
+//! Servicio que delega el comando ingresado según su tipo.
+//! Los tipos pueden ser: list, key, server, string, pubsub y set.
+
 use super::utils::resp_type::RespType;
 use crate::domain::implementations::database::Database;
 use crate::services::commands::{command_pubsub, command_set};

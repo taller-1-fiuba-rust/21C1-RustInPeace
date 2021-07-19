@@ -1,3 +1,5 @@
+//! Servicio que implementa todos los comandos de tipo List.
+
 use crate::domain::entities::key_value_item::ValueType;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
@@ -5,6 +7,38 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::usize;
 
+/// Retorna la longitud de la lista almacenada en la clave especificada.
+///
+/// Si la clave no existe, retorna 0.
+/// Si el valor almacenado no es de tipo Lista, retorna Error.
+/// # Example:
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_llen.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::llen(&vec![
+/// RespType::RBulkString("LLEN".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// ], &database);
+///
+/// match res {
+/// RespType::RInteger(qty) => {
+/// assert_eq!(qty,3)
+///}
+/// _ => assert!(false)
+/// }
+/// let _ = std::fs::remove_file("dummy_db_llen.csv");
+/// ```
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
@@ -16,12 +50,12 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .to_owned()
             {
                 let list_size = current_value.len();
-                RespType::RBulkString(list_size.to_string())
+                RespType::RInteger(list_size)
             } else {
-                RespType::RBulkString("error - not list type".to_string())
+                RespType::RError("Not list type".to_string())
             }
         } else {
-            RespType::RBulkString("0".to_string())
+            RespType::RInteger(0)
         }
     } else {
         RespType::RError("empty request".to_string())
@@ -65,6 +99,12 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// a derecha desde el head de la lista. En caso que is_reverse venga en false se insertarán desde el fondo de la lista.
 ///
 /// # Example:
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
 ///
 /// let db = Database::new("dummy_db_doc_list_push.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
@@ -141,7 +181,6 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 
 pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
-    //let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         if let RespType::RBulkString(lower_bound) = &cmd[2] {
             if let RespType::RBulkString(upper_bound) = &cmd[3] {
@@ -162,18 +201,6 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         } else {
             RespType::RBulkString("no lower_bound_specified".to_string())
         }
-        // for n in cmd.iter().skip(2).rev() {
-        //     if let RespType::RBulkString(value) = n {
-        //         vec_aux.push(value.to_string());
-        //     }
-        // }
-        // if let Some(resultado) =
-        //     new_database.push_new_values_into_existing_key_value_pair(vec_aux, key)
-        // {
-        //     RespType::RInteger(resultado)
-        // } else {
-        //     RespType::RBulkString("".to_string())
-        // }
     } else {
         RespType::RError("empty request".to_string())
     }
@@ -441,28 +468,3 @@ pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         RespType::RError("Invalid request".to_string())
     }
 }
-
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-
-// pub fn pop_elements_from_db(
-//     cantidad: usize,
-//     key: String,
-//     mut old_vec: Vec<String>,
-//     mut database: RwLockWriteGuard<Database>,
-// ) -> Vec<RespType> {
-//     let mut vec_aux = vec![];
-//     for _n in 0..cantidad {
-//         let current_element = old_vec.pop().unwrap().to_string();
-//         vec_aux.push(RespType::RBulkString(current_element));
-//     }
-//     let mut vec_to_stored = vec![];
-//     for elemento in &vec_aux {
-//         if let RespType::RBulkString(elem) = elemento {
-//             vec_to_stored.push(elem.to_string());
-//         };
-//     };
-// }
