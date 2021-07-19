@@ -3,6 +3,7 @@ use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use crate::errors::database_error::DatabaseError;
 use regex::Regex;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -279,10 +280,10 @@ impl Database {
                 let mut ub = upper_bound.parse::<isize>().unwrap();
                 //mapeo los valores de lower_bound y upper_bound negativos a sus correspondiente positivos
                 if lb < 0 {
-                    lb = current_value_len + lb;
+                    lb += current_value_len;
                 }
                 if ub < 0 {
-                    ub = current_value_len + ub;
+                    ub += current_value_len;
                 }
 
                 if ub > lb {
@@ -1154,43 +1155,46 @@ impl Database {
         let item_optional = old_value.get_value();
         if let ValueType::ListType(mut items) = item_optional.to_owned() {
             let len_value_list = items.len();
-            if cant_max > 0 {
-                let mut index = 0;
-                for item in items.to_owned() {
-                    if cant_elementos_eliminados == cant_max {
-                        break;
-                    }
-                    if item == element {
-                        items.remove(index);
-                        cant_elementos_eliminados += 1;
-                    } else {
-                        index += 1;
-                    }
-                }
-                old_value.set_value(ValueType::ListType(items));
-            } else if cant_max < 0 {
-                let mut index = len_value_list - 1;
-                for item in items.to_owned().into_iter().rev() {
-                    if cant_elementos_eliminados == cant_max.abs() {
-                        break;
-                    } else {
+            //ESTOY ACAAAAAAAAAAAAAAAAAAAAA**************************************************************
+            match cant_max.cmp(&0) {
+                Ordering::Greater => {
+                    let mut index = 0;
+                    for item in items.to_owned() {
+                        if cant_elementos_eliminados == cant_max {
+                            break;
+                        }
                         if item == element {
                             items.remove(index);
                             cant_elementos_eliminados += 1;
-                        };
-                        if index > 0 {
-                            index -= 1;
                         } else {
-                            index = 0
+                            index += 1;
                         }
                     }
                 }
-                old_value.set_value(ValueType::ListType(items));
-            } else {
-                items.retain(|x| *x != element);
-                cant_elementos_eliminados = (len_value_list as isize) - (items.len() as isize);
-                old_value.set_value(ValueType::ListType(items));
+                Ordering::Less => {
+                    let mut index = len_value_list - 1;
+                    for item in items.to_owned().into_iter().rev() {
+                        if cant_elementos_eliminados == cant_max.abs() {
+                            break;
+                        } else {
+                            if item == element {
+                                items.remove(index);
+                                cant_elementos_eliminados += 1;
+                            };
+                            if index > 0 {
+                                index -= 1;
+                            } else {
+                                index = 0
+                            }
+                        }
+                    }
+                }
+                Ordering::Equal => {
+                    items.retain(|x| *x != element);
+                    cant_elementos_eliminados = (len_value_list as isize) - (items.len() as isize);
+                }
             }
+            old_value.set_value(ValueType::ListType(items));
         }
         cant_elementos_eliminados as usize
     }
