@@ -20,7 +20,8 @@ use std::sync::{Arc, RwLock};
 /// 1. Se agregan dos valores a una `key`
 ///
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};

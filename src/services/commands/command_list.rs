@@ -62,6 +62,44 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
+/// Elimina y devuelve los primeros elementos de la lista almacenada en `key`.
+///
+/// Por defecto, elimina el primer elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
+/// los primeros `count` elementos.
+/// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
+/// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del primer elemento.
+/// Ante un error inesperado, devuelve Error `Invalid request`.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_lpop.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string(), "melon".to_string(), "ciruela".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::lpop(&vec![
+/// RespType::RBulkString("LPOP".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("3".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RArray(frutas_eliminadas) => {
+///     assert_eq!(frutas_eliminadas, vec![RespType::RBulkString("kiwi".to_string()),RespType::RBulkString("pomelo".to_string()), RespType::RBulkString("sandia".to_string())]) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_lpop.csv");
+/// ```
 pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut db = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
@@ -88,7 +126,7 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
     }
-    RespType::RBulkString("empty".to_string()) //Error o nil?
+    RespType::RError("Invalid request".to_string())
 }
 
 /// Guarda los elementos enviados por parámetro en una lista.
@@ -97,6 +135,7 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// Si el valor almacenado no es una lista, se devuelve un error.
 /// Hay dos formas de guardar los datos enviados: si se envía is_reverse en true, se guardarán de izquierda
 /// a derecha desde el head de la lista. En caso que is_reverse venga en false se insertarán desde el fondo de la lista.
+/// Devuelve la longitud de la lista luego de haber insertado los nuevos elementos.
 ///
 /// # Example:
 /// ```
@@ -109,7 +148,7 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// let db = Database::new("dummy_db_doc_list_push.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
 /// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-/// ValueType::ListType(vec!["kiwi","pomelo","sandia"]),
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
 /// KeyAccessTime::Persistent
 /// ));
 ///
@@ -118,11 +157,11 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// RespType::RBulkString("frutas".to_string()),
 /// RespType::RBulkString("frutilla".to_string()),
 /// RespType::RBulkString("melon".to_string()),
-/// ], &database,true);
+/// ], &database, true);
 ///
 /// match res {
 /// RespType::RInteger(qty) => {
-/// assert_eq!(qty,2)
+/// assert_eq!(qty,5)
 ///}
 /// _ => assert!(false)
 /// }
@@ -158,6 +197,43 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
     }
 }
 
+/// Inserta los valores especificados al comienzo de la lista almacenada en `key`.
+///
+/// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al comienzo de la misma.
+/// Retorna un valor de tipo entero que representa la longitud de la lista luego de haber insertado los nuevos elementos.
+/// Ante un error inesperado, devuelve Error `Invalid request`.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_lpushx.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::lpushx(&vec![
+/// RespType::RBulkString("LPUSHX".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("melon".to_string()),
+/// RespType::RBulkString("sandia".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(len) => {
+///     assert_eq!(len, 5) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_lpushx.csv");
+/// ```
 pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];
@@ -167,18 +243,53 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 vec_aux.push(value.to_string());
             }
         }
-        if let Some(resultado) =
-            new_database.push_new_values_into_existing_key_value_pair(vec_aux, key)
-        {
-            RespType::RInteger(resultado)
-        } else {
-            RespType::RBulkString("".to_string())
-        }
+        let resultado = new_database.push_new_values_into_existing_key_value_pair(vec_aux, key);
+        RespType::RInteger(resultado)
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
+/// Devuelve elementos de la lista almacenada en `key` dentro del rango especificado.
+///
+/// Busca los elementos posicionados entre `start` y `stop`, tal que 0 es la posición del primer elemento,
+/// 1 la posición del segundo elemento, etc. Una posición negativa indica que se deben contar las posiciones
+/// desde el final de la lista, por ejemplo -1 es la posición del último elemento, -2 la posición del penúltimo, etc.
+/// Si `start` es mayor a la longitud de la lista, la función retorna una lista vacía.
+/// Si `stop` es mayor a la longitud total de la lista, se lo va a considerar como el último elemento.
+/// Retorna todos los elementos pertenecientes al rango entre `start` y `stop`.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_lrange.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string(), "melon".to_string(), "ciruela".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::lrange(&vec![
+/// RespType::RBulkString("LRANGE".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("1".to_string()),
+/// RespType::RBulkString("3".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RArray(frutas_range) => {
+///     assert_eq!(frutas_range, vec![RespType::RBulkString("pomelo".to_string()),RespType::RBulkString("sandia".to_string()), RespType::RBulkString("melon".to_string())]) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_lrange.csv");
+/// ```
 pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
     if let RespType::RBulkString(key) = &cmd[1] {
@@ -196,13 +307,13 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     RespType::RBulkString("error".to_string())
                 }
             } else {
-                RespType::RBulkString("no upper_bound_specified".to_string())
+                RespType::RBulkString("No upper_bound_specified".to_string())
             }
         } else {
-            RespType::RBulkString("no lower_bound_specified".to_string())
+            RespType::RBulkString("No lower_bound_specified".to_string())
         }
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
@@ -323,6 +434,45 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     RespType::RError(String::from("Invalid command lindex"))
 }
 
+/// Elimina las primeras `count` ocurrencias del elemento especificado perteneciente a la lista almacenada en `key`.
+///
+/// Si `count` es mayor a 0, elimina aquellos elementos leyendo la lista de izquierda a derecha.
+/// Si `count` es menor a 0, elimina aquellos elementos leyendo la lista de derecha a izquierda.
+/// Si `count` es igual a 0, elimina todos los elementos que coincidan con el especificado.
+/// Si `key` no existe, retorna 0.
+/// Retorna la cantidad de elementos eliminados de la lista.
+///
+/// # Ejemplos
+///
+/// ```
+/// use proyecto_taller_1::services::commands::command_list;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+///
+/// let db = Database::new("dummy_db_lrem.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string(),"pomelo".to_string(),"sandia".to_string()]),
+/// KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_list::lrem(&vec![
+/// RespType::RBulkString("LREM".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("2".to_string()),
+/// RespType::RBulkString("pomelo".to_string())
+/// ], &database);
+///
+/// match res {
+///     RespType::RInteger(len) => {
+///     assert_eq!(len, 2) }
+///     _ => assert!(false)
+/// }
+///
+/// let _ = std::fs::remove_file("dummy_db_lrem.csv");
+/// ```
 pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 4 {
         let mut db = database.write().unwrap();
@@ -335,16 +485,16 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         element.to_string(),
                     ))
                 } else {
-                    RespType::RBulkString("0".to_string())
+                    RespType::RInteger(0)
                 }
             } else {
-                RespType::RBulkString("0".to_string())
+                RespType::RInteger(0)
             }
         } else {
-            RespType::RBulkString("0".to_string())
+            RespType::RInteger(0)
         }
     } else {
-        RespType::RBulkString("incomplete command".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
