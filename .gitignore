@@ -1,3 +1,6 @@
 .idea/*
 Cargo.lock
 target/*
+dump.rdb
+redis-server.log
+src/dummy_log.txt
