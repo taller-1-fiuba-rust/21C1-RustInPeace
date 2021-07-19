@@ -1,3 +1,5 @@
+//! Servicio que implementa todos los comandos Pub/Sub
+
 use std::{
     net::{SocketAddr, TcpStream},
     sync::mpsc::{self, Sender},
