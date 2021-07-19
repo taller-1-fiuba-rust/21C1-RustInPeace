@@ -397,6 +397,14 @@ const TESTS: &[Test] = &[
         name: "server command: config set maxmemory",
         func: test_config_set_maxmemory,
     },
+    Test {
+        name: "server command: config get *",
+        func: test_config_get_all,
+    },
+    Test {
+        name: "server command: config get",
+        func: test_config_get_returns_error_missing_parameter,
+    },
     // Test {
     //     name: "server command: dbsize",
     //     func: test_dbsize,
@@ -653,12 +661,40 @@ fn test_config_get_verbose() -> TestResult {
         .arg("verbose")
         .query(&mut con)?;
 
-    if &ret[0] == &String::from("1") {
+    if &ret[1] == &String::from("1") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
-            got: String::from(&ret[0]),
+            got: String::from(&ret[1]),
+        }));
+    }
+}
+
+fn test_config_get_all() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("CONFIG").arg("get").arg("*").query(&mut con)?;
+
+    if ret[0].len() > 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Must contain verbose"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_config_get_returns_error_missing_parameter() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("CONFIG").arg("get").query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
         }));
     }
 }

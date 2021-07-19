@@ -1,6 +1,7 @@
 use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
+use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
 use std::net::SocketAddr;
 use std::sync::mpsc::Sender;
@@ -63,14 +64,16 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
 pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
     if let RespType::RBulkString(field_name) = field {
         if let Ok(conf) = config.read() {
-            match conf.get_attribute(String::from(field_name)) {
-                Ok(value) => {
-                    return RespType::RArray(vec![RespType::RSimpleString(value)]);
-                } //Hay que ajustar esta funcion
-                Err(_e) => {}
-            }
+            let mut matches = Vec::new();
+            conf.get_all_attributes().iter().for_each(|attribute| {
+                if glob_pattern::g_match(field_name.as_bytes(), attribute.0.to_owned().as_bytes()) {
+                    matches.push(RespType::RBulkString(attribute.0.to_owned()));
+                    matches.push(RespType::RBulkString(attribute.1.to_owned()));
+                }
+            });
+            return RespType::RArray(matches);
         }
-        RespType::RError(String::from("Field name missing"))
+        RespType::RError(String::from("Parameter missing"))
     } else {
         RespType::RError(String::from("Invalid request"))
     }
