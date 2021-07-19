@@ -159,6 +159,9 @@ pub fn handle_command(
                 "lrange" => {
                     return Some(command_list::lrange(&array, database));
                 }
+                "lrem" => {
+                    return Some(command_list::lrem(&array, database));
+                }
                 _ => {}
             }
         }

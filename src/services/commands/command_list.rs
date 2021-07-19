@@ -316,6 +316,30 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     RespType::RError(String::from("Invalid command lindex"))
 }
 
+pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() == 4 {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(count) = &cmd[2] {
+                if let RespType::RBulkString(element) = &cmd[3] {
+                    RespType::RInteger(db.delete_elements_of_value_list(
+                        key,
+                        count.to_string(),
+                        element.to_string(),
+                    ))
+                } else {
+                    RespType::RBulkString("0".to_string())
+                }
+            } else {
+                RespType::RBulkString("0".to_string())
+            }
+        } else {
+            RespType::RBulkString("0".to_string())
+        }
+    } else {
+        RespType::RBulkString("incomplete command".to_string())
+    }
+}
 //-------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------
 //----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
