@@ -1160,7 +1160,7 @@ impl Database {
                     if cant_elementos_eliminados == cant_max {
                         break;
                     }
-                    if item.to_string() == element {
+                    if item == element {
                         items.remove(index);
                         cant_elementos_eliminados += 1;
                     } else {
