@@ -257,7 +257,7 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
 /// .unwrap();
 /// let mut c = Arc::new(RwLock::new(config));
 /// let res = command_server::config_get(&c, &RespType::RBulkString(String::from("maxmemory")));
-/// assert_eq!(res, RespType::RArray(vec![RespType::RSimpleString("2mb".to_string())]));
+/// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_get.txt").unwrap();
 /// ```
 pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
@@ -295,7 +295,7 @@ pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
 /// let res = command_server::config_set(&c, &RespType::RBulkString(String::from("maxmemory")), &RespType::RBulkString(String::from("2mb")));
 /// assert_eq!(res, RespType::RSimpleString("Ok".to_string()));
 /// let res = command_server::config_get(&c, &RespType::RBulkString(String::from("maxmemory")));
-/// assert_eq!(res, RespType::RArray(vec![RespType::RSimpleString("2mb".to_string())]));
+/// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_set.txt").unwrap();
 /// ```
 pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespType) -> RespType {
