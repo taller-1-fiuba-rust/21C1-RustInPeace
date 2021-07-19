@@ -3,6 +3,7 @@ use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use crate::errors::database_error::DatabaseError;
 use regex::Regex;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -136,7 +137,7 @@ impl Database {
         let mut vec_auxiliar = Vec::new();
         for element in elements {
             let patterned_key = pat.to_string() + element.as_str();
-            println!("patterned key: {:?}", &patterned_key);
+            //println!("patterned key: {:?}", &patterned_key);
             if self.items.contains_key(&patterned_key) {
                 let current_value = self
                     .items
@@ -262,6 +263,7 @@ impl Database {
         0
     }
 
+    /// Devuelve una porcion de una lista asociada a una key que almacena un ListType
     pub fn get_values_from_list_value_type(
         &mut self,
         key: &str,
@@ -276,24 +278,28 @@ impl Database {
                 let mut vec_values_selected_by_index = vec![];
                 let mut lb = lower_bound.parse::<isize>().unwrap();
                 let mut ub = upper_bound.parse::<isize>().unwrap();
-
+                //mapeo los valores de lower_bound y upper_bound negativos a sus correspondiente positivos
                 if lb < 0 {
-                    lb = current_value_len + lb + 1;
+                    lb += current_value_len;
                 }
                 if ub < 0 {
-                    ub = current_value_len + lb + 1;
+                    ub += current_value_len;
                 }
 
-                if ub <= current_value_len {
-                    for j in lb..ub {
-                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                if ub > lb {
+                    if ub <= current_value_len {
+                        for j in lb..(ub + 1) {
+                            vec_values_selected_by_index.push(current_value[j as usize].clone());
+                        }
+                    } else {
+                        for j in lb..current_value_len {
+                            vec_values_selected_by_index.push(current_value[j as usize].clone());
+                        }
                     }
+                    Some(vec_values_selected_by_index)
                 } else {
-                    for j in lb..current_value_len {
-                        vec_values_selected_by_index.push(current_value[j as usize].clone());
-                    }
+                    None
                 }
-                Some(vec_values_selected_by_index)
             } else {
                 None
             }
@@ -1135,6 +1141,61 @@ impl Database {
             Some(k) => k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap())),
             None => false,
         }
+    }
+    /// elimina valores de listas ---------- revisar documentacion
+    pub fn delete_elements_of_value_list(
+        &mut self,
+        key: &str,
+        cantidad_maxima: String,
+        element: String,
+    ) -> usize {
+        let mut cant_elementos_eliminados = 0;
+        let cant_max = cantidad_maxima.parse::<isize>().unwrap();
+        let old_value = self.get_mut_live_item(&key.to_string()).unwrap();
+        let item_optional = old_value.get_value();
+        if let ValueType::ListType(mut items) = item_optional.to_owned() {
+            let len_value_list = items.len();
+            match cant_max.cmp(&0) {
+                Ordering::Greater => {
+                    let mut index = 0;
+                    for item in items.to_owned() {
+                        if cant_elementos_eliminados == cant_max {
+                            break;
+                        }
+                        if item == element {
+                            items.remove(index);
+                            cant_elementos_eliminados += 1;
+                        } else {
+                            index += 1;
+                        }
+                    }
+                }
+                Ordering::Less => {
+                    let mut index = len_value_list - 1;
+                    for item in items.to_owned().into_iter().rev() {
+                        if cant_elementos_eliminados == cant_max.abs() {
+                            break;
+                        } else {
+                            if item == element {
+                                items.remove(index);
+                                cant_elementos_eliminados += 1;
+                            };
+                            if index > 0 {
+                                index -= 1;
+                            } else {
+                                index = 0
+                            }
+                        }
+                    }
+                }
+                Ordering::Equal => {
+                    items.retain(|x| *x != element);
+                    cant_elementos_eliminados = (len_value_list as isize) - (items.len() as isize);
+                }
+            }
+            old_value.set_value(ValueType::ListType(items));
+        }
+        cant_elementos_eliminados as usize
     }
 }
 
@@ -2298,4 +2359,184 @@ fn test_44_rpush_to_string_returns_zero() {
     assert_eq!(len, 0);
 
     let _ = std::fs::remove_file("file043".to_string());
+}
+
+#[test]
+fn test_29_se_eliminan_3_elementos_de_value_list_type() {
+    let mut db = Database::new("file15".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+
+    let values_deleted =
+        db.delete_elements_of_value_list("phrase", "3".to_string(), "my".to_string());
+    //let algo = tuplas.unwrap();
+    for (key, value) in db.get_items() {
+        println!("{:?} : {:?}", key, value);
+    }
+    assert_eq!(3, values_deleted);
+}
+
+#[test]
+fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
+    let mut db = Database::new("file15".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+
+    let values_deleted =
+        db.delete_elements_of_value_list("phrase", "0".to_string(), "my".to_string());
+    for (key, value) in db.get_items() {
+        println!("{:?} : {:?}", key, value);
+    }
+    assert_eq!(4, values_deleted);
+}
+
+#[test]
+fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
+    let mut db = Database::new("file15".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let values_deleted =
+        db.delete_elements_of_value_list("phrase", "-3".to_string(), "my".to_string());
+    assert_eq!(3, values_deleted);
+}
+
+#[test]
+fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
+    let mut db = Database::new("file16".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "2"); //("phrase", "-3".to_string(), "my".to_string());
+    assert_eq!(3, trozo_value_list_type.unwrap().len());
+}
+
+#[test]
+fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo() {
+    let mut db = Database::new("file16".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "-5"); //("phrase", "-3".to_string(), "my".to_string());
+    assert_eq!(4, trozo_value_list_type.unwrap().len());
+}
+
+#[test]
+fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_negativos() {
+    let mut db = Database::new("file16".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
+    assert_eq!(3, trozo_value_list_type.unwrap().len());
 }

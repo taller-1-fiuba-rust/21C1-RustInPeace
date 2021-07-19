@@ -77,11 +77,7 @@ pub fn handle_command(
         if let RespType::RBulkString(actual_command) = &array[0] {
             match actual_command.as_str() {
                 "monitor" => command_server::monitor(&tx, addrs),
-                "info" => {
-                    let info_required = command_server::info(&array);
-                    println!("{:?}", info_required);
-                    return None;
-                }
+                "info" => return Some(command_server::info(&array, tx)),
                 "config" => {
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
@@ -148,6 +144,7 @@ pub fn handle_command(
                 "lrange" => return Some(command_list::lrange(&array, database)),
                 "rpop" => return Some(command_list::rpop(&array, database)),
                 "rpushx" => return Some(command_list::rpushx(&array, database)),
+                "lrem" => return Some(command_list::lrem(&array, database)),
                 "scard" => return Some(command_set::scard(&array, database)),
                 "sismember" => return Some(command_set::sismember(&array, database)),
                 "smembers" => return Some(command_set::smembers(&array, database)),

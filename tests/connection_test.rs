@@ -59,6 +59,7 @@ fn test_main() {
     let config_file = String::from("./src/dummy_config.txt");
     let db_file = String::from("./src/dummy_database.txt");
     let log_file = String::from("./src/dummy_log.txt");
+    let config_path = config_file.clone();
 
     match std::fs::File::create(&config_file) {
         Ok(_) => {}
@@ -238,6 +239,51 @@ fn test_main() {
     );
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
 
+    let added_item_list_30 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_dog"), added_item_list_30);
+
+    let added_item_list_31 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "cat".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_cat"), added_item_list_31);
+
+    let added_item_list_32 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "bunny".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_bunny"), added_item_list_32);
+
     let added_item_22 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "argentina".to_string(),
@@ -346,7 +392,8 @@ fn test_main() {
 
     let handle: thread::JoinHandle<()> = thread::spawn(|| {
         let h = thread::spawn(|| {
-            let mut server = Server::new(port_2, log_file, verbose, server_receiver).unwrap();
+            let mut server =
+                Server::new(port_2, log_file, verbose, server_receiver, config_path).unwrap();
             server.listen();
         });
 
@@ -574,6 +621,22 @@ const TESTS: &[Test] = &[
         func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista,
     },
     Test {
+        name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list and ub>len",
+        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len,
+    },
+    Test {
+        name: "list command: lrem remove only 3 repeated values from left to right",
+        func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list,
+    },
+    Test {
+        name: "list command: lrem remove only 3 repeated values from left to right backwards",
+        func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso,
+    },
+    Test {
+        name: "list command: lrem remove all elements",
+        func: test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list,
+    },
+    Test {
         name: "list command: lindex",
         func: test_list_index,
     },
@@ -640,6 +703,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "rpush command: new list",
         func: test_rpush_lista_inexistente
+    },
+    Test {
+        name: "info",
+        func: test_info
     }
 ];
 
@@ -707,11 +774,11 @@ fn test_config_set_maxmemory() -> TestResult {
         .arg("2mb")
         .query(&mut con)?;
 
-    if ret == String::from("ok") {
+    if ret == String::from("Ok") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("ok"),
+            expected: String::from("Ok"),
             got: ret,
         }));
     }
@@ -821,7 +888,7 @@ fn test_keys_expireat() -> TestResult {
 }
 fn test_keys_ttl() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("TTL").arg("key_1").query(&mut con)?;
+    let ret: usize = redis::cmd("TTL").arg("key_2").query(&mut con)?;
 
     return if ret > 0 {
         Ok(())
@@ -1281,19 +1348,93 @@ fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferi
     let ret: Vec<String> = redis::cmd("LRANGE")
         .arg("jinetes_de_tucuman")
         .arg("-3")
-        .arg("3")
+        .arg("7")
         .query(&mut con)?;
 
-    if &ret[0] == &String::from("jinete_1")
-        && &ret[1] == &String::from("jinete_2")
-        && &ret[2] == &String::from("jinete_3")
-        && &ret[3] == &String::from("jinete_4")
+    if &ret[0] == &String::from("jinete_6")
+        && &ret[1] == &String::from("jinete_7")
+        && &ret[2] == &String::from("jinete_8")
     {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
-            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+            expected: String::from("jinete_6 jinete_7 jinete_8"),
+            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("-3")
+        .arg("70")
+        .query(&mut con)?;
+    if &ret[0] == &String::from("jinete_6")
+        && &ret[1] == &String::from("jinete_7")
+        && &ret[2] == &String::from("jinete_8")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_6 jinete_7 jinete_8"),
+            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
+        }));
+    }
+}
+
+fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_cat")
+        .arg("3")
+        .arg("my")
+        .query(&mut con)?;
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_bunny")
+        .arg("0")
+        .arg("my")
+        .query(&mut con)?;
+    if ret == 4 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 4.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_dog")
+        .arg("-3")
+        .arg("my")
+        .query(&mut con)?;
+
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
         }));
     }
 }
@@ -1742,6 +1883,19 @@ fn test_rpush_lista_inexistente() -> TestResult {
             got: ret.to_string(),
         }));
     }
+}
+
+pub fn test_info() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
+    return if ret.is_ok() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: ret.err().unwrap().to_string(),
+        }))
+    };
 }
 
 fn test_pubsub() -> TestResult {
