@@ -77,11 +77,7 @@ pub fn handle_command(
         if let RespType::RBulkString(actual_command) = &array[0] {
             match actual_command.as_str() {
                 "monitor" => command_server::monitor(&tx, addrs),
-                "info" => {
-                    let info_required = command_server::info(&array);
-                    println!("{:?}", info_required);
-                    return None;
-                }
+                "info" => return Some(command_server::info(&array, tx)),
                 "config" => {
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
