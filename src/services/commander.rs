@@ -142,6 +142,7 @@ pub fn handle_command(
                 "sadd" => return Some(command_set::add(&array, database)),
                 "lpushx" => return Some(command_list::lpushx(&array, database)),
                 "lrange" => return Some(command_list::lrange(&array, database)),
+                "lset" => return Some(command_list::lset(&array, database)),
                 "rpop" => return Some(command_list::rpop(&array, database)),
                 "rpushx" => return Some(command_list::rpushx(&array, database)),
                 "lrem" => return Some(command_list::lrem(&array, database)),
