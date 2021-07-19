@@ -1159,13 +1159,12 @@ impl Database {
                 for item in items.to_owned() {
                     if cant_elementos_eliminados == cant_max {
                         break;
+                    }
+                    if item.to_string() == element {
+                        items.remove(index);
+                        cant_elementos_eliminados += 1;
                     } else {
-                        if item.to_string() == element {
-                            items.remove(index);
-                            cant_elementos_eliminados += 1;
-                        } else {
-                            index += 1;
-                        }
+                        index += 1;
                     }
                 }
                 old_value.set_value(ValueType::ListType(items));
