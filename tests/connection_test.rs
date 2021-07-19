@@ -626,15 +626,10 @@ const TESTS: &[Test] = &[
         name: "list command: lrem remove all elements",
         func: test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list,
     },
-//     // Test {
-//     //     name: "pubsub command: subscribe channel_1 channel_2 ",
-//     //     func: test_pubsub,
-//     // },
-//     Test {
-//         name: "list command: lindex",
-//         func: test_list_index,
-//     },
-
+    Test {
+        name: "list command: lindex",
+        func: test_list_index,
+    },
     Test {
         name: "list command: lpop mylist",
         func: test_list_lpop,

@@ -1155,7 +1155,6 @@ impl Database {
         let item_optional = old_value.get_value();
         if let ValueType::ListType(mut items) = item_optional.to_owned() {
             let len_value_list = items.len();
-            //ESTOY ACAAAAAAAAAAAAAAAAAAAAA**************************************************************
             match cant_max.cmp(&0) {
                 Ordering::Greater => {
                     let mut index = 0;
