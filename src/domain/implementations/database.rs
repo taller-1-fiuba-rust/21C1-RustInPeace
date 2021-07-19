@@ -1174,7 +1174,7 @@ impl Database {
                     if cant_elementos_eliminados == cant_max.abs() {
                         break;
                     } else {
-                        if item.to_string() == element {
+                        if item == element {
                             items.remove(index);
                             cant_elementos_eliminados += 1;
                         };
@@ -1187,7 +1187,7 @@ impl Database {
                 }
                 old_value.set_value(ValueType::ListType(items));
             } else {
-                items.retain(|x| x.to_string() != element);
+                items.retain(|x| *x != element);
                 cant_elementos_eliminados = (len_value_list as isize) - (items.len() as isize);
                 old_value.set_value(ValueType::ListType(items));
             }
