@@ -262,6 +262,34 @@ impl Database {
         }
         0
     }
+    //ACA*******************************************************************************************
+    pub fn replace_element_in_list_type_value(
+        &mut self,
+        key: &str,
+        value: &str,
+        index: &str,
+    ) -> bool {
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::ListType(mut current_value) = item.get_copy_of_value() {
+                let current_value_len = current_value.len() as isize;
+                let mut current_index = index.parse::<isize>().unwrap();
+                if current_index < 0 {
+                    current_index += current_value_len;
+                };
+                if current_index < current_value_len {
+                    current_value[current_index as usize] = value.to_string();
+                    item.set_value(ValueType::ListType(current_value));
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 
     /// Devuelve una porcion de una lista asociada a una key que almacena un ListType
     pub fn get_values_from_list_value_type(
@@ -2539,4 +2567,101 @@ fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_n
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
+}
+
+#[test]
+fn test_35_se_pisan_valores_en_value_de_tipo_list_type() {
+    let mut db = Database::new("file17".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "juan".to_string(),
+            "pedro".to_string(),
+            "santiago".to_string(),
+            "mariano".to_string(),
+            "francisco".to_string(),
+            "domingo".to_string(),
+            "rolando".to_string(),
+            "fernando".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("nombres_masculinos".to_string(), vt_2);
+    let vec_actualizado =
+        db.replace_element_in_list_type_value("nombres_masculinos", "sergio", "0");
+    let current_value = db.get_mut_live_item("nombres_masculinos").unwrap();
+    let item_optional = current_value.get_value();
+    if let ValueType::ListType(items) = item_optional.to_owned() {
+        assert_eq!("sergio".to_string(), items[0]);
+    }
+    assert_eq!(true, vec_actualizado);
+}
+
+#[test]
+fn test_36_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rango() {
+    let mut db = Database::new("file17".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "juan".to_string(),
+            "pedro".to_string(),
+            "santiago".to_string(),
+            "mariano".to_string(),
+            "francisco".to_string(),
+            "domingo".to_string(),
+            "rolando".to_string(),
+            "fernando".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("nombres_masculinos".to_string(), vt_2);
+    let vec_actualizado =
+        db.replace_element_in_list_type_value("nombres_masculinos", "sergio", "10");
+    assert_eq!(false, vec_actualizado);
+}
+
+#[test]
+fn test_36_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbound() {
+    let mut db = Database::new("file17".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "juan".to_string(),
+            "pedro".to_string(),
+            "santiago".to_string(),
+            "mariano".to_string(),
+            "francisco".to_string(),
+            "domingo".to_string(),
+            "rolando".to_string(),
+            "fernando".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("nombres_masculinos".to_string(), vt_2);
+    let vec_actualizado =
+        db.replace_element_in_list_type_value("nombres_masculinos", "sergio", "-1");
+    let current_value = db.get_mut_live_item("nombres_masculinos").unwrap();
+    let item_optional = current_value.get_value();
+    if let ValueType::ListType(items) = item_optional.to_owned() {
+        assert_eq!("sergio".to_string(), items[7]);
+    }
+    assert_eq!(true, vec_actualizado);
 }

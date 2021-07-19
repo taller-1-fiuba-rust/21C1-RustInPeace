@@ -322,6 +322,32 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
+pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() == 4 {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(index) = &cmd[2] {
+                if let RespType::RBulkString(value) = &cmd[3] {
+                    let succeful_replace = db.replace_element_in_list_type_value(key, value, index);
+                    if succeful_replace {
+                        RespType::RBulkString("Ok".to_string())
+                    } else {
+                        RespType::RError("out of bounds".to_string())
+                    }
+                } else {
+                    RespType::RBulkString("incomplete command".to_string())
+                }
+            } else {
+                RespType::RBulkString("incomplete command".to_string())
+            }
+        } else {
+            RespType::RBulkString("incomplete command".to_string())
+        }
+    } else {
+        RespType::RBulkString("incomplete command".to_string())
+    }
+}
+
 /// Elimina y devuelve los últimos elementos de la lista almacenada en `key`.
 ///
 /// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
@@ -442,28 +468,3 @@ pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         RespType::RError("Invalid request".to_string())
     }
 }
-
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-
-// pub fn pop_elements_from_db(
-//     cantidad: usize,
-//     key: String,
-//     mut old_vec: Vec<String>,
-//     mut database: RwLockWriteGuard<Database>,
-// ) -> Vec<RespType> {
-//     let mut vec_aux = vec![];
-//     for _n in 0..cantidad {
-//         let current_element = old_vec.pop().unwrap().to_string();
-//         vec_aux.push(RespType::RBulkString(current_element));
-//     }
-//     let mut vec_to_stored = vec![];
-//     for elemento in &vec_aux {
-//         if let RespType::RBulkString(elem) = elemento {
-//             vec_to_stored.push(elem.to_string());
-//         };
-//     };
-// }
