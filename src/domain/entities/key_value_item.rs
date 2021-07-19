@@ -134,7 +134,6 @@ impl FromStr for KeyAccessTime {
     }
 }
 
-//#[derive(Debug)]
 /// Representa el objeto guardado en una key.
 ///
 /// Contiene 3 atributos:
@@ -148,14 +147,7 @@ pub struct ValueTimeItem {
     timeout: KeyAccessTime,
     last_access_time: u64,
 }
-/*
-impl ValueTimeItem {
-    pub fn builder() -> ValueTimeItemBuilder {
-        ValueTimeItemBuilder::default()
-    }
-}*/
 
-//#[derive(Default)]
 pub struct ValueTimeItemBuilder {
     value: ValueType,
     timeout: KeyAccessTime,
@@ -201,28 +193,6 @@ impl ValueTimeItemBuilder {
 }
 
 impl ValueTimeItem {
-    /// Constructor
-    /*
-        pub fn new_now(value: ValueType, time: KeyAccessTime) -> ValueTimeItem {
-            ValueTimeItem {
-                value,
-                timeout: time,
-                last_access_time: {
-                    SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs()
-                },
-            }
-        }
-        pub fn new(value: ValueType, time: KeyAccessTime, last_access_time: u64) -> ValueTimeItem {
-            ValueTimeItem {
-                value,
-                timeout: time,
-                last_access_time,
-            }
-        }
-    */
     pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
         kvis.transform_to_item()
     }
