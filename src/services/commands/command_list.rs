@@ -498,6 +498,32 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
+pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() == 4 {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(index) = &cmd[2] {
+                if let RespType::RBulkString(value) = &cmd[3] {
+                    let succeful_replace = db.replace_element_in_list_type_value(key, value, index);
+                    if succeful_replace {
+                        RespType::RBulkString("Ok".to_string())
+                    } else {
+                        RespType::RError("out of bounds".to_string())
+                    }
+                } else {
+                    RespType::RBulkString("incomplete command".to_string())
+                }
+            } else {
+                RespType::RBulkString("incomplete command".to_string())
+            }
+        } else {
+            RespType::RBulkString("incomplete command".to_string())
+        }
+    } else {
+        RespType::RBulkString("incomplete command".to_string())
+    }
+}
+
 /// Elimina y devuelve los últimos elementos de la lista almacenada en `key`.
 ///
 /// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina

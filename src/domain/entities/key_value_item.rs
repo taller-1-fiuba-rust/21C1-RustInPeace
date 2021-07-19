@@ -1,3 +1,5 @@
+//! Representa los valores almacenados en la base de datos
+
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use std::collections::HashSet;
 use std::fmt;
@@ -7,12 +9,38 @@ use std::time::SystemTime;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+/// Tipos de value almacenados
+///
+/// Los posibles valores son: List, Set, String.
+/// Dentro de las listas o los sets, los valores son de tipo String.
 pub enum ValueType {
     ListType(Vec<String>),
     SetType(HashSet<String>),
     StringType(String),
 }
 
+/// Formato display para los valores almacenados.
+///
+/// La lista de valores se imprimen uno tras otro
+/// separados por comas.
+/// En el caso de string, solo se imprimirá un valor. Para Set no existe orden
+/// y en el caso de las listas se imprime primero el elemento del head
+/// hasta ir avanzando al final.
+///
+/// # Example
+///
+/// ```
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType};
+///
+///
+/// let mut un_list = Vec::new();
+///  un_list.push("primer_elemento".to_string());
+///  un_list.push("segundo_elemento".to_string());
+///
+///  let kv_item = ValueTimeItem::new_now(ValueType::ListType(un_list), KeyAccessTime::Volatile(0));
+///  assert_eq!(kv_item.get_value().to_string(), "primer_elemento,segundo_elemento");
+///
+/// ```
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let printable = match self {
@@ -41,10 +69,33 @@ impl fmt::Display for ValueType {
 }
 
 #[derive(Debug)]
+/// Tipos de key almacenados
+///
+/// Los posibles valores son: Volátil (almacena el timeout de expiración)
+/// Persistente: este tipo de claves no expiran.
 pub enum KeyAccessTime {
     Volatile(u64),
     Persistent,
 }
+
+/// Formato display para los tipos de key almacenados.
+///
+/// Si la clave es de tipo `volátil` se imprime el tiempo de expiración.
+/// En el caso de las de tipo `persistente` no se imprimirá ningún valor
+/// indicando que no hay tiempo de expiración para ella.
+///
+/// ```
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType};
+///
+///
+/// let mut un_list = Vec::new();
+///  un_list.push("primer_elemento".to_string());
+///  un_list.push("segundo_elemento".to_string());
+///
+///  let kv_item = ValueTimeItem::new_now(ValueType::ListType(un_list), KeyAccessTime::Volatile(123210));
+///  assert_eq!(kv_item.get_value().to_string(), "primer_elemento,segundo_elemento");
+///  assert_eq!(kv_item.get_timeout().to_string(), "123210".to_string());
+/// ```
 impl fmt::Display for KeyAccessTime {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let printable = match self {
@@ -68,6 +119,13 @@ impl FromStr for KeyAccessTime {
 }
 
 #[derive(Debug)]
+/// Representa el objeto guardado en una key.
+///
+/// Contiene 3 atributos:
+///
+/// value: Tipo de dato ValueType
+/// timeout: Tipo de dato KeyAccessTime
+/// last_access_time: Tipo de dato u64. Es el timestamp del último acceso a la key
 pub struct ValueTimeItem {
     value: ValueType,
     timeout: KeyAccessTime,
@@ -219,7 +277,7 @@ impl ValueTimeItem {
     }
 
     pub fn get_value_type(&self) -> String {
-        let value_type; // = "none".to_string();//String::from("none");
+        let value_type;
         let current_value = &self.value;
         match current_value {
             ValueType::ListType(_current_list) => {

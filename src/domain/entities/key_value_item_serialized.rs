@@ -1,16 +1,66 @@
+//! Realiza la deserealización de los datos del arhivo dump
+
 use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 use std::collections::HashSet;
 use std::str::FromStr;
-
-// Format: key; access_time; type; value
+/// Struct que representa una línea en el dump de la base de datos
 pub struct KeyValueItemSerialized {
     line: String,
 }
-
 impl KeyValueItemSerialized {
+    /// Constructor que admite como parámetro una línea en el archivo dump de la base de datos
+    ///
+    /// El formato necesario para que la linea represente una key value de redis es:
+    ///
+    /// "\<key\>;<last_access_time>;\<timeout\>;\<type\>;\<value\>"
+    ///
+    /// donde
+    ///
+    /// \<key\>: string único de identificación
+    ///
+    /// <last_access_time>: tiempo de último acceso a la key, con formato en timestamp
+    ///
+    /// \<timeout\>: tiempo de expiración de la clave, en el formato timestamp. Si la clave no expira el campo queda
+    /// vacío
+    ///
+    /// \<type\>: tipo de valor almacenado en la key. Valores posibles: set, list o string.
+    ///
+    /// \<value\>: valor o valores almacenados en la key. Separados por coma.
+    ///
+    /// # Example
+    /// ```
+    /// use proyecto_taller_1::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
+    ///
+    ///
+    /// let kvis = KeyValueItemSerialized::new("123key;1623427130;1623427130;set;3,2,4".to_string());
+    /// ```
     pub fn new(line: String) -> KeyValueItemSerialized {
         KeyValueItemSerialized { line }
     }
+
+    /// Método que tranforma un KeyValueItemSerialized en una tupla (key,value)
+    ///
+    /// A partir de la línea obtenida en el dump de la base de datos, se invoca a este método para
+    /// hacer la deserealización correpondiente.
+    ///
+    /// Si el tipo de dato leido no es uno de los 3 posibles (set, string o list) la función
+    /// retornará un panic.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use proyecto_taller_1::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
+    /// use proyecto_taller_1::domain::entities::key_value_item::ValueType::SetType;
+    /// use proyecto_taller_1::domain::entities::key_value_item::ValueType;
+    ///
+    ///
+    /// let kvis = KeyValueItemSerialized::new("123key;1623427130;1623427130;set;3,2,4".to_string());
+    /// let kvi = kvis.transform_to_item();
+    ///
+    ///  assert_eq!(kvi.0.to_string(), "123key");
+    ///  if let SetType(_) = kvi.1.get_value(){assert!(true)}else{ assert!(false)}
+    ///  assert_eq!(kvi.1.get_timeout().to_string(), "1623427130");
+    /// ```
     pub fn transform_to_item(&self) -> (String, ValueTimeItem) {
         // Format: key; last_access_time; timeout; type; value
         let line: Vec<&str> = self.line.split(';').collect();

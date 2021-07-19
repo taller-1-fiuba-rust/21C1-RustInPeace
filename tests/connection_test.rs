@@ -383,6 +383,39 @@ fn test_main() {
     );
     database.add(String::from("sabores"), added_item_30);
 
+    let added_item_31 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "baldur".to_string(),
+            "odin".to_string(),
+            "freya".to_string(),
+            "mimir".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("norse_gods"), added_item_31);
+
+    let added_item_32 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "hera".to_string(),
+            "afrodita".to_string(),
+            "chaos".to_string(),
+            "artemis".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("greek_gods"), added_item_32);
+
+    let added_item_33 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "isis".to_string(),
+            "osiris".to_string(),
+            "horus".to_string(),
+            "set".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("egyptian_gods"), added_item_33);
+
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
@@ -534,7 +567,7 @@ const TESTS: &[Test] = &[
     },
     Test {
         name: "string command: get only string value else nil",
-        func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil,
+        func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
     },
     Test {
         name: "string command: set multiple keys never fails",
@@ -663,6 +696,18 @@ const TESTS: &[Test] = &[
     Test {
         name: "list command: rpushx paiseslimitrofes chile",
         func: test_list_rpushx_nonexisting_key_returns_zero,
+    },
+    Test {
+        name: "list command: lset new element in list type value",
+        func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente,
+    },
+    Test {
+        name: "list command: lset new element in list type value with negative index inbound",
+        func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido,
+    },
+    Test {
+        name: "list command: lset cannot set new element in list type value out of bounds error",
+        func: test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error,
     },
     Test {
         name: "set command: sadd",
@@ -1107,7 +1152,7 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
-fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() -> TestResult {
+fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("MGET")
         .arg("edad_luz")
@@ -1116,16 +1161,12 @@ fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string_sino_nil() -> T
         .arg("grupo_amigas")
         .query(&mut con)?;
 
-    if &ret[0] == &String::from("13")
-        && &ret[1] == &String::from("10")
-        && &ret[2] == &String::from("(nil)")
-        && &ret[3] == &String::from("(nil)")
-    {
+    if &ret[0] == &String::from("13") && &ret[1] == &String::from("10") {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("13 10 (nil) (nil)"),
-            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+            expected: String::from("13 10"),
+            got: format!("{} {}", ret[0], ret[1]),
         }));
     }
 }
@@ -1438,6 +1479,63 @@ fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_ti
             got: ret.to_string(),
         }));
     }
+}
+
+fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LSET")
+        .arg("norse_gods")
+        .arg("2")
+        .arg("bragi")
+        .query(&mut con)?;
+
+    if ret == "Ok".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "Ok".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LSET")
+        .arg("greek_gods")
+        .arg("-2")
+        .arg("apollo")
+        .query(&mut con)?;
+
+    if ret == "Ok".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "Ok".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+//PROBANDO*******************
+fn test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret = redis::cmd("LSET")
+        .arg("egyptian_gods")
+        .arg("15")
+        .arg("hathor")
+        .query(&mut con);
+    assert!(ret.is_err());
+
+    return if ret.is_err() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Value stored at key set_remove_4 is not a Set"),
+            got: ret.unwrap(),
+        }))
+    };
 }
 
 fn test_string_append() -> TestResult {
