@@ -88,7 +88,6 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// }
 /// let _ = std::fs::remove_file("dummy_db_doc_list_push.csv");
 /// ```
-
 pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool) -> RespType {
     let mut new_database = database.write().unwrap();
     let mut vec_aux = vec![];

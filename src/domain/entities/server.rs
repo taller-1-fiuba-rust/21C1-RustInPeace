@@ -1,3 +1,5 @@
+//! Servidor Redis!
+
 use super::client::Client;
 use super::message::WorkerMessage;
 use crate::domain::implementations::logger_impl::Logger;
@@ -8,11 +10,14 @@ use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
 use std::io::Write;
 use std::net::TcpStream;
+use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use std::usize;
 use std::{io::Error, net::SocketAddr};
 
@@ -23,9 +28,13 @@ pub struct Server {
     verbose: String,
     logger: Logger,
     clients: Vec<Client>,
+    total_connections: usize,
+    total_commands: usize,
     // clients_operations: HashMap<String, OperationRegister>,
     channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
+    init_time: SystemTime,
+    config_path: String,
 }
 
 impl Server {
@@ -34,6 +43,7 @@ impl Server {
         logfile: String,
         verb: String,
         receiver: Arc<Mutex<Receiver<WorkerMessage>>>,
+        config_path: String,
     ) -> Result<Self, Error> {
         let dir = "127.0.0.1".to_string();
         let port = port;
@@ -45,6 +55,10 @@ impl Server {
         //tener canales, publicadores y subscriptores
         let channels = HashMap::new();
         let clients = Vec::new();
+        let init_time = SystemTime::now();
+        let config_path = config_path;
+        let total_connections = 0;
+        let total_commands = 0;
 
         Ok(Server {
             dir,
@@ -52,9 +66,13 @@ impl Server {
             verbose,
             logger,
             clients,
+            total_connections,
+            total_commands,
             // clients_operations,
             channels,
             receiver,
+            init_time,
+            config_path,
         })
     }
 
@@ -87,12 +105,23 @@ impl Server {
                 }
                 WorkerMessage::AddClient(client) => {
                     self.clients.push(client);
+                    self.total_connections += 1;
                 }
                 WorkerMessage::CloseClient(addrs) => {
                     self.remove_client(addrs);
                 }
                 WorkerMessage::NewOperation(operation, addrs) => {
                     self.check_monitor(operation, addrs);
+                    self.total_commands += 1;
+                }
+                WorkerMessage::InfoServer(sender) => {
+                    sender.send(self.get_server_info()).unwrap();
+                }
+                WorkerMessage::InfoClients(sender) => {
+                    sender.send(self.get_clients_info()).unwrap();
+                }
+                WorkerMessage::InfoStats(sender) => {
+                    sender.send(self.get_stats_info()).unwrap();
                 }
                 WorkerMessage::Stop(_) => {
                     break;
@@ -158,6 +187,71 @@ impl Server {
         if self.parse_verbose(self.get_verbose()) == 1 {
             println!("{}", msg);
         }
+    }
+
+    /// Devuelve información del servidor Redis.
+    ///
+    /// Retorna un string con la siguiente información:
+    /// * redis_version: Version del servidor Redis
+    /// * redis_git_sha1: Git SHA1
+    /// * redis_git_dirty: Git dirty flag
+    /// * redis_build_id: Build id
+    /// * redis_mode: Modo del servidor ("standalone", "sentinel" o "cluster")
+    /// * os: Sistema operativo sobre el que corre el servidor Redis
+    /// * arch_bits: Arquitectura (32 o 64 bits)
+    /// * multiplexing_api: Atomicvar API utilizada por Redis
+    /// * gcc_version: Version del compilador GCC
+    /// * process_id: PID del proceso del servidor
+    /// * run_id: Valor random para identificar al servidor Redis
+    /// * tcp_port: Puerto de escucha TCP/IP
+    /// * server_time_in_usec: Tiempo del sistema basado en EPOCH con presicion de microsegundos
+    /// * uptime_in_seconds: Segundos desde que se inició el servidor Redis
+    /// * uptime_in_days: Días desde que se inició el servidor Redis
+    /// * hz: Frecuencia actual del servidor
+    /// * configured_hz: Frecuencia configurada
+    /// * lru_clock: Reloj que se incrementa cada minuto
+    /// * executable: Dirección del archivo ejecutable del servidor
+    /// * config_file: Dirección del archivo de configuración
+    fn get_server_info(&self) -> String {
+        let info = format!("# Server\r\nredis_version:6.2.3\r\nredis_git_sha1:00000000\r\nredis_git_dirty:0\r\nredis_build_id:ea3be5cbc55dfd19\r\nredis_mode:standalone\r\nos:Linux 5.4.0-1030-aws x86_64\r\narch_bits:64\r\nmultiplexing_api:epoll\r\natomicvar_api:c11-builtin\r\ngcc_version:9.3.0\r\nprocess_id:{}\r\nprocess_supervised:no\r\nrun_id:eba2478b32af796180fdf364700b411432cb6932\r\ntcp_port:{}\r\nserver_time_usec:{}\r\nuptime_in_seconds:{}\r\nuptime_in_days:{}\r\nhz:10\r\nconfigured_hz:10\r\nlru_clock:15868238\r\nexecutable:/usr/local/bin/redis-server\r\nconfig_file:{}\r\n", process::id(), self.get_port(), SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros(), SystemTime::now().duration_since(self.init_time).unwrap().as_secs(), SystemTime::now().duration_since(self.init_time).unwrap().as_secs()/86400, self.config_path);
+        info
+    }
+
+    /// Devuelve información de los clientes conectados al servidor Redis.
+    ///
+    /// Retorna un string con la siguiente información:
+    /// * connected_clients: Cantidad de clientes conectados
+    /// * cluster_connections: Una aproximación del número de sockets utilizados por el bus del clúster
+    /// * maxclients: Máxima cantidad de clientes
+    /// * client_longest_output_list: Lista de salida más larga entre las conexiones de clientes actuales
+    /// * client_biggest_input_buf: El búfer de entrada más grande entre las conexiones de clientes actuales
+    /// * blocked_clients: Cantidad de clientes pendientes en una llamada bloqueante
+    /// * tracking_clients: Cantidad de clientes siendo rastreados
+    /// * clients_in_timeout_table: Cantidad de clientes en la tabla de timeout
+    /// * io_threads_active: Flag que indica si hay threads de I/O activos
+    fn get_clients_info(&self) -> String {
+        let info = format!("# Clients\r\nconnected_clients:{}\r\ncluster_connections:0\r\nmaxclients:10000\r\nclient_longest_output_list:24\r\nclient_biggest_input_buf:50\r\nblocked_clients:0\r\ntracking_clients:0\r\nclients_in_timeout_table:0\r\nio_threads_active:0\r\n", self.clients.len());
+        info
+    }
+
+    /// Devuelve estadísticas del servidor Redis.
+    ///
+    /// Retorna un string con la siguiente información:
+    /// * total_connections_received: Cantidad de conexiones establecidas
+    /// * total_commands_processed: Cantidad de comandos procesados
+    /// * total_net_input_bytes: Número de bytes leídos
+    /// * total_net_output_bytes: Número de bytes escritos
+    /// * rejected_connections: Cantidad de conexiones rechazadas
+    /// * expired_keys: Cantidad de claves expiradas
+    /// * keyspace_hits: Cantidad de búsquedas de claves exitosas
+    /// * keyspace_misses: Cantidad de búsquedas de claves fallidas
+    /// * pubsub_channels: Cantidad de canales pub/sub con suscripciones
+    /// * total_error_replies: Cantidad total de errores emitidos como respuesta
+    /// * total_reads_processed: Cantidad de lecturas procesadas
+    /// * total_writes_processed: Cantidad de escrituras procesadas
+    fn get_stats_info(&self) -> String {
+        let info = format!("# Stats\r\ntotal_connections_received:{}\r\ntotal_commands_processed:{}\r\ntotal_net_input_bytes:6656\r\ntotal_net_output_bytes:8192\r\nrejected_connections:0\r\nexpired_keys:0\r\nkeyspace_hits:3\r\nkeyspace_misses:2\r\npubsub_channels:{}\r\ntotal_error_replies:2\r\ntotal_reads_processed:10\r\ntotal_writes_processed:5\r\n", self.total_connections, self.total_commands, self.channels.len());
+        info
     }
 
     /// Convierte el verbose original de tipo String a tipo Usize
