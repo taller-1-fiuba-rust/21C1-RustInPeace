@@ -1,3 +1,5 @@
+//! Servicio que implementa todos los comandos de tipo Set
+
 use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
@@ -18,13 +20,14 @@ use std::sync::{Arc, RwLock};
 /// 1. Se agregan dos valores a una `key`
 ///
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
 /// use proyecto_taller_1::domain::implementations::database::Database;
 /// use std::sync::{Arc, RwLock};
 /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
 /// use std::collections::HashSet;
 ///
-/// let db = Database::new("dummy_db_doc_set1.csv".to_string());
+/// let db = Database::new("dummy_db_add.csv".to_string());
 /// let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
@@ -47,7 +50,7 @@ use std::sync::{Arc, RwLock};
 ///}
 /// _ => assert!(false)
 /// }
-/// let _ = std::fs::remove_file("dummy_db_doc_set1.csv");
+/// let _ = std::fs::remove_file("dummy_db_add.csv");
 /// ```
 ///
 pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -89,6 +92,38 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RError(String::from("Invalid command sadd"))
 }
 
+/// Retorna la cantidad de elementos del SET almacenado en `key`.
+///
+/// Si la `key` no existe o el valor almacenado en la `key` no es un SET, retorna 0.
+///
+/// # Ejemplo
+/// ```
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// use std::collections::HashSet;
+///
+/// # let db = Database::new("dummy_db_scard.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// let mut set = HashSet::new();
+/// set.insert("kiwi".to_string());
+/// set.insert("pomelo".to_string());
+/// set.insert("sandia".to_string());
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+///     ValueType::SetType(set),
+///     KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_set::scard(&vec![
+/// RespType::RBulkString("SCARD".to_string()),
+/// RespType::RBulkString("frutas".to_string())],
+/// &database);
+///
+/// assert_eq!(res, RespType::RInteger(3));
+/// # let _ = std::fs::remove_file("dummy_db_scard.csv");
+/// ```
 pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
@@ -99,6 +134,40 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(0)
 }
 
+/// Retorna si el elemento pertenece al SET almacenado en la clave especificada.
+///
+/// Si el elemento pertenece al SET, retorna 1.
+/// Si la clave no existe o el valor almacenado no es un SET, retorna 0.
+///
+/// # Ejemplo
+/// ```
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// use std::collections::HashSet;
+///
+/// # let db = Database::new("dummy_db_sismember.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// let mut set = HashSet::new();
+/// set.insert("kiwi".to_string());
+/// set.insert("pomelo".to_string());
+/// set.insert("sandia".to_string());
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+///     ValueType::SetType(set),
+///     KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_set::sismember(&vec![
+/// RespType::RBulkString("SISMEMBER".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("pomelo".to_string())],
+/// &database);
+///
+/// assert_eq!(res, RespType::RInteger(1));
+/// # let _ = std::fs::remove_file("dummy_db_sismember.csv");
+/// ```
 pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
@@ -111,6 +180,46 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
     RespType::RInteger(0)
 }
 
+/// Retorna todos los elementos pertenecientes al SET almacenado en la clave especificada.
+///
+/// Devuelve un array con todos los elementos que pertenecen al SET.
+/// Si la clave no existe, o si la clave no almacena un valor de tipo SET, devuelve un array nulo.
+/// # Ejemplo
+/// ```
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// use std::collections::HashSet;
+///
+/// # let db = Database::new("dummy_db_smembers.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// let mut set = HashSet::new();
+/// set.insert("kiwi".to_string());
+/// set.insert("pomelo".to_string());
+/// set.insert("sandia".to_string());
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+///     ValueType::SetType(set),
+///     KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_set::smembers(&vec![
+/// RespType::RBulkString("SMEMBERS".to_string()),
+/// RespType::RBulkString("frutas".to_string())],
+/// &database);
+///
+/// match res {
+/// RespType::RArray(array) => {
+/// assert!(array.contains(&RespType::RBulkString("kiwi".to_string())));
+/// assert!(array.contains(&RespType::RBulkString("pomelo".to_string())));
+/// assert!(array.contains(&RespType::RBulkString("sandia".to_string())));
+///}
+/// _ => assert!(false)
+/// }
+///
+/// # let _ = std::fs::remove_file("dummy_db_smembers.csv");
+/// ```
 pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
@@ -123,9 +232,46 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
             return RespType::RArray(final_members);
         }
     }
-    RespType::RArray(vec![])
+    RespType::RNullArray()
 }
 
+/// Elimina los elementos especificados del SET almacenado en `key`.
+///
+/// Retorna la cantidad de elementos eliminados del SET.
+/// Si algún elemento no pertenece al set, se ignora.
+/// Si `key` no existe, retorna 0.
+/// Si el valor almacenado en `key` no es de tipo SET, retorna Error.
+///
+/// # Ejemplo
+/// ```
+/// use proyecto_taller_1::services::utils::resp_type::RespType;
+/// use proyecto_taller_1::services::commands::command_set;
+/// use proyecto_taller_1::domain::implementations::database::Database;
+/// use std::sync::{Arc, RwLock};
+/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// use std::collections::HashSet;
+///
+/// # let db = Database::new("dummy_db_srem.csv".to_string());
+/// let mut database = Arc::new(RwLock::new(db));
+/// let mut set = HashSet::new();
+/// set.insert("kiwi".to_string());
+/// set.insert("pomelo".to_string());
+/// set.insert("sandia".to_string());
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+///     ValueType::SetType(set),
+///     KeyAccessTime::Persistent
+/// ));
+///
+/// let res = command_set::srem(&vec![
+/// RespType::RBulkString("SREM".to_string()),
+/// RespType::RBulkString("frutas".to_string()),
+/// RespType::RBulkString("sandia".to_string()),
+/// RespType::RBulkString("pomelo".to_string())],
+/// &database);
+///
+/// assert_eq!(res, RespType::RInteger(2));
+/// # let _ = std::fs::remove_file("dummy_db_srem.csv");
+/// ```
 pub fn srem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut deleted = 0;
     if cmd.len() > 1 {

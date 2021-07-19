@@ -456,7 +456,7 @@ fn test_main() {
         }
     }
 
-    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(10)) {
+    if let Ok(err) = receiver.recv_timeout(Duration::from_secs(20)) {
         panic!("{}", err);
     }
 
@@ -996,6 +996,7 @@ fn test_keys_copy_with_replace() -> TestResult {
         }));
     }
 }
+
 fn test_keys_sort_ascending() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("SORT").arg("edades_amigos").query(&mut con)?;
@@ -1254,44 +1255,44 @@ fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
 
 fn test_se_obtiene_la_longitud_de_la_lista_en_value() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
+    let ret: usize = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
 
-    if ret == "6".to_string() {
+    if ret == 6 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "6".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
 
 fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LLEN")
+    let ret: usize = redis::cmd("LLEN")
         .arg("porotos_de_canasta")
         .query(&mut con)?;
 
-    if ret == "0".to_string() {
+    if ret == 0 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
             expected: "0".to_string(),
-            got: ret,
+            got: ret.to_string(),
         }));
     }
 }
 
 fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LLEN").arg("edad_luz").query(&mut con)?;
+    let ret: Result<usize, RedisError> = redis::cmd("LLEN").arg("edad_luz").query(&mut con);
 
-    if ret == "error - not list type".to_string() {
+    if ret.is_err() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: "error - not list type".to_string(),
-            got: ret,
+            expected: "Not list type".to_string(),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -2081,9 +2082,9 @@ fn test_pubsub() -> TestResult {
         pass = false;
     }
 
-    thread.join().expect("Something went wrong");
-    thread_2.join().expect("Something went wrong");
-    thread_3.join().expect("Something went wrong");
+    // thread.join().expect("Something went wrong");
+    // thread_2.join().expect("Something went wrong");
+    // thread_3.join().expect("Something went wrong");
     if pass {
         return Ok(());
     } else {

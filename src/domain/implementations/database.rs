@@ -182,7 +182,7 @@ impl Database {
         &mut self,
         mut new_vec: Vec<String>,
         key: &str,
-    ) -> Option<usize> {
+    ) -> usize {
         if self.key_exists(key.to_string()) {
             if let ValueType::ListType(current_value) =
                 self.get_live_item(key).unwrap().get_value().to_owned()
@@ -193,13 +193,10 @@ impl Database {
                 let vt_item =
                     ValueTimeItem::new_now(ValueType::ListType(new_vec), KeyAccessTime::Persistent);
                 self.add(key.to_string(), vt_item);
-                Some(vec_len)
-            } else {
-                None
+                return vec_len;
             }
-        } else {
-            Some(0)
         }
+        0
     }
 
     pub fn push_new_values_into_existing_or_non_existing_key_value_pair(
@@ -298,36 +295,32 @@ impl Database {
         lower_bound: &str,
         upper_bound: &str,
     ) -> Option<Vec<String>> {
-        if self.key_exists(key.to_string()) {
-            if let ValueType::ListType(current_value) =
-                self.get_live_item(key).unwrap().get_value().to_owned()
-            {
-                let current_value_len = current_value.len() as isize;
-                let mut vec_values_selected_by_index = vec![];
-                let mut lb = lower_bound.parse::<isize>().unwrap();
-                let mut ub = upper_bound.parse::<isize>().unwrap();
-                //mapeo los valores de lower_bound y upper_bound negativos a sus correspondiente positivos
-                if lb < 0 {
-                    lb += current_value_len;
-                }
-                if ub < 0 {
-                    ub += current_value_len;
-                }
+        if let ValueType::ListType(current_value) =
+            self.get_live_item(key).unwrap().get_value().to_owned()
+        {
+            let current_value_len = current_value.len() as isize;
+            let mut vec_values_selected_by_index = vec![];
+            let mut lb = lower_bound.parse::<isize>().unwrap();
+            let mut ub = upper_bound.parse::<isize>().unwrap();
+            //mapeo los valores de lower_bound y upper_bound negativos a sus correspondiente positivos
+            if lb < 0 {
+                lb += current_value_len;
+            }
+            if ub < 0 {
+                ub += current_value_len;
+            }
 
-                if ub > lb {
-                    if ub <= current_value_len {
-                        for j in lb..(ub + 1) {
-                            vec_values_selected_by_index.push(current_value[j as usize].clone());
-                        }
-                    } else {
-                        for j in lb..current_value_len {
-                            vec_values_selected_by_index.push(current_value[j as usize].clone());
-                        }
+            if ub > lb {
+                if ub <= current_value_len {
+                    for j in lb..(ub + 1) {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
                     }
-                    Some(vec_values_selected_by_index)
                 } else {
-                    None
+                    for j in lb..current_value_len {
+                        vec_values_selected_by_index.push(current_value[j as usize].clone());
+                    }
                 }
+                Some(vec_values_selected_by_index)
             } else {
                 None
             }
@@ -1227,11 +1220,6 @@ impl Database {
     }
 }
 
-//--------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------
-//------------------------------------UNIT TESTS----------------------------------------------------
-//--------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,4 +1,4 @@
-//! Servicio que implementa todos los comandos de tipo Server!
+//! Servicio que implementa todos los comandos de tipo Server
 
 use crate::domain::entities::config::Config;
 use crate::domain::entities::message::WorkerMessage;
