@@ -82,11 +82,11 @@ pub fn handle_command(
                     if let RespType::RBulkString(instruction) = &array[1] {
                         match instruction.as_str() {
                             "get" => {
-                                return Some(command_server::config_get(config, &array[2]));
+                                return Some(command_server::config_get(config, &array[1..]));
                             }
                             "set" => {
                                 return Some(command_server::config_set(
-                                    config, &array[2], &array[3],
+                                    config, &array[1..],
                                 ));
                             }
                             _ => {}

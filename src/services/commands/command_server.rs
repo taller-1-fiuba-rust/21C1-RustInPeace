@@ -260,22 +260,23 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_get.txt").unwrap();
 /// ```
-pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
-    if let RespType::RBulkString(field_name) = field {
-        if let Ok(conf) = config.read() {
-            let mut matches = Vec::new();
-            conf.get_all_attributes().iter().for_each(|attribute| {
-                if glob_pattern::g_match(field_name.as_bytes(), attribute.0.to_owned().as_bytes()) {
-                    matches.push(RespType::RBulkString(attribute.0.to_owned()));
-                    matches.push(RespType::RBulkString(attribute.1.to_owned()));
-                }
-            });
-            return RespType::RArray(matches);
+pub fn config_get(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
+    if cmd.len() == 2 {
+        if let RespType::RBulkString(field_name) = &cmd[1] {
+            if let Ok(conf) = config.read() {
+                let mut matches = Vec::new();
+                conf.get_all_attributes().iter().for_each(|attribute| {
+                    if glob_pattern::g_match(field_name.as_bytes(), attribute.0.to_owned().as_bytes()) {
+                        matches.push(RespType::RBulkString(attribute.0.to_owned()));
+                        matches.push(RespType::RBulkString(attribute.1.to_owned()));
+                    }
+                });
+                return RespType::RArray(matches);
+            }
+            return RespType::RError(String::from("Parameter missing"));
         }
-        RespType::RError(String::from("Parameter missing"))
-    } else {
-        RespType::RError(String::from("Invalid request"))
     }
+    RespType::RError(String::from("Invalid request"))
 }
 
 /// Reconfigura parámetros de configuración.
@@ -298,22 +299,22 @@ pub fn config_get(config: &Arc<RwLock<Config>>, field: &RespType) -> RespType {
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
 /// std::fs::remove_file("./src/dummy_config_set.txt").unwrap();
 /// ```
-pub fn config_set(config: &Arc<RwLock<Config>>, field: &RespType, value: &RespType) -> RespType {
-    if let RespType::RBulkString(field_name) = field {
-        if let RespType::RBulkString(value) = value {
-            if let Ok(mut conf) = config.write() {
-                match conf.set_attribute(String::from(field_name), String::from(value)) {
-                    Ok(_) => {
-                        return RespType::RSimpleString(String::from("Ok"));
-                    }
-                    Err(e) => {
-                        return RespType::RError(e.to_string());
+pub fn config_set(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
+    if cmd.len() == 3 {
+        if let RespType::RBulkString(field) = &cmd[1] {
+            if let RespType::RBulkString(value) = &cmd[2] {
+                if let Ok(mut conf) = config.write() {
+                    match conf.set_attribute(String::from(field), String::from(value)) {
+                        Ok(_) => {
+                            return RespType::RSimpleString(String::from("Ok"));
+                        }
+                        Err(e) => {
+                            return RespType::RError(e.to_string());
+                        }
                     }
                 }
             }
         }
-        RespType::RError(String::from("Field name missing"))
-    } else {
-        RespType::RError(String::from("Invalid request"))
     }
+    RespType::RError(String::from("Invalid request"))
 }

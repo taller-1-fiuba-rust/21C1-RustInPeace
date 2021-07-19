@@ -86,8 +86,6 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 if db.key_exists(current_key.to_string()) {
                     if let Some(actual_value) = db.get_string_value_by_key(current_key) {
                         vec_keys_with_string_values.push(RespType::RBulkString(actual_value));
-                    } else {
-                        return RespType::RNullBulkString();
                     }
                 }
             }
