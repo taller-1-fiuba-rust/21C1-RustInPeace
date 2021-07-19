@@ -148,6 +148,7 @@ pub fn handle_command(
                 "lrange" => return Some(command_list::lrange(&array, database)),
                 "rpop" => return Some(command_list::rpop(&array, database)),
                 "rpushx" => return Some(command_list::rpushx(&array, database)),
+                "lrem" => return Some(command_list::lrem(&array, database)),
                 "scard" => return Some(command_set::scard(&array, database)),
                 "sismember" => return Some(command_set::sismember(&array, database)),
                 "smembers" => return Some(command_set::smembers(&array, database)),
