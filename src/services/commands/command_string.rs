@@ -11,7 +11,7 @@ use std::{
 };
 
 /// Concatena el valor especificado al final del string almacenado en `key`.
-/// 
+///
 /// Si la clave no existe, se crea con un string vacío como valor, luego se le concatena el valor especificado.
 /// Retorna el largo del string luego de realizar la concatenación.
 ///
@@ -38,7 +38,7 @@ use std::{
 ///
 /// # match res {
 /// #    RespType::RInteger(len) => {
-///     assert_eq!(len, 11) 
+///     assert_eq!(len, 11)
 /// # }
 /// #    _ => assert!(false)
 /// # }
@@ -58,7 +58,7 @@ pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Decrementa el valor almacenado en `key` en `decr` unidades.
-/// 
+///
 /// Si la clave no existe, se crea con valor 0 antes de realizar la operación.
 /// Retorna el resultado de la operación.
 /// Devuelve error si el valor almacenado en `key` no es de tipo string o si no se puede representar como número entero.
@@ -86,7 +86,7 @@ pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RInteger(new_edad) => {
-///     assert_eq!(new_edad, 23) 
+///     assert_eq!(new_edad, 23)
 /// # }
 /// #    _ => assert!(false)
 /// # }
@@ -116,7 +116,7 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Incrementa el valor almacenado en `key` en `incr` unidades.
-/// 
+///
 /// Si la clave no existe, se crea con valor 0 antes de realizar la operación.
 /// Retorna el resultado de la operación.
 /// Devuelve error si el valor almacenado en `key` no es de tipo string o si no se puede representar como número entero.
@@ -144,7 +144,7 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RInteger(new_edad) => {
-///     assert_eq!(new_edad, 37) 
+///     assert_eq!(new_edad, 37)
 /// # }
 /// #    _ => assert!(false)
 /// # }
@@ -171,7 +171,7 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Devuelve el valor almacenado en `key`.
-/// 
+///
 /// Si la clave no existe, devuelve `nil`.
 /// Devuelve error si el valor almacenado en `key` no es de tipo string.
 ///
@@ -197,7 +197,7 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RBulkString(n) => {
-///     assert_eq!(n, "alfonso".to_string()) 
+///     assert_eq!(n, "alfonso".to_string())
 /// # }
 /// #    _ => assert!(false)
 /// # }
@@ -210,9 +210,7 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             let mut db = database.write().unwrap();
             return match db.get_string_value_by_key(key) {
                 Some(str) => RespType::RBulkString(str),
-                None => {
-                    RespType::RNullBulkString()
-                }
+                None => RespType::RNullBulkString(),
             };
         }
     }
@@ -220,7 +218,7 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Devuelve los valores almacenados en las claves especificadas.
-/// 
+///
 /// Si la clave no existe o el valor que almacena no es de tipo string, devuelve `nil`.
 ///
 /// # Ejemplo
@@ -249,7 +247,7 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ], &database);
 ///
 /// # match res {
-/// #    RespType::RArray(full_name) => { 
+/// #    RespType::RArray(full_name) => {
 ///    assert_eq!(full_name, vec![RespType::RBulkString("alfonso".to_string()), RespType::RBulkString("alvarez".to_string())])
 /// # }
 /// #    _ => assert!(false)
@@ -277,7 +275,7 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Devuelve el valor almacenado en `key` y lo elimina.
-/// 
+///
 /// Si la clave no existe, devuelve `nil`.
 /// Devuelve error si el valor almacenado en `key` no es de tipo string.
 ///
@@ -304,7 +302,7 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RBulkString(old_name) => {
-///         assert_eq!(old_name, "alfonso".to_string()) 
+///         assert_eq!(old_name, "alfonso".to_string())
 /// #    }
 /// #    _ => assert!(false)
 /// # }
@@ -332,7 +330,7 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Actualiza el valor almacenado en `key` y devuelve el valor anterior.
-/// 
+///
 /// Si la clave no existe, devuelve `nil`.
 /// Devuelve error si el valor almacenado en `key` no es de tipo string.
 ///
@@ -359,7 +357,7 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RBulkString(old_name) => {
-///         assert_eq!(old_name, "alfonso".to_string()) 
+///         assert_eq!(old_name, "alfonso".to_string())
 /// #    }
 /// #    _ => assert!(false)
 /// # }
@@ -389,7 +387,7 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Devuelve la longitud del valor almacenado en `key`.
-/// 
+///
 /// Si la clave no existe, devuelve 0.
 /// Devuelve error si el valor almacenado no es de tipo string.
 ///
@@ -415,7 +413,7 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RInteger(len) => {
-///        assert_eq!(len, 6) 
+///        assert_eq!(len, 6)
 /// #    }
 /// #    _ => assert!(false)
 /// # }
@@ -436,7 +434,7 @@ pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Actualiza el valor de las claves especificadas.
-/// 
+///
 /// Equivale a aplicar la función `set` a múltiples valores.
 /// No es posible saber si alguna clave no se actualizó.
 ///
@@ -461,7 +459,7 @@ pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RBulkString(response) => {
-///         assert_eq!(response, "Ok".to_string()) 
+///         assert_eq!(response, "Ok".to_string())
 /// #    }
 /// #    _ => assert!(false)
 /// # }
@@ -491,7 +489,7 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Actualiza el valor de las clave especificada.
-/// 
+///
 /// Si la clave ya contenía un valor, lo reemplaza sin importar el tipo de dato.
 /// Admite los siguientes parámetros:
 /// * EX: Tiempo de expiración en segundos.
@@ -523,7 +521,7 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # match res {
 /// #    RespType::RBulkString(response) => {
-///         assert_eq!(response, "Ok".to_string()) 
+///         assert_eq!(response, "Ok".to_string())
 /// #    }
 /// #    _ => assert!(false)
 /// # }
@@ -549,12 +547,12 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 }
 
 /// Devuelve un vector con los parámetros especificados por el usuario.
-/// 
-/// Los parámetros se dividen en tres grupos: 
+///
+/// Los parámetros se dividen en tres grupos:
 /// * EX | PX | EXAT | PXAT
 /// * NX | XX
 /// * GET
-/// 
+///
 /// Esta función devuelve un vector de tres elementos, cada elemento representa un parámetro y su valor.
 /// Por defecto, el valor de un parámetro es None.
 ///
@@ -583,8 +581,7 @@ pub fn generate_options(cmd: &[RespType]) -> Vec<(String, Option<&String>)> {
     for (pos, argumento) in cmd.iter().skip(3).enumerate() {
         println!("pos: {}", pos);
         if let RespType::RBulkString(arg) = argumento {
-            if (arg == "ex") || (arg == "px") || (arg == "exat") || (arg == "pxat")
-            {
+            if (arg == "ex") || (arg == "px") || (arg == "exat") || (arg == "pxat") {
                 if let RespType::RBulkString(expire_at) = &cmd[pos + 4] {
                     options[0].0 = arg.to_string();
                     options[0].1 = Some(expire_at);
