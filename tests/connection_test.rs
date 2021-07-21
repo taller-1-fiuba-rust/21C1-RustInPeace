@@ -469,290 +469,297 @@ fn test_main() {
 }
 
 const TESTS: &[Test] = &[
-    Test {
-        name: "server command: config get verbose",
-        func: test_config_get_verbose,
-    },
-    Test {
-        name: "server command: config set maxmemory",
-        func: test_config_set_maxmemory,
-    },
-    Test {
-        name: "server command: config get *",
-        func: test_config_get_all,
-    },
-    Test {
-        name: "server command: config get",
-        func: test_config_get_returns_error_missing_parameter,
-    },
     // Test {
-    //     name: "server command: dbsize",
-    //     func: test_dbsize,
+    //     name: "server command: config get verbose",
+    //     func: test_config_get_verbose,
     // },
     // Test {
-    //     name: "server command: flushdb",
-    //     func: test_flushdb,
+    //     name: "server command: config set maxmemory",
+    //     func: test_config_set_maxmemory,
     // },
-    Test {
-        name: "keys command: del",
-        func: test_keys_del,
-    },
-    Test {
-        name: "keys command: exists",
-        func: test_keys_exists,
-    },
-    Test {
-        name: "keys command: persist",
-        func: test_keys_persist,
-    },
-    Test {
-        name: "keys command: expire",
-        func: test_keys_expire,
-    },
-    Test {
-        name: "keys command: expireat",
-        func: test_keys_expireat,
-    },
-    Test {
-        name: "keys command: ttl",
-        func: test_keys_ttl,
-    },
-    Test {
-        name: "keys command: touch",
-        func: test_keys_touch,
-    },
-    Test {
-        name: "keys command: rename",
-        func: test_keys_rename,
-    },
-    Test {
-        name: "keys command: copy",
-        func: test_keys_copy,
-    },
-    Test {
-        name: "keys command: copy replace",
-        func: test_keys_copy_with_replace,
-    },
-    Test {
-        name: "keys command: sort ascending",
-        func: test_keys_sort_ascending,
-    },
-    Test {
-        name: "keys command: sort descending",
-        func: test_keys_sort_descending,
-    },
-    Test {
-        name: "keys command: sort ascending first four elements",
-        func: test_keys_sort_ascending_first_four_elements,
-    },
-    Test {
-        name: "keys command: sort descending first four elements",
-        func: test_keys_sort_descending_first_four_elements,
-    },
-    Test {
-        name: "keys command: sort by external key ascending",
-        func: test_sort_by_external_key_value_using_pattern_ascending,
-    },
-    Test {
-        name: "keys command: sort by external key descending",
-        func: test_sort_by_external_key_value_using_pattern_descending,
-    },
-    Test {
-        name: "keys command: get value type list",
-        func: test_gets_value_type_list,
-    },
-    Test {
-        name: "keys command: get value type list",
-        func: test_gets_value_type_string,
-    },
-    Test {
-        name: "string command: get only string value else nil",
-        func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
-    },
-    Test {
-        name: "string command: set multiple keys never fails",
-        func: test_se_setean_multiples_claves_nunca_falla,
-    },
-    Test {
-        name: "string command: append mykey newvalue",
-        func: test_string_append,
-    },
-    Test {
-        name: "string command: decrby mykey 3",
-        func: test_string_decrby,
-    },
-    Test {
-        name: "string command: incrby mykey 3",
-        func: test_string_incrby,
-    },
-    Test {
-        name: "string command: get key_1",
-        func: test_string_get,
-    },
-    Test {
-        name: "string command: getdel key_getdel",
-        func: test_string_getdel,
-    },
-    Test {
-        name: "string command: getset key_getset",
-        func: test_string_getset,
-    },
-    Test {
-        name: "string command: strlen key_1",
-        func: test_string_strlen,
-    },
-    Test {
-        name: "string command: mget key_1 mykey",
-        func: test_string_mget,
-    },
-    Test {
-        name: "string command: set mykeyset setvalue",
-        func: test_string_set,
-    },
-    Test {
-        name: "list command: push values into key - list type",
-        func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
-    },
-    Test {
-        name: "list command: push values into existing key - list type",
-        func: test_se_guardan_valores_en_una_lista_ya_existente,
-    },
-    Test {
-        name: "list command: cannot push values into existing non-list type key",
-        func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
-    },
-    Test {
-        name: "list command: get lenght of existing list",
-        func: test_se_obtiene_la_longitud_de_la_lista_en_value,
-    },
-    Test {
-        name: "list command: get 0 as lenght of unexisting list",
-        func: test_se_obtiene_cero_como_la_longitud_de_key_inexistente,
-    },
-    Test {
-        name: "list command: cannot get len of non-list type key",
-        func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
-    },
-    Test {
-        name: "list command: pushx values into key - list type",
-        func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
-    },
-    Test {
-        name: "list command: cannot pushx values into non_existing key",
-        func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
-    },
-    Test {
-        name: "list command: lrange return value especified by lower and upper bounds",
-        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango,
-    },
-    Test {
-        name: "list command: lrange return value especified by lower and upper bounds with ub>len of the list",
-        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista,
-    },
-    Test {
-        name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list",
-        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista,
-    },
-    Test {
-        name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list and ub>len",
-        func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len,
-    },
-    Test {
-        name: "list command: lrem remove only 3 repeated values from left to right",
-        func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list,
-    },
-    Test {
-        name: "list command: lrem remove only 3 repeated values from left to right backwards",
-        func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso,
-    },
-    Test {
-        name: "list command: lrem remove all elements",
-        func: test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list,
-    },
-    Test {
-        name: "list command: lindex",
-        func: test_list_index,
-    },
-    Test {
-        name: "list command: lpop mylist",
-        func: test_list_lpop,
-    },
-    Test {
-        name: "list command: lpop mylist 2",
-        func: test_list_lpop_with_count,
-    },
-    Test {
-        name: "list command: rpop mylist",
-        func: test_list_rpop,
-    },
-    Test {
-        name: "list command: rpop mylist 2",
-        func: test_list_rpop_with_count,
-    },
-    Test {
-        name: "list command: rpushx sabores vainilla coco",
-        func: test_list_rpushx,
-    },
-    Test {
-        name: "list command: rpushx paiseslimitrofes chile",
-        func: test_list_rpushx_nonexisting_key_returns_zero,
-    },
-    Test {
-        name: "list command: lset new element in list type value",
-        func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente,
-    },
-    Test {
-        name: "list command: lset new element in list type value with negative index inbound",
-        func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido,
-    },
-    Test {
-        name: "list command: lset cannot set new element in list type value out of bounds error",
-        func: test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error,
-    },
-    Test {
-        name: "set command: sadd",
-        func: test_set_add,
-    },
-    Test {
-        name: "set command: scard",
-        func: test_set_scard,
-    },
-    Test {
-        name: "set command: ismember",
-        func: test_set_ismember,
-    },
-    Test {
-        name: "set command: smembers",
-        func: test_set_smembers,
-    },
-    Test {
-        name: "set command: srem",
-        func: test_set_srem,
-    },
-    Test {
-        name: "set command: srem multiple",
-        func: test_set_srem_removes_multiple_values,
-    },
-    Test {
-        name: "set command: srem is not set type",
-        func: test_set_srem_removes_zero_values,
-    },
-    Test {
-        name: "set command: srem error",
-        func: test_set_srem_removes_returns_error,
-    },
-    Test {
-        name: "pubsub commands: subscribe pubsub channels numsub",
-        func: test_pubsub,
-    },
-    Test {
-        name: "rpush command: new list",
-        func: test_rpush_lista_inexistente
-    },
-    Test {
-        name: "info",
-        func: test_info
-    }
+    // Test {
+    //     name: "server command: config get *",
+    //     func: test_config_get_all,
+    // },
+    // Test {
+    //     name: "server command: config get",
+    //     func: test_config_get_returns_error_missing_parameter,
+    // },
+    // // Test {
+    // //     name: "server command: dbsize",
+    // //     func: test_dbsize,
+    // // },
+    // // Test {
+    // //     name: "server command: flushdb",
+    // //     func: test_flushdb,
+    // // },
+    // Test {
+    //     name: "keys command: del",
+    //     func: test_keys_del,
+    // },
+    // Test {
+    //     name: "keys command: exists",
+    //     func: test_keys_exists,
+    // },
+    // Test {
+    //     name: "keys command: persist",
+    //     func: test_keys_persist,
+    // },
+    // Test {
+    //     name: "keys command: expire",
+    //     func: test_keys_expire,
+    // },
+    // Test {
+    //     name: "keys command: expireat",
+    //     func: test_keys_expireat,
+    // },
+    // Test {
+    //     name: "keys command: ttl",
+    //     func: test_keys_ttl,
+    // },
+    // Test {
+    //     name: "keys command: touch",
+    //     func: test_keys_touch,
+    // },
+    // Test {
+    //     name: "keys command: rename",
+    //     func: test_keys_rename,
+    // },
+    // Test {
+    //     name: "keys command: copy",
+    //     func: test_keys_copy,
+    // },
+    // Test {
+    //     name: "keys command: copy replace",
+    //     func: test_keys_copy_with_replace,
+    // },
+    // Test {
+    //     name: "keys command: sort ascending",
+    //     func: test_keys_sort_ascending,
+    // },
+    // Test {
+    //     name: "keys command: sort descending",
+    //     func: test_keys_sort_descending,
+    // },
+    // Test {
+    //     name: "keys command: sort ascending first four elements",
+    //     func: test_keys_sort_ascending_first_four_elements,
+    // },
+    // Test {
+    //     name: "keys command: sort descending first four elements",
+    //     func: test_keys_sort_descending_first_four_elements,
+    // },
+    // Test {
+    //     name: "keys command: sort by external key ascending",
+    //     func: test_sort_by_external_key_value_using_pattern_ascending,
+    // },
+    // Test {
+    //     name: "keys command: sort by external key descending",
+    //     func: test_sort_by_external_key_value_using_pattern_descending,
+    // },
+    // Test {
+    //     name: "keys command: get value type list",
+    //     func: test_gets_value_type_list,
+    // },
+    // Test {
+    //     name: "keys command: get value type list",
+    //     func: test_gets_value_type_string,
+    // },
+    // Test {
+    //     name: "string command: get only string value else nil",
+    //     func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
+    // },
+    // Test {
+    //     name: "string command: set multiple keys never fails",
+    //     func: test_se_setean_multiples_claves_nunca_falla,
+    // },
+    // Test {
+    //     name: "string command: append mykey newvalue",
+    //     func: test_string_append,
+    // },
+    // Test {
+    //     name: "string command: decrby mykey 3",
+    //     func: test_string_decrby,
+    // },
+    // Test {
+    //     name: "string command: incrby mykey 3",
+    //     func: test_string_incrby,
+    // },
+    // Test {
+    //     name: "string command: get key_1",
+    //     func: test_string_get,
+    // },
+    // Test {
+    //     name: "string command: getdel key_getdel",
+    //     func: test_string_getdel,
+    // },
+    // Test {
+    //     name: "string command: getset key_getset",
+    //     func: test_string_getset,
+    // },
+    // Test {
+    //     name: "string command: strlen key_1",
+    //     func: test_string_strlen,
+    // },
+    // Test {
+    //     name: "string command: mget key_1 mykey",
+    //     func: test_string_mget,
+    // },
+    // Test {
+    //     name: "string command: set mykeyset setvalue",
+    //     func: test_string_set,
+    // },
+    // //ESTOY ACA************************************
+
+    // Test {
+    //     name: "list command: push values into key - list type",
+    //     func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
+    // },
+    // Test {
+    //     name: "list command: push values into existing key - list type",
+    //     func: test_se_guardan_valores_en_una_lista_ya_existente,
+    // },
+    // Test {
+    //     name: "list command: cannot push values into existing non-list type key",
+    //     func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
+    // },
+    // Test {
+    //     name: "list command: get lenght of existing list",
+    //     func: test_se_obtiene_la_longitud_de_la_lista_en_value,
+    // },
+    // Test {
+    //     name: "list command: get 0 as lenght of unexisting list",
+    //     func: test_se_obtiene_cero_como_la_longitud_de_key_inexistente,
+    // },
+    // Test {
+    //     name: "list command: cannot get len of non-list type key",
+    //     func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
+    // },
+    // Test {
+    //     name: "list command: pushx values into key - list type",
+    //     func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
+    // },
+    // Test {
+    //     name: "list command: cannot pushx values into non_existing key",
+    //     func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
+    // },
+    // Test {
+    //     name: "list command: lrange return value especified by lower and upper bounds",
+    //     func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango,
+    // },
+    // Test {
+    //     name: "list command: lrange return value especified by lower and upper bounds with ub>len of the list",
+    //     func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista,
+    // },
+    // Test {
+    //     name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list",
+    //     func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista,
+    // },
+    // Test {
+    //     name: "list command: lrange return value especified by lower and upper bounds with lb<first_element_position of the list and ub>len",
+    //     func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len,
+    // },
+    //*****************************************************************
+    Test {
+        name: "list command: lrange return empty list as lb>ub",
+        func: test_se_devuelve_lista_vacia_porque_limite_inferior_supera_al_limite_superior,
+    },
+    // Test {
+    //     name: "list command: lrem remove only 3 repeated values from left to right",
+    //     func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list,
+    // },
+    // Test {
+    //     name: "list command: lrem remove only 3 repeated values from left to right backwards",
+    //     func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso,
+    // },
+    // Test {
+    //     name: "list command: lrem remove all elements",
+    //     func: test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list,
+    // },
+    // Test {
+    //     name: "list command: lindex",
+    //     func: test_list_index,
+    // },
+    // Test {
+    //     name: "list command: lpop mylist",
+    //     func: test_list_lpop,
+    // },
+    // Test {
+    //     name: "list command: lpop mylist 2",
+    //     func: test_list_lpop_with_count,
+    // },
+    // Test {
+    //     name: "list command: rpop mylist",
+    //     func: test_list_rpop,
+    // },
+    // Test {
+    //     name: "list command: rpop mylist 2",
+    //     func: test_list_rpop_with_count,
+    // },
+    // Test {
+    //     name: "list command: rpushx sabores vainilla coco",
+    //     func: test_list_rpushx,
+    // },
+    // Test {
+    //     name: "list command: rpushx paiseslimitrofes chile",
+    //     func: test_list_rpushx_nonexisting_key_returns_zero,
+    // },
+    // Test {
+    //     name: "list command: lset new element in list type value",
+    //     func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente,
+    // },
+    // Test {
+    //     name: "list command: lset new element in list type value with negative index inbound",
+    //     func: test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido,
+    // },
+    // Test {
+    //     name: "list command: lset cannot set new element in list type value out of bounds error",
+    //     func: test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error,
+    // },
+    // Test {
+    //     name: "set command: sadd",
+    //     func: test_set_add,
+    // },
+    // Test {
+    //     name: "set command: scard",
+    //     func: test_set_scard,
+    // },
+    // Test {
+    //     name: "set command: ismember",
+    //     func: test_set_ismember,
+    // },
+    // Test {
+    //     name: "set command: smembers",
+    //     func: test_set_smembers,
+    // },
+    // Test {
+    //     name: "set command: srem",
+    //     func: test_set_srem,
+    // },
+    // Test {
+    //     name: "set command: srem multiple",
+    //     func: test_set_srem_removes_multiple_values,
+    // },
+    // Test {
+    //     name: "set command: srem is not set type",
+    //     func: test_set_srem_removes_zero_values,
+    // },
+    // Test {
+    //     name: "set command: srem error",
+    //     func: test_set_srem_removes_returns_error,
+    // },
+    // Test {
+    //     name: "pubsub commands: subscribe pubsub channels numsub",
+    //     func: test_pubsub,
+    // },
+    // Test {
+    //     name: "rpush command: new list",
+    //     func: test_rpush_lista_inexistente
+    // },
+    // Test {
+    //     name: "info",
+    //     func: test_info
+    // }
 ];
 
 fn connect() -> Result<redis::Connection, Box<dyn Error>> {
@@ -1213,24 +1220,24 @@ fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResul
 
 fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
+    let ret: Result<String, RedisError> = redis::cmd("LPUSH")
         .arg("edad_luz")
         .arg("jacinta")
         .arg("leonela")
         .arg("margarita")
         .arg("leonilda")
         .arg("murcia")
-        .query(&mut con)?;
-
-    if ret == "error - not list type".to_string() {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "error - not list type".to_string(),
-            got: ret,
-        }));
+        .query(&mut con);
+    
+        if ret.is_err() {
+            return Ok(());
+        } else {
+            return Err(Box::new(ReturnError {
+                expected: String::from("error - not list type"),
+                got: format!("{:?}", ret),
+            }));
+        }
     }
-}
 
 fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
     let mut con = connect()?;
@@ -1426,6 +1433,27 @@ fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferi
         }));
     }
 }
+
+fn test_se_devuelve_lista_vacia_porque_limite_inferior_supera_al_limite_superior(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("5")
+        .arg("3")
+        .query(&mut con)?;
+    if &ret == &vec!["".to_string()] //vec![] //&String::from("")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: format!("{}", ret[0]),
+        }));
+    }
+}
+
+
 
 fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list(
 ) -> TestResult {

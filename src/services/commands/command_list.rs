@@ -190,7 +190,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
         {
             RespType::RInteger(resultado)
         } else {
-            RespType::RBulkString("error - not list type".to_string())
+            RespType::RError("error - not list type".to_string())
         }
     } else {
         RespType::RError("empty request".to_string())

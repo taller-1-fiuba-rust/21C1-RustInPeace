@@ -322,7 +322,7 @@ impl Database {
                 }
                 Some(vec_values_selected_by_index)
             } else {
-                None
+                Some(vec!["".to_string()])
             }
         } else {
             None
