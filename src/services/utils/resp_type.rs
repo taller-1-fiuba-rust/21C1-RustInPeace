@@ -1,5 +1,15 @@
+//! Hace un mapeo entre los tipos de datos del protocolo Redis y los tipos de datos Rust.
+
 use std::fmt::{Display, Error, Formatter};
 
+/// Los clientes Redis se comunican con el servidor Redis a través del protocolo RESP.
+/// Los tipos de datos que soporta son:
+/// * Simple string
+/// * Bulk string
+/// * Error
+/// * Array
+/// * Integer
+/// Además, admite valores nulos como una variación de bulk strings y arrays (Null bulk string y null array, respectivamente).
 #[derive(Debug, PartialEq, Clone)]
 pub enum RespType {
     RSimpleString(String),
@@ -12,6 +22,10 @@ pub enum RespType {
     RNullArray(),
 }
 
+/// Implementa el Trait `Display`.
+///
+/// En el caso de `RArray`, muestra los elementos del vector separados por un espacio en blanco.
+/// Si es un elemento nulo, muestra `(nil)`.
 impl Display for RespType {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match self {

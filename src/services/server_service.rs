@@ -1,3 +1,5 @@
+//! Servicio para iniciar el servidor y manejar mensajes de clientes.
+
 use super::parser_service::{parse_request, parse_response};
 use super::worker_service::ThreadPool;
 use crate::domain::entities::client::Client;
@@ -6,33 +8,18 @@ use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use crate::services::database_service::dump_to_file;
-use crate::services::utils::resp_type::RespType;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-// macro_rules! select {
-//     (
-//         $($name:pat = $rx:ident.$meth:ident() => $code:expr),+
-//     ) => ({
-//         use $crate::sync::mpsc::Select;
-//         let sel = Select::new();
-//         $( let mut $rx = sel.handle(&$rx); )+
-//         unsafe {
-//             $( $rx.add(); )+
-//         }
-//         let ret = sel.wait();
-//         $( if ret == $rx.id() { let $name = $rx.$meth(); $code } else )+
-//         { unreachable!() }
-//     })
-// }
-
 /// Inicia la conexion TCP
 ///
 /// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
-/// que va a escuchar mensajes hasta que se le envíe una señal de "shutdown".
+/// que va a quedar pendiente de recibir clientes y mensajes nuevos.
+/// Establece un channel entre la entidad `Server` y el cliente para que cada cliente pueda recibir y enviar información
+/// al servidor de manera concurrente.
 pub fn init(
     db: Database,
     config: Config,
@@ -78,23 +65,25 @@ pub fn init(
 /// Lee e interpreta mensajes del cliente.
 ///
 /// Recibe un stream proveniente de la conexión TCP, un sender de mensajes de tipo WorkerMessage, una base de datos de tipo Database dentro de un RwLock
-/// la configuración config dentro de un RwLock y un sender de mensajes de tipo booleano stop.
+/// y la configuración Config dentro de un RwLock.
 /// Lee el stream de datos recibido del cliente, lo decodifica, mediante la función handle_command realiza la operación que corresponda y luego
-/// escribe una respuesta sobre el mismo stream. La lectura se hace dentro de un ciclo loop hasta recibir la señal de "stop" por parte del cliente
-/// o hasta que se cierre la conexión por parte del cliente o se produzca algún error interno.
+/// escribe una respuesta sobre el mismo stream. La lectura se hace dentro de un ciclo loop
+/// hasta que se cierre la conexión por parte del cliente o se produzca algún error interno.
 pub fn handle_connection(
     mut stream: TcpStream,
     tx: Sender<WorkerMessage>,
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
-    // stop: Sender<bool>,
-    // drop: Arc<AtomicBool>
 ) {
     let client_addrs = stream.peer_addr().unwrap();
     let client = Client::new(client_addrs, stream.try_clone().unwrap());
     tx.send(WorkerMessage::AddClient(client)).unwrap();
 
     log(
+        format!("Connection to address {} established\r\n", client_addrs),
+        &tx,
+    );
+    verbose(
         format!("Connection to address {} established\r\n", client_addrs),
         &tx,
     );
@@ -115,24 +104,25 @@ pub fn handle_connection(
                     ),
                     &tx,
                 );
+                verbose(
+                    format!(
+                        "Reading new message from {}. Message: {:?}\r\n",
+                        client_addrs,
+                        String::from_utf8_lossy(&buf[..size])
+                    ),
+                    &tx,
+                );
 
                 match parse_request(&buf[..size]) {
                     Ok(parsed_request) => {
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
+                        verbose(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
 
                         tx.send(WorkerMessage::NewOperation(
                             parsed_request.clone(),
                             client_addrs,
                         ))
                         .unwrap();
-                        println!("{:?}", parsed_request);
-                        // if check_shutdown(&parsed_request) {
-                        //     // drop.store(true, Ordering::Relaxed);
-                        //     // println!("{:?}", drop.load(Ordering::Relaxed));
-                        //     stop.send(true).unwrap();
-                        //     tx.send(WorkerMessage::Stop(true)).unwrap();
-                        //     break;
-                        // }
 
                         if let Some(res) = handle_command(
                             parsed_request,
@@ -152,6 +142,15 @@ pub fn handle_connection(
                                 ),
                                 &tx,
                             );
+                            verbose(
+                                format!(
+                                    "Response for {}. Message: {:?}. Response: {}\r\n",
+                                    client_addrs,
+                                    String::from_utf8_lossy(&buf[..size]),
+                                    response
+                                ),
+                                &tx,
+                            );
                             stream.write_all(response.as_bytes()).unwrap();
                             stream.flush().unwrap();
                         }
@@ -161,7 +160,6 @@ pub fn handle_connection(
                         continue;
                     }
                 }
-                // stop.send(false).unwrap();
             }
             Err(e) => {
                 println!("Closing connection: {:?}", e);
@@ -175,6 +173,10 @@ pub fn handle_connection(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
     );
+    verbose(
+        format!("Connection to address {} closed\r\n", client_addrs),
+        &tx,
+    );
 }
 
 /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
@@ -185,19 +187,6 @@ fn log(msg: String, tx: &Sender<WorkerMessage>) {
 
 /// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
 /// El sender envia el mensaje Verbose
-fn _verbose(msg: String, tx: &Sender<WorkerMessage>) {
+fn verbose(msg: String, tx: &Sender<WorkerMessage>) {
     tx.send(WorkerMessage::Verb(msg)).unwrap();
-}
-
-/// Recibe una solicitud request de tipo &RespType y valida si es el comando "SHUTDOWN"
-/// Devuelve true si lo es, false si no
-fn _check_shutdown(request: &RespType) -> bool {
-    if let RespType::RArray(array) = request {
-        if let RespType::RBulkString(cmd) = &array[0] {
-            if cmd == "shutdown" {
-                return true;
-            }
-        }
-    }
-    false
 }

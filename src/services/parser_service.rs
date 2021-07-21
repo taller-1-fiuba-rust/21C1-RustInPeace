@@ -1,10 +1,40 @@
-//! Servicio para transformar un mensaje que llega por stream a un tipo de dato RESP y viceversa !
+//! Servicio para transformar un mensaje que llega por stream a un tipo de dato RESP y viceversa.
 
 use super::utils::resp_type::RespType;
 use crate::errors::parse_error::ParseError;
 
-/// Recibe una response de tipo RespType y lo traduce a un String respetando el protocolo RESP
-/// -ejemplos-
+/// Recibe una response de tipo RespType y lo traduce a un String respetando el protocolo RESP.
+///
+/// El string debe respetar el protocolo RESP, esto es que se cumplan las siguientes reglas:
+///
+/// * El primer byte de un Simple String es "+".
+///
+/// * El primer byte de un Bulk String es "$".
+///
+/// * El primer byte de un Integer es ":".
+///
+/// * El primer byte de un Array es "*".
+///
+/// * El primer byte de un Error es "-".
+///
+/// * Bulk strings y arrays deben indicar el tamaño de su contenido. Por ejemplo, el bulk string "hola mundo" se representa en RESP como "$10\r\nhola mundo\r\n".
+///
+/// * El contenido de un dato nulo es "-1".
+///
+/// * Todas las respuestas deben terminar con "\r\n" (CRLF).
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let resp = RespType::RBulkString("some string".to_string());
+/// assert_eq!(parser_service::parse_response(resp), "$11\r\nsome string\r\n");
+///
+/// let resp = RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]);
+/// assert_eq!(parser_service::parse_response(resp), "*2\r\n$5\r\nfirst\r\n$6\r\nsecond\r\n");
+///
+/// ```
 pub fn parse_response(response: RespType) -> String {
     match response {
         RespType::RBulkString(string) => {
@@ -37,11 +67,21 @@ pub fn parse_response(response: RespType) -> String {
     }
 }
 
-/// Recibe una request, la traduce segun el protocolo RESP a un tipo de dato RespType
-/// Verifica que sea un array de bulkstrings, si no lo es arroja error InvalidRequest
-/// -ejemplos-
+/// Traduce un vector de bytes segun el protocolo RESP a un tipo de dato RespType.
+///
+/// Verifica que sea un array de bulk strings, si no lo es arroja error de tipo InvalidRequest.
+/// Valida que contenga bytes, si vector está vacío arroja error de tipo InvalidSize.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*2\r\n$5\r\nfirst\r\n$6\r\nsecond\r\n".as_bytes();
+/// let parsed_request = parser_service::parse_request(request).unwrap();
+/// assert_eq!(parsed_request, RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]));
+/// ```
 pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
-    // println!("request: {:?}", request);
     if request.is_empty() {
         return Err(ParseError::InvalidSize(String::from("Empty request")));
     }
@@ -59,9 +99,22 @@ pub fn parse_request(request: &[u8]) -> Result<RespType, ParseError> {
     }
 }
 
-/// A partir de una request ya traducida a un RespType, valida que sea un array de bulkstrings
-/// Devuelve true si lo es, false si no
-fn is_array_of_bulkstring(parsed_request: &RespType) -> bool {
+/// Valida que `parsed_request` sea un array de bulk strings.
+///
+/// Devuelve true si lo es, false si no.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let parsed_request = RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]);
+/// assert!(parser_service::is_array_of_bulkstring(&parsed_request));
+///
+/// let parsed_request = RespType::RBulkString("hello world".to_string());
+/// assert!(!parser_service::is_array_of_bulkstring(&parsed_request));
+/// ```
+pub fn is_array_of_bulkstring(parsed_request: &RespType) -> bool {
     if let RespType::RArray(array) = parsed_request {
         for element in array {
             if let RespType::RBulkString(_) = element {
@@ -75,9 +128,18 @@ fn is_array_of_bulkstring(parsed_request: &RespType) -> bool {
     true
 }
 
-/// Recibe un arreglo de bytes (req) y devuelve la posición del primer CRLF que encuentre
-/// Chequea que el CRLF esté bien formado, si no lo está devuelve Error
-fn search_crlf(request: &[u8]) -> Result<usize, ParseError> {
+/// Devuelve la posición del primer CRLF que encuentre
+///
+/// Chequea que el CRLF esté bien formado, si no lo está devuelve Error.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+///
+/// let request = "first, second\r\nthird".as_bytes();
+/// assert_eq!(parser_service::search_crlf(request).unwrap(), 13);
+/// ```
+pub fn search_crlf(request: &[u8]) -> Result<usize, ParseError> {
     let mut pos = 0;
     for byte in request {
         if pos + 1 >= request.len() {
@@ -99,10 +161,19 @@ fn search_crlf(request: &[u8]) -> Result<usize, ParseError> {
     Ok(pos)
 }
 
-/// Recibe un arreglo de bytes (request) y dos numeros enteros, from y to, que indican las posiciones
-/// desde donde comenzar a leer y hasta donde leer del arreglo request.
-/// Devuelve los datos leidos en forma de String
-fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseError> {
+/// Lee una palabra desde la posición `from` hasta `to`.
+///
+/// Si la posición inicial es mayor a la posición final, devuelve error.
+/// Devuelve los datos leidos en forma de String.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+///
+/// let request = "first, second\r\nthird".as_bytes();
+/// assert_eq!(parser_service::read_word(7, 13, request).unwrap(), "second".to_string());
+/// ```
+pub fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseError> {
     if from > to {
         return Err(ParseError::UnexpectedError(
             "Invalid slice of bytes".to_string(),
@@ -112,10 +183,20 @@ fn read_word(from: usize, to: usize, request: &[u8]) -> Result<String, ParseErro
     Ok(String::from_utf8_lossy(slice).to_string().to_lowercase())
 }
 
-/// Recibe un arreglo de bytes (request) y dos numeros enteros, from y to, que indican las posiciones
-/// desde donde comenzar a leer y hasta donde leer del arreglo request.
-/// Devuelve los datos leidos transformados a tipo de dato usize
-fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseError> {
+/// Lee un número entero desde la posición `from` hasta `to`.
+///
+/// Si la posición inicial es mayor a la posición final, devuelve error.
+/// Si el número no puede representarse como un entero, devuelve error.
+/// Devuelve los datos leidos en forma de usize.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+///
+/// let request = "1, 23, 77".as_bytes();
+/// assert_eq!(parser_service::read_int(3, 5, request).unwrap(), 23);
+/// ```
+pub fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseError> {
     let word = read_word(from, to, request)?;
     match word.parse() {
         Ok(int) => Ok(int),
@@ -125,9 +206,37 @@ fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseError>
     }
 }
 
-/// Recibe un arreglo de bytes y lo transforma a un tipo de dato RESPType siguiendo el protocolo RESP
-/// Devuelve un Result<RESPType, ParseError>
-/// -ejemplos-
+/// Traduce un arreglo de bytes a un tipo de datos RespType siguiendo el protocolo RESP.
+///
+/// El protocolo RESP implica que se cumplan las siguientes reglas:
+///
+/// * El primer byte de un Simple String es "+".
+///
+/// * El primer byte de un Bulk String es "$".
+///
+/// * El primer byte de un Integer es ":".
+///
+/// * El primer byte de un Array es "*".
+///
+/// * El primer byte de un Error es "-".
+///
+/// * Bulk strings y arrays deben indicar el tamaño de su contenido. Por ejemplo, el bulk string "hola mundo" se representa en RESP como "$10\r\nhola mundo\r\n".
+///
+/// * El contenido de un dato nulo es "-1".
+///
+/// * Todas las respuestas deben terminar con "\r\n" (CRLF).
+///
+/// Además, valida que la solicitud sea un array de bulk strings, ya que el servidor solo acepta solicitudes de ese tipo.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*2\r\n$5\r\nfirst\r\n$6\r\nsecond\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_request(request).unwrap(), RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]));
+///
+/// ```
 fn parse(request: &[u8]) -> Result<RespType, ParseError> {
     if String::from_utf8_lossy(&request[request.len() - 2..]) != "\r\n" {
         return Err(ParseError::InvalidProtocol(
@@ -146,37 +255,80 @@ fn parse(request: &[u8]) -> Result<RespType, ParseError> {
     }
 }
 
-/// Recibe un arreglo de bytes y lee el segundo byte como un numero entero
-/// Devuelve RespType::RInteger(numero)
-fn parse_integer(request: &[u8]) -> Result<RespType, ParseError> {
+/// Traduce un arreglo de bytes a un RespType de tipo Integer.
+///
+/// El arreglo debe respetar el protocolo RESP, esto es tener la forma ":{numero}\r\n".
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = ":25\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_integer(request).unwrap(), RespType::RInteger(25));
+/// ```
+pub fn parse_integer(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request)?;
     let int = read_int(pos + 1, crlf_pos, request)?;
     Ok(RespType::RInteger(int))
 }
 
-/// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
-/// Devuelve RespType::RError(string)
-fn parse_error(request: &[u8]) -> Result<RespType, ParseError> {
+/// Traduce un arreglo de bytes a un RespType de tipo Error.
+///
+/// El arreglo debe respetar el protocolo RESP, esto es tener la forma "-{mensaje_de_error}\r\n".
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "-unexpectederror\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_error(request).unwrap(), RespType::RError("unexpectederror".to_string()));
+/// ```
+pub fn parse_error(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request)?;
     let word = read_word(pos + 1, crlf_pos, request)?;
     Ok(RespType::RError(word))
 }
 
-/// Recibe un arreglo de bytes y lee desde la segunda posicion como una cadena de caracteres
-/// Devuelve RespType::RESimpleString(string)
-fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
+/// Traduce un arreglo de bytes a un RespType de tipo Simple String.
+///
+/// El arreglo debe respetar el protocolo RESP, esto es tener la forma "+{string}\r\n".
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "+simplestring\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_simple_string(request).unwrap(), RespType::RSimpleString("simplestring".to_string()));
+/// ```
+pub fn parse_simple_string(request: &[u8]) -> Result<RespType, ParseError> {
     let pos = 0;
     let crlf_pos = search_crlf(request)?;
     let word = read_word(pos + 1, crlf_pos, request)?;
     Ok(RespType::RSimpleString(word))
 }
 
-/// Recibe un arreglo de bytes, en la segunda posicion lee un numero entero que indica el largo de la palabra
-/// luego lee la cadena de caracteres validando que sea del mismo largo indicado
-/// Devuelve RespType::RBulkString(string)
-fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
+/// Traduce un arreglo de bytes a un RespType de tipo Bulk String.
+///
+/// El arreglo debe respetar el protocolo RESP, esto es tener la forma "${string_length}\r\n{string}\r\n".
+/// Si la solicitud es de la forma "$-1\r\n" devuelve un NullBulkString.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "$9\r\nmymessage\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_bulkstring(request).unwrap(), RespType::RBulkString("mymessage".to_string()));
+///
+/// let request = "$-1\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_bulkstring(request).unwrap(), RespType::RNullBulkString());
+/// ```
+pub fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request)?;
     if check_if_bulkstring_null_type(pos, crlf, request) {
@@ -198,10 +350,22 @@ fn parse_bulkstring(request: &[u8]) -> Result<RespType, ParseError> {
     Ok(RespType::RBulkString(word))
 }
 
-/// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato bulkstring
-/// nulo segun el procolo RESP
-/// Devuelve true si lo es, false si no
-fn check_if_bulkstring_null_type(from: usize, to: usize, request: &[u8]) -> bool {
+/// Verifica si el arreglo de bytes coincide con un NullBulkString.
+///
+/// Devuelve true si coincide, false si no.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "$-1\r\n".as_bytes();
+/// assert!(parser_service::check_if_bulkstring_null_type(0, 3, request));
+///
+/// let request = "$9\r\nmymessage\r\n".as_bytes();
+/// assert!(!parser_service::check_if_bulkstring_null_type(0, 15, request));
+/// ```
+pub fn check_if_bulkstring_null_type(from: usize, to: usize, request: &[u8]) -> bool {
     let word = read_word(from + 1, to, request).unwrap();
     if word == "-1" {
         //Ok(RespType::RNullBulkString())
@@ -215,10 +379,22 @@ fn check_if_bulkstring_null_type(from: usize, to: usize, request: &[u8]) -> bool
     // }
 }
 
-/// Dado un arreglo de bytes, una posicion inicial y una posicion inicial, verifica si es un tipo de dato array
-/// nulo segun el procolo RESP
-/// Devuelve true si lo es, false si no
-fn check_if_array_null_type(
+/// Verifica que el arreglo de bytes coincida con un NullArray.
+///
+/// Devuelve RNullArray si coincide, Error si no.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*-1\r\n".as_bytes();
+/// assert!(parser_service::check_if_array_null_type(0, 3, request).is_ok());
+///
+/// let request = "*1\r\n$9\r\nmymessage\r\n".as_bytes();
+/// assert!(parser_service::check_if_array_null_type(0, 15, request).is_err());
+/// ```
+pub fn check_if_array_null_type(
     from: usize,
     to: usize,
     request: &[u8],
@@ -233,8 +409,20 @@ fn check_if_array_null_type(
     }
 }
 
-/// Returns length of the given request
-fn get_request_len(request: &[u8]) -> usize {
+/// Devuelve la longitud de la solicitud según el tipo de dato que sea.
+///
+/// # Ejemplos
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*-1\r\n".as_bytes(); //\r y \n cuentan como 1 caracter cada uno
+/// assert_eq!(parser_service::get_request_len(request), 5);
+///
+/// let request = "*1\r\n$9\r\nmymessage\r\n".as_bytes();
+/// assert_eq!(parser_service::get_request_len(request), 19);
+/// ```
+pub fn get_request_len(request: &[u8]) -> usize {
     match request[0] {
         b'*' => get_array_len(request),
         b'$' => get_bulkstring_len(request),
@@ -245,8 +433,23 @@ fn get_request_len(request: &[u8]) -> usize {
     }
 }
 
-/// Recibe un arreglo de bytes y lo traduce a un dato de tipo RespType::RArray(Vec<RespType>)
-fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
+/// Traduce un arreglo de bytes a un RespType de tipo Array.
+///
+/// El arreglo debe respetar el protocolo RESP, esto es tener la forma "*{array_len}\r\n{resp_elements}".
+/// Si la solicitud es de la forma "*-1\r\n" devuelve un NullArray.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*2\r\n$5\r\nfirst\r\n$6\r\nsecond\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_array(request).unwrap(), RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]));
+///
+/// let request = "*-1\r\n".as_bytes();
+/// assert_eq!(parser_service::parse_array(request).unwrap(), RespType::RNullArray());
+/// ```
+pub fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
     let mut pos = 0;
     let crlf = search_crlf(request)?;
     if crlf == 3 {
@@ -269,8 +472,19 @@ fn parse_array(request: &[u8]) -> Result<RespType, ParseError> {
     Ok(RespType::RArray(vec))
 }
 
-/// Returns length of array request
-fn get_array_len(request: &[u8]) -> usize {
+/// Devuelve la longitud de un array.
+///
+/// Considera que el arreglo de bytes representa un array.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "*1\r\n$9\r\nmymessage\r\n".as_bytes();
+/// assert_eq!(parser_service::get_array_len(request), 19);
+/// ```
+pub fn get_array_len(request: &[u8]) -> usize {
     let mut len = 0;
     match search_crlf(request) {
         Ok(crlf_pos) => {
@@ -289,8 +503,19 @@ fn get_array_len(request: &[u8]) -> usize {
     }
 }
 
-/// Returns length of bulkstring request
-fn get_bulkstring_len(request: &[u8]) -> usize {
+/// Devuelve la longitud de un bulk string.
+///
+/// Considera que el arreglo de bytes representa un bulk string.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "$9\r\nmymessage\r\n".as_bytes();
+/// assert_eq!(parser_service::get_bulkstring_len(request), 15);
+/// ```
+pub fn get_bulkstring_len(request: &[u8]) -> usize {
     let mut len = 0;
     match search_crlf(request) {
         Ok(crfl) => {
@@ -309,8 +534,19 @@ fn get_bulkstring_len(request: &[u8]) -> usize {
     }
 }
 
-/// Returns length of integer request
-fn get_integer_len(request: &[u8]) -> usize {
+/// Devuelve la longitud de un integer.
+///
+/// Considera que el arreglo de bytes representa un integer.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = ":9\r\n".as_bytes();
+/// assert_eq!(parser_service::get_integer_len(request), 4);
+/// ```
+pub fn get_integer_len(request: &[u8]) -> usize {
     let mut len = 0;
     match search_crlf(request) {
         Ok(crlf) => {
@@ -324,8 +560,22 @@ fn get_integer_len(request: &[u8]) -> usize {
     }
 }
 
-/// Returns length of string request (can be simple string or error request)
-fn get_string_len(request: &[u8]) -> usize {
+/// Devuelve la longitud de un string.
+///
+/// Considera que el arreglo de bytes representa un simple string o un error.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::parser_service;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+///
+/// let request = "+mymessage\r\n".as_bytes();
+/// assert_eq!(parser_service::get_string_len(request), 12);
+///
+/// let request = "-error\r\n".as_bytes();
+/// assert_eq!(parser_service::get_string_len(request), 8);
+/// ```
+pub fn get_string_len(request: &[u8]) -> usize {
     let mut len = 0;
     match search_crlf(request) {
         Ok(crlf) => {
