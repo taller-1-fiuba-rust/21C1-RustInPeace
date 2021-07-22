@@ -9,6 +9,7 @@ use std::fmt::{Display, Error, Formatter};
 /// * Error
 /// * Array
 /// * Integer
+///
 /// Además, admite valores nulos como una variación de bulk strings y arrays (Null bulk string y null array, respectivamente).
 #[derive(Debug, PartialEq, Clone)]
 pub enum RespType {

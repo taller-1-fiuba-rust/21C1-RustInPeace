@@ -20,37 +20,37 @@ use std::sync::{Arc, RwLock};
 /// 1. Se agregan dos valores a una `key`
 ///
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_set;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
-/// use std::collections::HashSet;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_set;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use std::collections::HashSet;
 ///
-/// let db = Database::new("dummy_db_add.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let db = Database::new("dummy_db_add.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
 /// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-/// ValueType::SetType(set),
-/// KeyAccessTime::Persistent
+///     ValueType::SetType(set),
+///     KeyAccessTime::Persistent
 /// ));
 ///
 /// let res = command_set::add(&vec![
-/// RespType::RBulkString("SADD".to_string()),
-/// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("frutillas".to_string()),
+///     RespType::RBulkString("SADD".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("frutillas".to_string()),
 /// ], &database);
 ///
-/// match res {
-/// RespType::RInteger(qty) => {
-/// assert_eq!(qty,1)
-///}
-/// _ => assert!(false)
-/// }
-/// let _ = std::fs::remove_file("dummy_db_add.csv");
+/// # match res {
+/// # RespType::RInteger(quantity) => {
+/// assert_eq!(quantity,1)
+/// # }
+/// # _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_add.csv");
 /// ```
 ///
 pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
@@ -98,15 +98,15 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_set;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
-/// use std::collections::HashSet;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_set;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_scard.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
@@ -117,9 +117,9 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ));
 ///
 /// let res = command_set::scard(&vec![
-/// RespType::RBulkString("SCARD".to_string()),
-/// RespType::RBulkString("frutas".to_string())],
-/// &database);
+///     RespType::RBulkString("SCARD".to_string()),
+///     RespType::RBulkString("frutas".to_string())],
+///     &database);
 ///
 /// assert_eq!(res, RespType::RInteger(3));
 /// # let _ = std::fs::remove_file("dummy_db_scard.csv");
@@ -141,15 +141,15 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_set;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
-/// use std::collections::HashSet;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_set;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_sismember.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
@@ -160,10 +160,10 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ));
 ///
 /// let res = command_set::sismember(&vec![
-/// RespType::RBulkString("SISMEMBER".to_string()),
-/// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("pomelo".to_string())],
-/// &database);
+///     RespType::RBulkString("SISMEMBER".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("pomelo".to_string())],
+///     &database);
 ///
 /// assert_eq!(res, RespType::RInteger(1));
 /// # let _ = std::fs::remove_file("dummy_db_sismember.csv");
@@ -186,15 +186,15 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 /// Si la clave no existe, o si la clave no almacena un valor de tipo SET, devuelve un array nulo.
 /// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_set;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
-/// use std::collections::HashSet;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_set;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_smembers.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
@@ -205,18 +205,18 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 /// ));
 ///
 /// let res = command_set::smembers(&vec![
-/// RespType::RBulkString("SMEMBERS".to_string()),
-/// RespType::RBulkString("frutas".to_string())],
-/// &database);
+///     RespType::RBulkString("SMEMBERS".to_string()),
+///     RespType::RBulkString("frutas".to_string())],
+///     &database);
 ///
-/// match res {
-/// RespType::RArray(array) => {
+/// # match res {
+/// # RespType::RArray(array) => {
 /// assert!(array.contains(&RespType::RBulkString("kiwi".to_string())));
 /// assert!(array.contains(&RespType::RBulkString("pomelo".to_string())));
 /// assert!(array.contains(&RespType::RBulkString("sandia".to_string())));
-///}
-/// _ => assert!(false)
-/// }
+///# }
+/// # _ => assert!(false)
+/// # }
 ///
 /// # let _ = std::fs::remove_file("dummy_db_smembers.csv");
 /// ```
@@ -244,15 +244,15 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 ///
 /// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_set;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
-/// use std::collections::HashSet;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_set;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_srem.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let mut database = Arc::new(RwLock::new(db));
 /// let mut set = HashSet::new();
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
@@ -263,11 +263,11 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// ));
 ///
 /// let res = command_set::srem(&vec![
-/// RespType::RBulkString("SREM".to_string()),
-/// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("sandia".to_string()),
-/// RespType::RBulkString("pomelo".to_string())],
-/// &database);
+///     RespType::RBulkString("SREM".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("sandia".to_string()),
+///     RespType::RBulkString("pomelo".to_string())],
+///     &database);
 ///
 /// assert_eq!(res, RespType::RInteger(2));
 /// # let _ = std::fs::remove_file("dummy_db_srem.csv");

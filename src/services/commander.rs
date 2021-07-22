@@ -51,7 +51,6 @@ use std::{
 /// * mset
 /// * subscribe
 /// * unsubscribe
-/// * punsubscribe
 /// * pubsub
 /// * publish
 /// * ttl
@@ -67,6 +66,7 @@ use std::{
 /// * sismember
 /// * smembers
 /// * srem
+///
 /// Devuelve un Option de tipo RespType con la respuesta que se le devolverá al cliente.
 ///
 /// # Ejemplo
@@ -74,12 +74,12 @@ use std::{
 /// let listener = TcpListener::bind(format!("{}:{}", dir, port)).unwrap();
 /// for stream in listener.incoming() {
 ///     let stream = stream.unwrap();
+///     let mut buf = [0u8; 512];
+///     let msg_len = stream.read(&mut buf).unwrap();
+///     let msg = &buf[..msg_len];
+///     let parsed_msg = parser_service::parse_request(msg).unwrap();
+///     commander::parser_service(parsed_msg, &server_sender, stream.peer_addrs().unwrap(), database, config, stream);
 /// }
-/// let mut buf = [0u8; 512];
-/// let msg_len = stream.read(&mut buf).unwrap();
-/// let msg = &buf[..msg_len];
-/// let parsed_msg = parser_service::parse_request(msg).unwrap();
-/// commander::parser_service(parsed_msg, &server_sender, stream.peer_addrs().unwrap(), database, config, stream);
 /// ```
 pub fn handle_command(
     operation: RespType,

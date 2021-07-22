@@ -532,15 +532,15 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// El patrón debe ser glob-style, por ejemplo:
 ///
-/// h?llo coincide con hello, hallo and hxllo
+/// h\?llo coincide con hello, hallo and hxllo
 ///
-/// h*llo coincide con hllo and heeeello
+/// h\*llo coincide con hllo and heeeello
 ///
-/// h[ae]llo coincide con hello and hallo, pero no con hillo
+/// h\[ae\]llo coincide con hello and hallo, pero no con hillo
 ///
-/// h[^e]llo coincide con hallo, hbllo, ... pero no con hello
+/// h\[\^e\]llo coincide con hallo, hbllo, ... pero no con hello
 ///
-/// h[a-b]llo coincide con hallo and hbllo
+/// h\[a-b\]llo coincide con hallo and hbllo
 ///
 /// Devuelve una lista con los claves que coinciden con el patrón.
 ///
@@ -707,6 +707,7 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos).
 ///
 /// En caso que no sea una clave volátil retorna -1. Si no existe la clave, retorna -2.
+/// # Ejemplo
 /// ```
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::services::commands::command_key;
@@ -755,6 +756,7 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Los tipos de datos posibles son: string, list y set.
 /// Si la clave no existe, devuelve none.
+/// # Ejemplo
 /// ```
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::services::commands::command_key;
