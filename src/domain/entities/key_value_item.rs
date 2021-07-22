@@ -294,135 +294,176 @@ impl ValueTimeItem {
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[test]
+fn test_001_key_value_item_string_created() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+
+    let kv_item = ValueTimeItem::new_now(
+        ValueType::StringType("un_string".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+
+    assert_eq!(kv_item.value.to_string(), "un_string");
+
+    match kv_item.timeout {
+        KeyAccessTime::Persistent => assert!(false),
+        KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
+    }
+    assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+}
+
+#[test]
+fn test_002_key_value_item_set_created() {
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
     use std::collections::HashSet;
 
-    #[test]
-    fn test_001_key_value_item_string_created() {
-        let kv_item = ValueTimeItem::new_now(
-            ValueType::StringType("un_string".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
+    let mut un_set = HashSet::new();
+    un_set.insert("un_set_string".to_string());
 
-        assert_eq!(kv_item.value.to_string(), "un_string");
+    let kv_item = ValueTimeItem::new_now(ValueType::SetType(un_set), KeyAccessTime::Volatile(0));
+    assert_eq!(kv_item.value.to_string(), "un_set_string");
 
-        match kv_item.timeout {
-            KeyAccessTime::Persistent => assert!(false),
-            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
-        }
-        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+    match kv_item.timeout {
+        KeyAccessTime::Persistent => assert!(false),
+        KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
     }
+    assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+}
 
-    #[test]
-    fn test_002_key_value_item_set_created() {
-        let mut un_set = HashSet::new();
-        un_set.insert("un_set_string".to_string());
+#[test]
+fn test_003_key_value_item_list_created() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 
-        let kv_item =
-            ValueTimeItem::new_now(ValueType::SetType(un_set), KeyAccessTime::Volatile(0));
-        assert_eq!(kv_item.value.to_string(), "un_set_string");
+    let mut un_list = Vec::new();
+    un_list.push("un_list_string".to_string());
+    un_list.push("otro_list_string".to_string());
 
-        match kv_item.timeout {
-            KeyAccessTime::Persistent => assert!(false),
-            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
-        }
-        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+    let kv_item = ValueTimeItem::new_now(ValueType::ListType(un_list), KeyAccessTime::Volatile(0));
+
+    assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
+
+    match kv_item.timeout {
+        KeyAccessTime::Persistent => assert!(false),
+        KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
     }
+    assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+}
 
-    #[test]
-    fn test_003_key_value_item_list_created() {
-        let mut un_list = Vec::new();
-        un_list.push("un_list_string".to_string());
-        un_list.push("otro_list_string".to_string());
+#[test]
+fn test_004_key_value_item_changes_to_persist() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 
-        let kv_item =
-            ValueTimeItem::new_now(ValueType::ListType(un_list), KeyAccessTime::Volatile(0));
+    let mut kv_item = ValueTimeItem::new_now(
+        ValueType::StringType("un_string".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
 
-        assert_eq!(kv_item.value.to_string(), "un_list_string,otro_list_string");
-
-        match kv_item.timeout {
-            KeyAccessTime::Persistent => assert!(false),
-            KeyAccessTime::Volatile(timeout) => assert_eq!(timeout, 0),
-        }
-        assert_eq!(kv_item.timeout.to_string(), "0".to_string());
+    let res = kv_item.make_persistent();
+    assert_eq!(res, true);
+    match kv_item.timeout {
+        KeyAccessTime::Volatile(_t) => assert!(false),
+        KeyAccessTime::Persistent => assert!(true),
     }
+    assert_eq!(kv_item.timeout.to_string(), "".to_string());
+}
 
-    #[test]
-    fn test_004_key_value_item_changes_to_persist() {
-        let mut kv_item = ValueTimeItem::new_now(
-            ValueType::StringType("un_string".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
+#[test]
+fn test_005_list_of_numbers_is_sorted_ascending() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 
-        let res = kv_item.make_persistent();
-        assert_eq!(res, true);
-        match kv_item.timeout {
-            KeyAccessTime::Volatile(_t) => assert!(false),
-            KeyAccessTime::Persistent => assert!(true),
-        }
-        assert_eq!(kv_item.timeout.to_string(), "".to_string());
-    }
+    let kv_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            20.to_string(),
+            65.to_string(),
+            1.to_string(),
+            34.to_string(),
+        ]),
+        KeyAccessTime::Volatile(0),
+    );
 
-    #[test]
-    fn test_005_list_of_numbers_is_sorted_ascending() {
-        let kv_item = ValueTimeItem::new_now(
-            ValueType::ListType(vec![
-                20.to_string(),
-                65.to_string(),
-                1.to_string(),
-                34.to_string(),
-            ]),
-            KeyAccessTime::Volatile(0),
-        );
+    let lista_ordenada = kv_item.sort().unwrap();
+    assert_eq!(
+        lista_ordenada,
+        vec![
+            &String::from("1"),
+            &String::from("20"),
+            &String::from("34"),
+            &String::from("65")
+        ]
+    );
+}
 
-        let lista_ordenada = kv_item.sort().unwrap();
-        println!("{:?}", lista_ordenada)
-    }
+#[test]
+fn test_006_list_of_numbers_is_sorted_descending() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 
-    #[test]
-    fn test_006_list_of_numbers_is_sorted_descending() {
-        let kv_item = ValueTimeItem::new_now(
-            ValueType::ListType(vec![
-                20.to_string(),
-                65.to_string(),
-                1.to_string(),
-                34.to_string(),
-            ]),
-            KeyAccessTime::Volatile(0),
-        );
-        let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
-        println!("{:?}", lista_ordenada_inversamente)
-    }
+    let kv_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            20.to_string(),
+            65.to_string(),
+            1.to_string(),
+            34.to_string(),
+        ]),
+        KeyAccessTime::Volatile(0),
+    );
+    let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+    assert_eq!(
+        lista_ordenada_inversamente,
+        vec![
+            &String::from("65"),
+            &String::from("34"),
+            &String::from("20"),
+            &String::from("1")
+        ]
+    );
+}
 
-    #[test]
-    fn test_007_list_of_words_is_sorted_inverse_abc() {
-        let kv_item = ValueTimeItem::new_now(
-            ValueType::ListType(vec![
-                "juan".to_string(),
-                "domingo".to_string(),
-                "irma".to_string(),
-                "dominga".to_string(),
-            ]),
-            KeyAccessTime::Volatile(0),
-        );
-        let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
-        println!("{:?}", lista_ordenada_inversamente)
-    }
+#[test]
+fn test_007_list_of_words_is_sorted_inverse_abc() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
 
-    #[test]
-    fn test_008_list_of_words_is_sorted_abc() {
-        let kv_item = ValueTimeItem::new_now(
-            ValueType::ListType(vec![
-                "juan".to_string(),
-                "domingo".to_string(),
-                "irma".to_string(),
-                "dominga".to_string(),
-            ]),
-            KeyAccessTime::Volatile(0),
-        );
-        let lista_ordenada = kv_item.sort().unwrap();
-        println!("{:?}", lista_ordenada)
-    }
+    let kv_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "juan".to_string(),
+            "domingo".to_string(),
+            "irma".to_string(),
+            "dominga".to_string(),
+        ]),
+        KeyAccessTime::Volatile(0),
+    );
+    let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+    assert_eq!(
+        lista_ordenada_inversamente,
+        vec![
+            &String::from("juan"),
+            &String::from("irma"),
+            &String::from("domingo"),
+            &String::from("dominga")
+        ]
+    )
+}
+
+#[test]
+fn test_008_list_of_words_is_sorted_abc() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+
+    let kv_item = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "juan".to_string(),
+            "domingo".to_string(),
+            "irma".to_string(),
+            "dominga".to_string(),
+        ]),
+        KeyAccessTime::Volatile(0),
+    );
+    let lista_ordenada = kv_item.sort().unwrap();
+    assert_eq!(
+        lista_ordenada,
+        vec![
+            &String::from("dominga"),
+            &String::from("domingo"),
+            &String::from("irma"),
+            &String::from("juan")
+        ]
+    );
 }

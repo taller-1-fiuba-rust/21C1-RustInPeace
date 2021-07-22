@@ -1,3 +1,5 @@
+//! Entidades involucradas durante la ejecución del servidor Redis.
+
 pub mod client;
 pub mod config;
 pub mod key_value_item;

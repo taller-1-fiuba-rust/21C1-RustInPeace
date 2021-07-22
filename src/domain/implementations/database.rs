@@ -1220,804 +1220,841 @@ impl Database {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[test]
+fn test_00_filter_keys_by_pattern() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy_00.txt"));
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_1".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_2".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_3".to_string()),
+        KeyAccessTime::Persistent,
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_4".to_string()),
+        KeyAccessTime::Persistent,
+    );
+
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("apples_weight".to_string(), vt_2);
+    db.items
+        .insert("deliciosos_kiwi_weight_baratos".to_string(), vt_3);
+    db.items.insert("banana_weight".to_string(), vt_4);
+
+    // db.get_values_of_external_keys_that_match_a_pattern("banana");
+    let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
+    assert_eq!(vec_filtered.len(), 4);
+    let _ = std::fs::remove_file("./src/dummy_00.txt");
+}
+
+#[test]
+fn test_01_empty_database_returns_cero() {
+    let db = Database {
+        dbfilename: "file".to_string(),
+        items: HashMap::new(),
+    };
+
+    assert_eq!(db.get_size(), 0);
+}
+
+#[test]
+fn test_02_database_copies_value_to_new_key() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy.txt"));
+    db.add(
+        "clave_1".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let source = String::from("clave_1");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+    let new_item = db.get_live_item("clone").unwrap();
+    if let ValueType::StringType(str) = new_item.get_value() {
+        assert_eq!(str, &String::from("valor_1"));
+    }
+    let _ = std::fs::remove_file("./src/dummy.txt");
+}
+
+#[test]
+fn test_03_database_copy_replaces_key_with_new_value() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy2.txt"));
+    db.add(
+        "clave_1".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("valor_1".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+    db.add(
+        "clave_2".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("valor_2".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let source = String::from("clave_1");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, false).unwrap(), ());
+
+    let new_item = db.get_live_item("clone").unwrap();
+    if let ValueType::StringType(str) = new_item.get_value() {
+        assert_eq!(str, &String::from("valor_1"));
+    }
+
+    let source = String::from("clave_2");
+    let destination = String::from("clone");
+    assert_eq!(db.copy(source, destination, true).unwrap(), ());
+
+    let new_item = db.get_live_item("clone").unwrap();
+    if let ValueType::StringType(str) = new_item.get_value() {
+        assert_eq!(str, &String::from("valor_2"));
+    }
+    let _ = std::fs::remove_file("./src/dummy2.txt");
+}
+
+#[test]
+fn test_04_clean_items_deletes_all_items() {
+    let mut db = Database::new(String::from("./src/database1.txt"));
+    db.clean_items();
+    assert_eq!(db.get_size(), 0);
+    std::fs::remove_file("./src/database1.txt").unwrap();
+}
+
+#[test]
+fn test_05_deletes_an_item_succesfully() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file2".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("apples_weight".to_string(), vt_2);
+
+    db.delete_key("apples_weight".to_string());
+
+    assert_eq!(db.get_size(), 1);
+    std::fs::remove_file("file2").unwrap();
+}
+
+#[test]
+fn test_06_persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_1".to_string()),
+        KeyAccessTime::Volatile(1825601548),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_2".to_string()),
+        KeyAccessTime::Volatile(1825601548),
+    );
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("apples_weight".to_string(), vt_2);
+    //--------
+    let _res = db.persist("weight_bananas".to_string());
+
+    let item = db.items.get(&"weight_bananas".to_string()).unwrap();
+    match *item.get_timeout() {
+        KeyAccessTime::Persistent => assert!(true),
+        KeyAccessTime::Volatile(_tmt) => assert!(false),
+    }
+
+    std::fs::remove_file("file").unwrap();
+}
+
+#[test]
+fn test_07_add_item() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database {
+        dbfilename: "file".to_string(),
+        items: HashMap::new(),
+    };
+    db.add(
+        String::from("nueva_key"),
+        ValueTimeItem::new_now(
+            ValueType::StringType(String::from("222")),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    assert_eq!(
+        db.items.get("nueva_key").unwrap().get_value().to_string(),
+        String::from("222")
+    );
+    assert_eq!(db.items.len(), 1)
+}
+
+#[test]
+fn test_08_delete_item() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database {
+        dbfilename: "file".to_string(),
+        items: HashMap::new(),
+    };
+    db.items.insert(
+        String::from("nueva_key"),
+        ValueTimeItem::new_now(
+            ValueType::StringType(String::from("222")),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    assert_eq!(db.items.len(), 1);
+    db.delete_key(String::from("nueva_key"));
+    assert_eq!(db.items.len(), 0);
+}
+
+#[test]
+fn test_09_filename_is_correct() {
+    let db = Database {
+        dbfilename: "file".to_string(),
+        items: HashMap::new(),
+    };
+    assert_eq!(db._get_filename(), "file".to_string());
+}
+
+#[test]
+fn test_10_load_items_from_file() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
+
+    let mut file = File::create("file_5".to_string()).expect("Unable to open");
+    file.write_all(b"124key;1623433670;1623433677;string;value2\n")
+        .unwrap();
+
+    let db = Database::new("file_5".to_string());
+    assert_eq!(db.items.len(), 1);
+    let mut iter = db.items.iter();
+    let kvi = iter.next().unwrap();
+
+    assert_eq!(kvi.0, "124key");
+    assert_eq!(kvi.1.get_value().to_string(), String::from("value2"));
+    match kvi.1.get_timeout() {
+        KeyAccessTime::Volatile(1623433677) => assert!(true),
+        _ => assert!(false),
+    }
+    let _ = std::fs::remove_file("file_5");
+}
+
+#[test]
+fn test_11_create_database_file() {
+    assert!(!std::path::Path::new("new_file").exists());
+    let _db = Database::new("new_file".to_string());
+    assert!(std::path::Path::new("new_file").exists());
+    let _ = std::fs::remove_file("new_file");
+}
+
+#[test]
+fn test_12_save_items_to_file() {
     use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
     use std::io::BufReader;
+
+    let mut db = Database::new("file".to_string());
+
+    let list = vec![
+        "un_item_string".to_string(),
+        "segundo_item_list_string".to_string(),
+    ];
+
+    db.items.insert(
+        "clave_2".to_string(),
+        ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Volatile(1231230)),
+    );
+    let last_access_time = db
+        .items
+        .get("clave_2")
+        .unwrap()
+        .get_last_access_time()
+        .to_string();
+
+    db.save_items_to_file();
+
+    let file = File::open(&db.dbfilename);
+    let reader = BufReader::new(file.unwrap());
+    let mut it = reader.lines();
+
+    let line_serialized = "clave_2;".to_owned()
+        + last_access_time.as_str()
+        + ";1231230;list;un_item_string,segundo_item_list_string";
+
+    match it.next().unwrap() {
+        Ok(t) => assert_eq!(t, line_serialized),
+        _ => assert!(false),
+    }
+
+    let _ = std::fs::remove_file("file");
+}
+
+#[test]
+fn test_13_size_in_memory_is_correct() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file1".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("valor_2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("apples_weight".to_string(), vt_2);
+    std::fs::remove_file("file1").unwrap();
+}
+
+#[test]
+fn test_14_persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy_persist.txt"));
+    let _res = db.items.insert(
+        "clave_1".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("value".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let item = db.items.get("clave_1").unwrap();
+    match *item.get_timeout() {
+        KeyAccessTime::Persistent => assert!(true),
+        KeyAccessTime::Volatile(_tmt) => assert!(false),
+    }
+    std::fs::remove_file("./src/dummy_persist.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_15_append_adds_string_to_end_of_existing_value() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
+    let _res = db.items.insert(
+        "mykey".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("Hello".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 11);
+    std::fs::remove_file("./src/dummy_appends_2.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_16_append_adds_string_to_new_value() {
+    let mut db = Database::new(String::from("./src/dummy_appends_1.txt"));
+
+    let len = db.append_string(&"mykey".to_string(), &" World".to_string());
+    assert_eq!(len, 6);
+    std::fs::remove_file("./src/dummy_appends_1.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_17_decr_key_to_existing_key() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
+    let _res = db.items.insert(
+        "mykey".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("10".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, 7);
+    std::fs::remove_file("./src/dummy_decr_1.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_18_decr_by_to_new_key() {
+    let mut db = Database::new(String::from("./src/dummy_decr.txt"));
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
+    assert_eq!(res, -3);
+    std::fs::remove_file("./src/dummy_decr.txt".to_string()).unwrap();
+}
+
+#[test]
+fn test_19_decr_by_to_invalid_string_value() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
+    let _res = db.items.insert(
+        "mykey".to_string(),
+        ValueTimeItem::new_now(
+            ValueType::StringType("Hello".to_string()),
+            KeyAccessTime::Persistent,
+        ),
+    );
+
+    let res = db.decrement_key_by(&"mykey".to_string(), 3);
+    assert!(res.is_err());
+    let _ = std::fs::remove_file("./src/dummy_decr_2.txt".to_string());
+}
+
+#[test]
+fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file10".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("weight_bananas".to_string(), vt_1);
+    db.items.insert("weight_apples".to_string(), vt_2);
+    db.items.insert("weight_kiwi".to_string(), vt_3);
+    db.items.insert("weight_pear".to_string(), vt_4);
+
+    let pat = "weight_";
+    let vec_strings = vec![
+        "sandia".to_string(),
+        "pear".to_string(),
+        "apples".to_string(),
+    ];
+    let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
+    let algo = tuplas.unwrap();
+    println!("{:?}", algo);
+    let _removed = std::fs::remove_file("file10".to_string());
+}
+
+#[test]
+fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file11".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_5 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_6 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_7 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_8 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("pablo".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("mariano".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m?riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+    let _removed = std::fs::remove_file("file11".to_string());
+}
+
+#[test]
+fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file12".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_5 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_6 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_7 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_8 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m[ae]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+    let _removed = std::fs::remove_file("file12".to_string());
+}
+
+#[test]
+fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file13".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_5 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_6 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_7 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_8 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("lucia".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("luciana".to_string(), vt_8);
+
+    let pat = "m[^a]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+    let _removed = std::fs::remove_file("file13".to_string());
+}
+
+#[test]
+fn test_24_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file14".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_5 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_6 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_7 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_8 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("juan".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("muriana".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("moriana".to_string(), vt_8);
+
+    let pat = "m[a-o]riana";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+    let _ = std::fs::remove_file("file14".to_string());
+}
+
+#[test]
+fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file15".to_string());
+
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_2 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_3 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_4 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_5 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_6 = ValueTimeItem::new_now(
+        ValueType::StringType("2".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_7 = ValueTimeItem::new_now(
+        ValueType::StringType("11".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    let vt_8 = ValueTimeItem::new_now(
+        ValueType::StringType("5".to_string()),
+        KeyAccessTime::Volatile(0),
+    );
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("jose".to_string(), vt_2);
+    db.items.insert("mariana".to_string(), vt_3);
+    db.items.insert("pedro".to_string(), vt_4);
+    db.items.insert("malala".to_string(), vt_5);
+    db.items.insert("meriana".to_string(), vt_6);
+    db.items.insert("miriana".to_string(), vt_7);
+    db.items.insert("moriana".to_string(), vt_8);
+
+    let pat = "m*a";
+    let matching_keys = db.get_keys_that_match_pattern(pat);
+    for key in matching_keys {
+        println!("{:?}", key)
+    }
+    let _ = std::fs::remove_file("file15".to_string());
+}
+
+#[test]
+fn test_26_expire_key() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
     use std::time::SystemTime;
 
-    #[test]
-    fn test_00_filter_keys_by_pattern() {
-        let mut db = Database::new(String::from("./src/dummy_00.txt"));
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Persistent,
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Persistent,
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_3".to_string()),
-            KeyAccessTime::Persistent,
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_4".to_string()),
-            KeyAccessTime::Persistent,
-        );
-
-        db.items.insert("weight_bananas".to_string(), vt_1);
-        db.items.insert("apples_weight".to_string(), vt_2);
-        db.items
-            .insert("deliciosos_kiwi_weight_baratos".to_string(), vt_3);
-        db.items.insert("banana_weight".to_string(), vt_4);
-
-        // db.get_values_of_external_keys_that_match_a_pattern("banana");
-        let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
-        assert_eq!(vec_filtered.len(), 4);
-        let _ = std::fs::remove_file("./src/dummy_00.txt");
-    }
-
-    #[test]
-    fn test_01_empty_database_returns_cero() {
-        let db = Database {
-            dbfilename: "file".to_string(),
-            items: HashMap::new(),
-        };
-
-        assert_eq!(db.get_size(), 0);
-    }
-
-    #[test]
-    fn test_02_database_copies_value_to_new_key() {
-        let mut db = Database::new(String::from("./src/dummy.txt"));
-        db.add(
-            "clave_1".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("valor_1".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        let source = String::from("clave_1");
-        let destination = String::from("clone");
-        assert_eq!(db.copy(source, destination, false).unwrap(), ());
-
-        let new_item = db.get_live_item("clone").unwrap();
-        if let ValueType::StringType(str) = new_item.get_value() {
-            assert_eq!(str, &String::from("valor_1"));
+    let mut db = Database::new("file100".to_string());
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(1825601548),
+    );
+    db.items.insert("key123".to_string(), vt_1);
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
+    let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
+    db.expire_key("key123", &new_timeout.to_string());
+    let new_item = db.items.get("key123");
+    match new_item {
+        Some(vti) => {
+            assert_eq!(vti.get_timeout().to_string(), new_timeout.to_string());
         }
-        let _ = std::fs::remove_file("./src/dummy.txt");
+        None => assert!(false),
+    }
+    let _ = std::fs::remove_file("file100".to_string());
+}
+
+#[test]
+fn test_22_reboot_time() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+    use std::time::SystemTime;
+
+    let mut db = Database::new("file022a".to_string());
+    let vt_1 = ValueTimeItem::new(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(1925583652),
+        u64::from_str("1211111").unwrap(),
+    );
+    db.items.insert("key123".to_string(), vt_1);
+    let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
+    assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    if let Some(vti) = db.reboot_time("key123".to_string()) {
+        assert!(vti.get_last_access_time().ge(&now));
+    } else {
+        assert!(false)
     }
 
-    #[test]
-    fn test_03_database_copy_replaces_key_with_new_value() {
-        let mut db = Database::new(String::from("./src/dummy2.txt"));
-        db.add(
-            "clave_1".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("valor_1".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-        db.add(
-            "clave_2".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("valor_2".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
+    let _ = std::fs::remove_file("file022a".to_string());
+}
+#[test]
+fn test_22_reboot_time_expired() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
 
-        let source = String::from("clave_1");
-        let destination = String::from("clone");
-        assert_eq!(db.copy(source, destination, false).unwrap(), ());
+    let mut db = Database::new("file022b".to_string());
+    let vt_1 = ValueTimeItem::new(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(12123120),
+        u64::from_str("1211111").unwrap(),
+    );
+    db.items.insert("key123".to_string(), vt_1);
+    let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
+    assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
 
-        let new_item = db.get_live_item("clone").unwrap();
-        if let ValueType::StringType(str) = new_item.get_value() {
-            assert_eq!(str, &String::from("valor_1"));
-        }
-
-        let source = String::from("clave_2");
-        let destination = String::from("clone");
-        assert_eq!(db.copy(source, destination, true).unwrap(), ());
-
-        let new_item = db.get_live_item("clone").unwrap();
-        if let ValueType::StringType(str) = new_item.get_value() {
-            assert_eq!(str, &String::from("valor_2"));
-        }
-        let _ = std::fs::remove_file("./src/dummy2.txt");
+    if let None = db.reboot_time("key123".to_string()) {
+        assert!(true)
+    } else {
+        assert!(false)
     }
 
-    #[test]
-    fn test_04_clean_items_deletes_all_items() {
-        let mut db = Database::new(String::from("./src/database1.txt"));
-        db.clean_items();
-        assert_eq!(db.get_size(), 0);
-        std::fs::remove_file("./src/database1.txt").unwrap();
+    let _ = std::fs::remove_file("file022b".to_string());
+}
+
+#[test]
+fn test_23_expired_passive_keys() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
+
+    let mut db = Database::new("file023".to_string());
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(1625326138),
+    );
+    db.items.insert("key123".to_string(), vt_1);
+
+    assert!(db.items.get("key123").is_some());
+    let item_expired = db.get_live_item(&"key123".to_string());
+    match item_expired {
+        Some(_) => assert!(false),
+        None => assert!(true),
     }
+    assert!(db.items.get("key123").is_none());
+    let _ = std::fs::remove_file("file023".to_string());
+}
 
-    #[test]
-    fn test_05_deletes_an_item_succesfully() {
-        let mut db = Database::new("file2".to_string());
+#[test]
+fn test_24_retrieve_live_keys() {
+    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
 
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("weight_bananas".to_string(), vt_1);
-        db.items.insert("apples_weight".to_string(), vt_2);
+    let mut db = Database::new("file024".to_string());
+    let vt_1 = ValueTimeItem::new_now(
+        ValueType::StringType("1".to_string()),
+        KeyAccessTime::Volatile(1665326138),
+    );
+    db.items.insert("key123".to_string(), vt_1);
 
-        db.delete_key("apples_weight".to_string());
-
-        assert_eq!(db.get_size(), 1);
-        std::fs::remove_file("file2").unwrap();
+    assert!(db.items.get("key123").is_some());
+    let item_expired = db.get_live_item(&"key123".to_string());
+    match item_expired {
+        Some(_) => assert!(true),
+        None => assert!(false),
     }
-
-    #[test]
-    fn test_06_persist_changes_type_of_access_time() {
-        use crate::domain::entities::key_value_item::KeyAccessTime;
-        let mut db = Database::new("file".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(1825601548),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(1825601548),
-        );
-        db.items.insert("weight_bananas".to_string(), vt_1);
-        db.items.insert("apples_weight".to_string(), vt_2);
-        //--------
-        let _res = db.persist("weight_bananas".to_string());
-
-        let item = db.items.get(&"weight_bananas".to_string()).unwrap();
-        match *item.get_timeout() {
-            KeyAccessTime::Persistent => assert!(true),
-            KeyAccessTime::Volatile(_tmt) => assert!(false),
-        }
-
-        std::fs::remove_file("file").unwrap();
-    }
-
-    #[test]
-    fn test_07_add_item() {
-        let mut db = Database {
-            dbfilename: "file".to_string(),
-            items: HashMap::new(),
-        };
-        db.add(
-            String::from("nueva_key"),
-            ValueTimeItem::new_now(
-                ValueType::StringType(String::from("222")),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        assert_eq!(
-            db.items.get("nueva_key").unwrap().get_value().to_string(),
-            String::from("222")
-        );
-        assert_eq!(db.items.len(), 1)
-    }
-
-    #[test]
-    fn test_08_delete_item() {
-        let mut db = Database {
-            dbfilename: "file".to_string(),
-            items: HashMap::new(),
-        };
-        db.items.insert(
-            String::from("nueva_key"),
-            ValueTimeItem::new_now(
-                ValueType::StringType(String::from("222")),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        assert_eq!(db.items.len(), 1);
-        db.delete_key(String::from("nueva_key"));
-        assert_eq!(db.items.len(), 0);
-    }
-
-    #[test]
-    fn test_09_filename_is_correct() {
-        let db = Database {
-            dbfilename: "file".to_string(),
-            items: HashMap::new(),
-        };
-        assert_eq!(db._get_filename(), "file".to_string());
-    }
-
-    #[test]
-    fn test_10_load_items_from_file() {
-        let mut file = File::create("file_5".to_string()).expect("Unable to open");
-        file.write_all(b"124key;1623433670;1623433677;string;value2\n")
-            .unwrap();
-
-        let db = Database::new("file_5".to_string());
-        assert_eq!(db.items.len(), 1);
-        let mut iter = db.items.iter();
-        let kvi = iter.next().unwrap();
-
-        assert_eq!(kvi.0, "124key");
-        assert_eq!(kvi.1.get_value().to_string(), String::from("value2"));
-        match kvi.1.get_timeout() {
-            KeyAccessTime::Volatile(1623433677) => assert!(true),
-            _ => assert!(false),
-        }
-        let _ = std::fs::remove_file("file_5");
-    }
-
-    #[test]
-    fn test_11_create_database_file() {
-        assert!(!std::path::Path::new("new_file").exists());
-        let _db = Database::new("new_file".to_string());
-        assert!(std::path::Path::new("new_file").exists());
-        let _ = std::fs::remove_file("new_file");
-    }
-
-    #[test]
-    fn test_12_save_items_to_file() {
-        let mut db = Database::new("file".to_string());
-
-        let list = vec![
-            "un_item_string".to_string(),
-            "segundo_item_list_string".to_string(),
-        ];
-
-        db.items.insert(
-            "clave_2".to_string(),
-            ValueTimeItem::new_now(ValueType::ListType(list), KeyAccessTime::Volatile(1231230)),
-        );
-        let last_access_time = db
-            .items
-            .get("clave_2")
-            .unwrap()
-            .get_last_access_time()
-            .to_string();
-
-        db.save_items_to_file();
-
-        let file = File::open(&db.dbfilename);
-        let reader = BufReader::new(file.unwrap());
-        let mut it = reader.lines();
-
-        let line_serialized = "clave_2;".to_owned()
-            + last_access_time.as_str()
-            + ";1231230;list;un_item_string,segundo_item_list_string";
-
-        match it.next().unwrap() {
-            Ok(t) => assert_eq!(t, line_serialized),
-            _ => assert!(false),
-        }
-
-        let _ = std::fs::remove_file("file");
-    }
-
-    #[test]
-    fn test_13_size_in_memory_is_correct() {
-        let mut db = Database::new("file1".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("valor_2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("weight_bananas".to_string(), vt_1);
-        db.items.insert("apples_weight".to_string(), vt_2);
-        std::fs::remove_file("file1").unwrap();
-    }
-
-    #[test]
-    fn test_14_persist_changes_type_of_access_time() {
-        use crate::domain::entities::key_value_item::KeyAccessTime;
-        let mut db = Database::new(String::from("./src/dummy_persist.txt"));
-        let _res = db.items.insert(
-            "clave_1".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("value".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        let item = db.items.get("clave_1").unwrap();
-        match *item.get_timeout() {
-            KeyAccessTime::Persistent => assert!(true),
-            KeyAccessTime::Volatile(_tmt) => assert!(false),
-        }
-        std::fs::remove_file("./src/dummy_persist.txt".to_string()).unwrap();
-    }
-
-    #[test]
-    fn test_15_append_adds_string_to_end_of_existing_value() {
-        let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
-        let _res = db.items.insert(
-            "mykey".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("Hello".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        let len = db.append_string(&"mykey".to_string(), &" World".to_string());
-        assert_eq!(len, 11);
-        std::fs::remove_file("./src/dummy_appends_2.txt".to_string()).unwrap();
-    }
-
-    #[test]
-    fn test_16_append_adds_string_to_new_value() {
-        let mut db = Database::new(String::from("./src/dummy_appends_1.txt"));
-
-        let len = db.append_string(&"mykey".to_string(), &" World".to_string());
-        assert_eq!(len, 6);
-        std::fs::remove_file("./src/dummy_appends_1.txt".to_string()).unwrap();
-    }
-
-    #[test]
-    fn test_17_decr_key_to_existing_key() {
-        let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
-        let _res = db.items.insert(
-            "mykey".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("10".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
-        assert_eq!(res, 7);
-        std::fs::remove_file("./src/dummy_decr_1.txt".to_string()).unwrap();
-    }
-
-    #[test]
-    fn test_18_decr_by_to_new_key() {
-        let mut db = Database::new(String::from("./src/dummy_decr.txt"));
-
-        let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
-        assert_eq!(res, -3);
-        std::fs::remove_file("./src/dummy_decr.txt".to_string()).unwrap();
-    }
-
-    #[test]
-    fn test_19_decr_by_to_invalid_string_value() {
-        let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
-        let _res = db.items.insert(
-            "mykey".to_string(),
-            ValueTimeItem::new_now(
-                ValueType::StringType("Hello".to_string()),
-                KeyAccessTime::Persistent,
-            ),
-        );
-
-        let res = db.decrement_key_by(&"mykey".to_string(), 3);
-        assert!(res.is_err());
-        let _ = std::fs::remove_file("./src/dummy_decr_2.txt".to_string());
-    }
-
-    #[test]
-    fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos(
-    ) {
-        let mut db = Database::new("file10".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("weight_bananas".to_string(), vt_1);
-        db.items.insert("weight_apples".to_string(), vt_2);
-        db.items.insert("weight_kiwi".to_string(), vt_3);
-        db.items.insert("weight_pear".to_string(), vt_4);
-
-        let pat = "weight_";
-        let vec_strings = vec![
-            "sandia".to_string(),
-            "pear".to_string(),
-            "apples".to_string(),
-        ];
-        let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
-        let algo = tuplas.unwrap();
-        println!("{:?}", algo);
-        let _removed = std::fs::remove_file("file10".to_string());
-    }
-
-    #[test]
-    fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
-        let mut db = Database::new("file11".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_5 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_6 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_7 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_8 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("pablo".to_string(), vt_1);
-        db.items.insert("juan".to_string(), vt_2);
-        db.items.insert("mariana".to_string(), vt_3);
-        db.items.insert("lucia".to_string(), vt_4);
-        db.items.insert("mariano".to_string(), vt_5);
-        db.items.insert("meriana".to_string(), vt_6);
-        db.items.insert("miriana".to_string(), vt_7);
-        db.items.insert("luciana".to_string(), vt_8);
-
-        let pat = "m?riana";
-        let matching_keys = db.get_keys_that_match_pattern(pat);
-        //let algo = tuplas.unwrap();
-        for key in matching_keys {
-            println!("{:?}", key)
-        }
-        let _removed = std::fs::remove_file("file11".to_string());
-    }
-
-    #[test]
-    fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
-        let mut db = Database::new("file12".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_5 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_6 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_7 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_8 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("mia".to_string(), vt_1);
-        db.items.insert("juan".to_string(), vt_2);
-        db.items.insert("mariana".to_string(), vt_3);
-        db.items.insert("lucia".to_string(), vt_4);
-        db.items.insert("malala".to_string(), vt_5);
-        db.items.insert("meriana".to_string(), vt_6);
-        db.items.insert("miriana".to_string(), vt_7);
-        db.items.insert("luciana".to_string(), vt_8);
-
-        let pat = "m[ae]riana";
-        let matching_keys = db.get_keys_that_match_pattern(pat);
-        //let algo = tuplas.unwrap();
-        for key in matching_keys {
-            println!("{:?}", key)
-        }
-        let _removed = std::fs::remove_file("file12".to_string());
-    }
-
-    #[test]
-    fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
-        let mut db = Database::new("file13".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_5 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_6 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_7 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_8 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("mia".to_string(), vt_1);
-        db.items.insert("juan".to_string(), vt_2);
-        db.items.insert("mariana".to_string(), vt_3);
-        db.items.insert("lucia".to_string(), vt_4);
-        db.items.insert("malala".to_string(), vt_5);
-        db.items.insert("meriana".to_string(), vt_6);
-        db.items.insert("miriana".to_string(), vt_7);
-        db.items.insert("luciana".to_string(), vt_8);
-
-        let pat = "m[^a]riana";
-        let matching_keys = db.get_keys_that_match_pattern(pat);
-        //let algo = tuplas.unwrap();
-        for key in matching_keys {
-            println!("{:?}", key)
-        }
-        let _removed = std::fs::remove_file("file13".to_string());
-    }
-
-    #[test]
-    fn test_24_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango(
-    ) {
-        let mut db = Database::new("file14".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_5 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_6 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_7 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_8 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("mia".to_string(), vt_1);
-        db.items.insert("juan".to_string(), vt_2);
-        db.items.insert("mariana".to_string(), vt_3);
-        db.items.insert("muriana".to_string(), vt_4);
-        db.items.insert("malala".to_string(), vt_5);
-        db.items.insert("meriana".to_string(), vt_6);
-        db.items.insert("miriana".to_string(), vt_7);
-        db.items.insert("moriana".to_string(), vt_8);
-
-        let pat = "m[a-o]riana";
-        let matching_keys = db.get_keys_that_match_pattern(pat);
-        //let algo = tuplas.unwrap();
-        for key in matching_keys {
-            println!("{:?}", key)
-        }
-        let _ = std::fs::remove_file("file14".to_string());
-    }
-
-    #[test]
-    fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
-        let mut db = Database::new("file15".to_string());
-
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_2 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_3 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_4 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_5 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_6 = ValueTimeItem::new_now(
-            ValueType::StringType("2".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_7 = ValueTimeItem::new_now(
-            ValueType::StringType("11".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        let vt_8 = ValueTimeItem::new_now(
-            ValueType::StringType("5".to_string()),
-            KeyAccessTime::Volatile(0),
-        );
-        db.items.insert("mia".to_string(), vt_1);
-        db.items.insert("jose".to_string(), vt_2);
-        db.items.insert("mariana".to_string(), vt_3);
-        db.items.insert("pedro".to_string(), vt_4);
-        db.items.insert("malala".to_string(), vt_5);
-        db.items.insert("meriana".to_string(), vt_6);
-        db.items.insert("miriana".to_string(), vt_7);
-        db.items.insert("moriana".to_string(), vt_8);
-
-        let pat = "m*a";
-        let matching_keys = db.get_keys_that_match_pattern(pat);
-        //let algo = tuplas.unwrap();
-        for key in matching_keys {
-            println!("{:?}", key)
-        }
-        let _ = std::fs::remove_file("file15".to_string());
-    }
-
-    #[test]
-    fn test_26_expire_key() {
-        let mut db = Database::new("file100".to_string());
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1825601548),
-        );
-        db.items.insert("key123".to_string(), vt_1);
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap();
-        let new_timeout = u64::from_str("10").unwrap() + now.as_secs();
-        db.expire_key("key123", &new_timeout.to_string());
-        let new_item = db.items.get("key123");
-        match new_item {
-            Some(vti) => {
-                assert_eq!(vti.get_timeout().to_string(), new_timeout.to_string());
-            }
-            None => assert!(false),
-        }
-        let _ = std::fs::remove_file("file100".to_string());
-    }
-
-    #[test]
-    fn test_22_reboot_time() {
-        let mut db = Database::new("file022a".to_string());
-        let vt_1 = ValueTimeItem::new(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1925583652),
-            u64::from_str("1211111").unwrap(),
-        );
-        db.items.insert("key123".to_string(), vt_1);
-        let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
-        assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        if let Some(vti) = db.reboot_time("key123".to_string()) {
-            assert!(vti.get_last_access_time().ge(&now));
-        } else {
-            assert!(false)
-        }
-
-        let _ = std::fs::remove_file("file022a".to_string());
-    }
-    #[test]
-    fn test_22_reboot_time_expired() {
-        let mut db = Database::new("file022b".to_string());
-        let vt_1 = ValueTimeItem::new(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(12123120),
-            u64::from_str("1211111").unwrap(),
-        );
-        db.items.insert("key123".to_string(), vt_1);
-        let old_access_time = db.items.get("key123").unwrap().get_last_access_time();
-        assert_eq!(old_access_time, &u64::from_str("1211111").unwrap());
-
-        if let None = db.reboot_time("key123".to_string()) {
-            assert!(true)
-        } else {
-            assert!(false)
-        }
-
-        let _ = std::fs::remove_file("file022b".to_string());
-    }
-
-    #[test]
-    fn test_23_expired_passive_keys() {
-        let mut db = Database::new("file023".to_string());
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1625326138),
-        );
-        db.items.insert("key123".to_string(), vt_1);
-
-        assert!(db.items.get("key123").is_some());
-        let item_expired = db.get_live_item(&"key123".to_string());
-        match item_expired {
-            Some(_) => assert!(false),
-            None => assert!(true),
-        }
-        assert!(db.items.get("key123").is_none());
-        let _ = std::fs::remove_file("file023".to_string());
-    }
-
-    #[test]
-    fn test_24_retrieve_live_keys() {
-        let mut db = Database::new("file024".to_string());
-        let vt_1 = ValueTimeItem::new_now(
-            ValueType::StringType("1".to_string()),
-            KeyAccessTime::Volatile(1665326138),
-        );
-        db.items.insert("key123".to_string(), vt_1);
-
-        assert!(db.items.get("key123").is_some());
-        let item_expired = db.get_live_item(&"key123".to_string());
-        match item_expired {
-            Some(_) => assert!(true),
-            None => assert!(false),
-        }
-        assert!(db.items.get("key123").is_some());
-        let _ = std::fs::remove_file("file024".to_string());
-    }
+    assert!(db.items.get("key123").is_some());
+    let _ = std::fs::remove_file("file024".to_string());
 }
 
 #[test]
