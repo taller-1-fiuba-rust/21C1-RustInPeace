@@ -9,7 +9,7 @@ use proyecto_taller_1::{
         },
         implementations::database::Database,
     },
-    services::{server_service, worker_service::ThreadPool},
+    services::{server_service, utils::resp_type::RespType, worker_service::ThreadPool},
 };
 use redis::RedisError;
 
@@ -239,51 +239,6 @@ fn test_main() {
     );
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
 
-    let added_item_list_30 = ValueTimeItem::new_now(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "dog".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ]),
-        KeyAccessTime::Persistent,
-    );
-    database.add(String::from("love_the_dog"), added_item_list_30);
-
-    let added_item_list_31 = ValueTimeItem::new_now(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "cat".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ]),
-        KeyAccessTime::Persistent,
-    );
-    database.add(String::from("love_the_cat"), added_item_list_31);
-
-    let added_item_list_32 = ValueTimeItem::new_now(
-        ValueType::ListType(vec![
-            "my".to_string(),
-            "bunny".to_string(),
-            "my".to_string(),
-            "friend".to_string(),
-            "my".to_string(),
-            "family".to_string(),
-            "my".to_string(),
-            "dear".to_string(),
-        ]),
-        KeyAccessTime::Persistent,
-    );
-    database.add(String::from("love_the_bunny"), added_item_list_32);
-
     let added_item_22 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "argentina".to_string(),
@@ -331,20 +286,6 @@ fn test_main() {
     let mut set = HashSet::new();
     set.insert("value_1".to_string());
     set.insert("value_2".to_string());
-    let added_item_set_1 =
-        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_values_1"), added_item_set_1);
-
-    let mut set = HashSet::new();
-    set.insert("value_1".to_string());
-    set.insert("value_2".to_string());
-    let added_item_set_2 =
-        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
-    database.add(String::from("set_values_2"), added_item_set_2);
-
-    let mut set = HashSet::new();
-    set.insert("value_1".to_string());
-    set.insert("value_2".to_string());
     set.insert("value_3".to_string());
     let added_item_list_26 =
         ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
@@ -371,19 +312,78 @@ fn test_main() {
     );
     database.add(String::from("set_remove_4"), added_item_list_29);
 
+    let added_item_list_30 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "dog".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_dog"), added_item_list_30);
+
+    let added_item_list_31 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "cat".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_cat"), added_item_list_31);
+
+    let added_item_list_32 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "my".to_string(),
+            "bunny".to_string(),
+            "my".to_string(),
+            "friend".to_string(),
+            "my".to_string(),
+            "family".to_string(),
+            "my".to_string(),
+            "dear".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("love_the_bunny"), added_item_list_32);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_set_1 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_values_1"), added_item_set_1);
+
+    let mut set = HashSet::new();
+    set.insert("value_1".to_string());
+    set.insert("value_2".to_string());
+    let added_item_set_2 =
+        ValueTimeItem::new_now(ValueType::SetType(set), KeyAccessTime::Persistent);
+    database.add(String::from("set_values_2"), added_item_set_2);
+
     let added_persistent = ValueTimeItem::new_now(
         ValueType::StringType("persistente".to_string()),
         KeyAccessTime::Persistent,
     );
     database.add(String::from("persistente"), added_persistent);
 
-    let added_item_30 = ValueTimeItem::new_now(
+    let added_item_33 = ValueTimeItem::new_now(
         ValueType::ListType(vec!["chocolate".to_string(), "frutilla".to_string()]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("sabores"), added_item_30);
+    database.add(String::from("sabores"), added_item_33);
 
-    let added_item_31 = ValueTimeItem::new_now(
+    let added_item_34 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "baldur".to_string(),
             "odin".to_string(),
@@ -392,9 +392,9 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("norse_gods"), added_item_31);
+    database.add(String::from("norse_gods"), added_item_34);
 
-    let added_item_32 = ValueTimeItem::new_now(
+    let added_item_35 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "hera".to_string(),
             "afrodita".to_string(),
@@ -403,9 +403,9 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("greek_gods"), added_item_32);
+    database.add(String::from("greek_gods"), added_item_35);
 
-    let added_item_33 = ValueTimeItem::new_now(
+    let added_item_36 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "isis".to_string(),
             "osiris".to_string(),
@@ -414,9 +414,9 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("egyptian_gods"), added_item_33);
+    database.add(String::from("egyptian_gods"), added_item_36);
 
-    let added_item_34 = ValueTimeItem::new_now(
+    let added_item_37 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "pineapple_1".to_string(),
             "pineapple_2".to_string(),
@@ -425,9 +425,9 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("pineapple_mascots"), added_item_34);
+    database.add(String::from("pineapple_mascots"), added_item_37);
 
-    let added_item_35 = ValueTimeItem::new_now(
+    let added_item_38 = ValueTimeItem::new_now(
         ValueType::ListType(vec![
             "banana_1".to_string(),
             "banana_2".to_string(),
@@ -436,7 +436,33 @@ fn test_main() {
         ]),
         KeyAccessTime::Persistent,
     );
-    database.add(String::from("banana_mascots"), added_item_35);
+    database.add(String::from("banana_mascots"), added_item_38);
+
+    let added_item_39 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "borussia".to_string(),
+            "werder".to_string(),
+            "bayer".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("equipos_de_la_bundesliga"), added_item_39);
+
+    let added_item_40 = ValueTimeItem::new_now(
+        ValueType::ListType(vec![
+            "chocolate a la leche condensada".to_string(),
+            "chocolate werder".to_string(),
+            "chocolate aires del Huapi".to_string(),
+        ]),
+        KeyAccessTime::Persistent,
+    );
+    database.add(String::from("sabores_de_chocolate"), added_item_40);
+
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
 
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
@@ -631,19 +657,17 @@ const TESTS: &[Test] = &[
         name: "string command: set mykeyset setvalue",
         func: test_string_set,
     },
-    //ESTOY ACA************************************
-
     Test {
-        name: "list command: push values into key - list type",
-        func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
+        name: "list command: lpush values into key - list type",
+        func: test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente,
     },
     Test {
-        name: "list command: push values into existing key - list type",
-        func: test_se_guardan_valores_en_una_lista_ya_existente,
+        name: "list command: lpush values into existing key - list type",
+        func: test_lpush_se_guardan_valores_en_una_lista_ya_existente,
     },
     Test {
-        name: "list command: cannot push values into existing non-list type key",
-        func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
+        name: "list command: cannot lpush values into existing non-list type key",
+        func: test_lpush_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
         name: "list command: get lenght of existing list",
@@ -658,12 +682,16 @@ const TESTS: &[Test] = &[
         func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
-        name: "list command: pushx values into key - list type",
-        func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
+        name: "list command: lpushx values into key - list type",
+        func: test_se_lpushx_valores_en_una_lista_ya_existente,
     },
     Test {
-        name: "list command: cannot pushx values into non_existing key",
-        func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
+        name: "list command: cannot lpushx values into non_existing key",
+        func: test_no_se_lpushx_valores_en_una_lista_no_existente,
+    },
+    Test {
+        name: "list command: cannot lpushx values into existing non-list type key",
+        func: test_lpushx_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
         name: "list command: lrange return value especified by lower and upper bounds",
@@ -701,8 +729,6 @@ const TESTS: &[Test] = &[
         name: "list command: lrem returns 0 as key does not exists",
         func: test_se_devuelve_cero_si_se_busca_remover_un_valor_cuya_clave_no_existe,
     },
-    // *****************************************************************
-
     Test {
         name: "list command: lindex",
         func: test_list_index,
@@ -747,7 +773,6 @@ const TESTS: &[Test] = &[
         name: "list command: lpop (with count arg) return less elements than count as count is greater than list size",
         func: test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len,
     },
-///////////////////////////////////////////////////////////////////////////       
     Test {
         name: "list command: rpop mylist",
         func: test_list_rpop,
@@ -757,12 +782,49 @@ const TESTS: &[Test] = &[
         func: test_list_rpop_with_count,
     },
     Test {
+        name: "list command: rpop asks 4 elements with count but returns only 3 as list_len is less that count",
+        func: test_list_rpop_with_count_greater_than_list_lenght,
+    },
+    Test {
+        name: "list command: rpop returns null as value is not list type (no count arg)",
+        func: test_list_rpop_sin_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+
+    Test {
+        name: "list command: rpop returns null as value is not list type (count arg)",
+        func: test_list_rpop_con_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+    Test {
+        name: "list command: rpop (no count arg) return nill when value type is not list",
+        func: test_list_rpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
+        name: "list command: rpop (with count arg) return nill when value type is not list",
+        func: test_list_rpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
         name: "list command: rpushx sabores vainilla coco",
         func: test_list_rpushx,
     },
     Test {
         name: "list command: rpushx paiseslimitrofes chile",
         func: test_list_rpushx_nonexisting_key_returns_zero,
+    },
+    Test {
+        name: "list command: rpushx cannot store value in non value list type - error",
+        func: test_list_rpushx_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list,
+    },
+    Test {
+        name: "list command: rpush values into existing key with list type value",
+        func: test_list_rpush,
+    },
+    Test {
+        name: "list command: rpush values in non existing key - it is created",
+        func: test_list_rpush_nonexisting_key_creates_key_value_pair_and_returns_list_size,
+    },
+    Test {
+        name: "list command: rpush cannot store value in non value list type - error",
+        func: test_list_rpush_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list,
     },
     Test {
         name: "list command: lset new element in list type value",
@@ -1257,7 +1319,7 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     }
 }
 
-fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
+fn test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSH")
         .arg("bandada_de_caranchos")
@@ -1278,7 +1340,7 @@ fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResul
     }
 }
 
-fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+fn test_lpush_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
     let mut con = connect()?;
     let ret: Result<String, RedisError> = redis::cmd("LPUSH")
         .arg("edad_luz")
@@ -1299,7 +1361,7 @@ fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestRes
     }
 }
 
-fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
+fn test_lpush_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSH")
         .arg("grupo_amigas")
@@ -1364,7 +1426,7 @@ fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
     }
 }
 
-fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
+fn test_se_lpushx_valores_en_una_lista_ya_existente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSHX")
         .arg("frutas_raras")
@@ -1385,7 +1447,7 @@ fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
     }
 }
 
-fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
+fn test_no_se_lpushx_valores_en_una_lista_no_existente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSHX")
         .arg("gorilas_y_mandriles")
@@ -1401,6 +1463,27 @@ fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: 0.to_string(),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_lpushx_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("LPUSHX")
+        .arg("edad_luz")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not list type"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1876,7 +1959,7 @@ pub fn test_list_lpop() -> TestResult {
         }))
     };
 }
-//****************************************************************************************** */
+
 pub fn test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("LPOP")
@@ -2022,6 +2105,97 @@ pub fn test_list_rpop_with_count() -> TestResult {
     };
 }
 
+pub fn test_list_rpop_with_count_greater_than_list_lenght() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("RPOP")
+        .arg("equipos_de_la_bundesliga")
+        .arg("4")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("borussia"))
+        && ret.contains(&String::from("werder"))
+        && ret.contains(&String::from("bayer"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("borussia"),
+                    String::from("werder"),
+                    String::from("bayer")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_brest")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_con_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_brest")
+        .arg("4")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("edad_maria")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP").arg("edad_maria").query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 pub fn test_list_rpushx() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSHX")
@@ -2057,6 +2231,83 @@ pub fn test_list_rpushx_nonexisting_key_returns_zero() -> TestResult {
     };
 }
 
+pub fn test_list_rpushx_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("RPUSHX")
+        .arg("edad_maria")
+        .arg("25")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+pub fn test_list_rpush() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSHX")
+        .arg("sabores_de_chocolate")
+        .arg("chocolate amargo")
+        .arg("chocolate marroc")
+        .query(&mut con)?;
+
+    return if ret == 5 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 5.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_list_rpush_nonexisting_key_creates_key_value_pair_and_returns_list_size() -> TestResult
+{
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSH")
+        .arg("sabores_silvestres_de_helado")
+        .arg("frutos rojos del este")
+        .arg("menta de primera cosecha")
+        .arg("grosellas aireadas")
+        .query(&mut con)?;
+
+    return if ret == 3 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+pub fn test_list_rpush_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("RPUSHX")
+        .arg("edad_maria")
+        .arg("25")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 pub fn test_keys_touch() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("TOUCH")

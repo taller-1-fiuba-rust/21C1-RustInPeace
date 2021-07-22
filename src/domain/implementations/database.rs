@@ -1091,6 +1091,8 @@ impl Database {
                     }
                 }
                 item.set_value(ValueType::ListType(list));
+            } else {
+                return None;
             }
         } else {
             return None;
@@ -1098,6 +1100,28 @@ impl Database {
         Some(popped_elements)
     }
 
+    ////////////////////////////////////////////////////////////
+    pub fn pop_elements_from_list2(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
+        if let Some(item) = self.get_mut_live_item(key) {
+            match item.get_copy_of_value() {
+                ValueType::ListType(mut list) => {
+                    let popped_elements;
+                    if count < list.len() {
+                        popped_elements = list.drain(..count).collect();
+                    } else {
+                        popped_elements = list.drain(..list.len()).collect();
+                    }
+                    item.set_value(ValueType::ListType(list));
+                    return Some(popped_elements);
+                }
+                _ => return None,
+            }
+        } else {
+            return None;
+        }
+    }
+
+    /////////////////////////////////////////////////////////
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
