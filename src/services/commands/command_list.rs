@@ -107,27 +107,25 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
                 if popped_elements == None {
                     return RespType::RBulkString("()".to_string());
+                }
+                if let Some(popped) = popped_elements {
+                    let mut p = Vec::new();
+                    popped.iter().for_each(|element| {
+                        p.push(RespType::RBulkString(element.to_string()));
+                    });
+                    return RespType::RArray(p);
                 } else {
-                    if let Some(popped) = popped_elements {
-                        let mut p = Vec::new();
-                        popped.iter().for_each(|element| {
-                            p.push(RespType::RBulkString(element.to_string()));
-                        });
-                        return RespType::RArray(p);
-                    } else {
-                        return RespType::RNullBulkString();
-                    }
+                    return RespType::RNullBulkString();
                 }
             }
         } else {
             let popped_elements = db.pop_elements_from_list(key, 1);
             if popped_elements == None {
                 return RespType::RBulkString("()".to_string());
-            } else {
-                if let Some(popped_element) = popped_elements {
-                    if !popped_element.is_empty() {
-                        return RespType::RBulkString(popped_element[0].to_owned());
-                    }
+            }
+            if let Some(popped_element) = popped_elements {
+                if !popped_element.is_empty() {
+                    return RespType::RBulkString(popped_element[0].to_owned());
                 }
             }
         }
@@ -618,42 +616,39 @@ pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RError("Invalid request".to_string())
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-pub fn lpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
-    if let RespType::RBulkString(key) = &cmd[1] {
-        if cmd.len() == 3 {
-            if let RespType::RBulkString(cantidad) = &cmd[2] {
-                let popped_elements =
-                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
-                if popped_elements == None {
-                    return RespType::RBulkString("()".to_string());
-                } else {
-                    if let Some(popped) = popped_elements {
-                        let mut p = Vec::new();
-                        popped.iter().for_each(|element| {
-                            p.push(RespType::RBulkString(element.to_string()));
-                        });
-                        return RespType::RArray(p);
-                    } else {
-                        return RespType::RNullBulkString();
-                    }
-                }
-            }
-        } else {
-            let popped_elements = db.pop_elements_from_list(key, 1);
-            if popped_elements == None {
-                return RespType::RBulkString("()".to_string());
-            } else {
-                if let Some(popped_element) = popped_elements {
-                    if !popped_element.is_empty() {
-                        return RespType::RBulkString(popped_element[0].to_owned());
-                    }
-                }
-            }
-        }
-    }
-    RespType::RError("Invalid request".to_string())
-}
+// pub fn lpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+//     let mut db = database.write().unwrap();
+//     if let RespType::RBulkString(key) = &cmd[1] {
+//         if cmd.len() == 3 {
+//             if let RespType::RBulkString(cantidad) = &cmd[2] {
+//                 let popped_elements =
+//                     db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+//                 if popped_elements == None {
+//                     return RespType::RBulkString("()".to_string());
+//                 }
+//                 if let Some(popped) = popped_elements {
+//                     let mut p = Vec::new();
+//                     popped.iter().for_each(|element| {
+//                         p.push(RespType::RBulkString(element.to_string()));
+//                     });
+//                     return RespType::RArray(p);
+//                 } else {
+//                     return RespType::RNullBulkString();
+//                 }
+//             }
+//         } else {
+//             let popped_elements = db.pop_elements_from_list(key, 1);
+//             if popped_elements == None {
+//                 return RespType::RBulkString("()".to_string());
+//             } else {
+//                 if let Some(popped_element) = popped_elements {
+//                     eturn RespType::RBulkString(popped_element[0].to_owned()
+//                 }
+//             }
+//         }
+//     }
+//     RespType::RError("Invalid request".to_string())
+// }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
