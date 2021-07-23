@@ -1,3 +1,5 @@
+//! Servicio que implementa todos los comandos de tipo Key
+
 use crate::domain::entities::key_value_item::KeyAccessTime;
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
@@ -6,30 +8,114 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
 
-/// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
-/// Elimina las claves recibidas en el comando
-/// Devuelve la cantidad de claves eliminadas en un tipo de dato RespType
+/// Elimina las claves recibidas en el comando.
+///
+/// Si alguna clave no existe, es ignorada.
+/// Devuelve la cantidad de claves eliminadas.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_del.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))
+/// ).build());
+/// database.write().unwrap().add("verdura".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("lechuga"))
+/// ).build());
+/// database.write().unwrap().add("postre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("helado"))
+/// ).build());
+///
+/// let res = command_key::del(&vec![
+///     RespType::RBulkString("DEL".to_string()),
+///     RespType::RBulkString("fruta".to_string()),
+///     RespType::RBulkString("verdura".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(removed) => {
+///         assert_eq!(removed, 2)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_del.csv");
+/// ```
 pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut n_key_deleted = 0;
-
     for n in cmd.iter().skip(1) {
         if let RespType::RBulkString(current_key) = n {
             let mut new_database = database.write().unwrap();
-            new_database.delete_key(current_key.to_string());
-            n_key_deleted += 1;
+            if new_database.delete_key(current_key.to_string()) {
+                n_key_deleted += 1;
+            }
         }
     }
-
     RespType::RInteger(n_key_deleted)
 }
 
-/// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
-/// Extra del comando una clave fuente y una clave destino, copia el valor guardado en la clave fuente a la clave destino.
+/// Copia el valor almacenado en la clave `source` en la clave `destination`.
+///
 /// Si el comando contiene el parametro "replace", en el caso de que ya exista una clave con el mismo nombre que la clave destino,
-/// se reemplaza su valor por el valor de la clave fuente y se devuelve un entero 1. En el caso que la clave destino ya exista pero no se incluya
-/// el parametro "replace", entonces no se copia el valor y se devuelve un entero 0.
+/// se reemplaza su valor por el valor de la clave fuente y se devuelve un entero 1.
+/// En el caso que la clave destino ya exista pero no se incluya el parametro "replace", entonces no se copia el valor y se devuelve un entero 0.
 /// Si no existe la clave, se crea, se guarda una copia del valor que guarda la clave fuente y se devuelve un entero 1.
 /// Ante algun error se devuelve un entero 0.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_copy.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("dolly".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("sheep"))
+/// ).build());
+///
+/// let res = command_key::copy(&vec![
+///     RespType::RBulkString("COPY".to_string()),
+///     RespType::RBulkString("dolly".to_string()),
+///     RespType::RBulkString("clone".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(copied) => {
+///         assert_eq!(copied, 1)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+///
+/// database.write().unwrap().add("pet".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("cat"))
+/// ).build());
+///
+/// let res = command_key::copy(&vec![
+///     RespType::RBulkString("COPY".to_string()),
+///     RespType::RBulkString("pet".to_string()),
+///     RespType::RBulkString("clone".to_string()),
+///     RespType::RBulkString("replace".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(copied) => {
+///         assert_eq!(copied, 1)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_copy.csv");
+/// ```
 pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(source) = &cmd[1] {
@@ -52,8 +138,8 @@ pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(0)
 }
 
-/// GRUPO [KEYS]:Recibe un comando de tipo &[RespType]
-/// Verifica que si el ultimo parametro es "replace". Si lo es, devuelve true, sino devuelve false.
+/// Verifica que si el ultimo parametro es `replace`.
+/// Si es `replace`, devuelve true, sino devuelve false.
 fn copy_should_replace(cmd: &[RespType]) -> bool {
     if cmd.len() == 4 {
         if let RespType::RBulkString(replace) = &cmd[3] {
@@ -65,9 +151,43 @@ fn copy_should_replace(cmd: &[RespType]) -> bool {
     false
 }
 
-/// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
-/// Verifica si las claves extraidas del comando existen en la base de datos o no.
-/// Devuelve la cantidad de claves encontradas.
+/// Devuelve si las claves especificadas existe.
+///
+/// Si se repite la misma clave, se va a contar repetidas veces. Por ejemplo, el comando `EXISTS key key` devuelve 2.
+/// Devuelve la cantidad de claves existentes.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_exists.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))
+/// ).build());
+/// database.write().unwrap().add("verdura".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("lechuga"))
+/// ).build());
+///
+/// let res = command_key::exists(&vec![
+///     RespType::RBulkString("EXISTS".to_string()),    
+///     RespType::RBulkString("fruta".to_string()),
+///     RespType::RBulkString("verdura".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(keys_count) => {
+///         assert_eq!(keys_count, 2)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_exists.csv");
+/// ```
 pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut key_found = 0;
     if cmd.len() > 1 {
@@ -86,9 +206,39 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(key_found)
 }
 
-/// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
-/// Extrae una clave key del comando, intenta cambiar el tipo de clave de volatir a persistente.
-/// En caso de exito devuelve un 1, si falla devuelve un 0.
+/// Cambia el tipo de clave de volatil a persistente.
+///
+/// Elimina el timeout de la clave, convirtiendola en una clave persistente.
+/// Si la clave no existe o no tiene un timeout asociado, devuelve un 0.
+/// En caso de exito devuelve un 1.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_persist.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))).with_timeout(1925487534).build());
+///
+/// let res = command_key::persist(&vec![
+///     RespType::RBulkString("PERSIST".to_string()),
+///     RespType::RBulkString("fruta".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(persisted) => {
+///         assert_eq!(persisted, 1)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_persist.csv");
+/// ```
 pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
         if database.write().unwrap().persist(key.to_string()) {
@@ -100,9 +250,41 @@ pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(0)
 }
 
-/// GRUPO [KEYS]:Recibe un comando cmd de tipo &[RespType] y la base de datos database dentro de un RwLock
-/// Extrae una clave current_key y una clave new_key del comando.
-/// Renombre a current_key por new_key y devuelve un BulkString con el mensaje "OK"
+/// Renombra una clave.
+///
+/// Si la clave no existe, devuelve error.
+/// Si el nuevo nombre de la clave ya existe, la sobreescribe.
+/// En caso de exito, devuelve "OK".
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_rename.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("animal".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("perro"))
+/// ).build());
+///
+/// let res = command_key::rename(&vec![
+///     RespType::RBulkString("RENAME".to_string()),
+///     RespType::RBulkString("animal".to_string()),
+///     RespType::RBulkString("mascota".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RBulkString(response) => {
+///         assert_eq!(response, "OK".to_string())
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_rename.csv");
+/// ```
 pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(current_key) = &cmd[1] {
@@ -114,10 +296,43 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RBulkString("OK".to_string())
 }
-/// GRUPO [KEYS]:  Configura un tiempo de expiracion sobre una clave (la clave se dice que
+
+/// Configura un tiempo de expiracion sobre una clave a partir del momento en que se envia el comando.
+///
+/// Configura un tiempo de expiracion sobre una clave (la clave se dice que
 /// es volatil). Luego de ese tiempo de expiracion, la clave es automaticamente eliminada.
 /// El comando recibe 2 parámetros: la key y el tiempo de expiración (en segundos)
-/// Devuelve 1 si pudo ser seteado, o 0 en caso contrario.
+/// Devuelve 1 si pudo ser configurado, o 0 en caso contrario.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_expire.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))
+/// ).build());
+///
+/// let res = command_key::expire(&vec![
+///     RespType::RBulkString("EXPIRE".to_string()),
+///     RespType::RBulkString("fruta".to_string()),
+///     RespType::RBulkString("30".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(expire) => {
+///         assert_eq!(expire, 1)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_expire.csv");
+/// ```
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
@@ -137,11 +352,42 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
     RespType::RInteger(0)
 }
-
-/// GRUPO [KEYS]:  Configura un tiempo de expiracion sobre una clave (la clave se dice que
+/// Configura un tiempo de expiracion UNIX sobre una clave.
+///
+/// Configura un tiempo de expiracion sobre una clave (la clave se dice que
 /// es volatil). Luego de ese tiempo de expiracion, la clave es automaticamente eliminada.
-/// El comando recibe 2 parámetros: la key y el nuevo timestamp
-/// Devuelve 1 si pudo ser seteado, o 0 en caso contrario.
+/// El comando recibe 2 parámetros: la key y el tiempo de expiración (en timestamp UNIX)
+/// Devuelve 1 si pudo ser configurado, o 0 en caso contrario.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_expireat.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))
+/// ).build());
+///
+/// let res = command_key::expireat(&vec![
+///     RespType::RBulkString("EXPIREAT".to_string()),
+///     RespType::RBulkString("fruta".to_string()),
+///     RespType::RBulkString("1925487534".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(expire) => {
+///         assert_eq!(expire, 1)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_expireat.csv");
+/// ```
 pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
@@ -158,10 +404,46 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
     RespType::RInteger(0)
 }
 
-/// GRUPO [KEYS]:Recibe un comando **cmd** de tipo &[RespType] y la base de datos **database** dentro de un RwLock.
-///Ordena una lista alojada como **value** de una **key** de distitnas formas:
-/// ascendente y descendentemente y puede limitarse la cantidad de elementos a ordenar. Ademas,
-/// permite ordenar utilizando claves externas y sus valores asociados
+/// Devuelve los elementos contenidos en una lista o set de forma ordenada.
+///
+/// Ordena una lista o set alojado en `key`.Por defecto, ordena de mayor a menos.
+/// Admite los parámetros:
+/// * DESC: Ordena de mayor a menor.
+/// * ALPHA: Ordena alfabeticamente.
+/// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
+/// * BY: Permite ordenar a partir de claves externas y sus valores asociados.
+/// * STORE key: Almacena la lista ordenada en `key`.
+///
+/// Devuelve una lista con los elementos ordenados. Si se especificó el parámetro `store`, devuelve la cantidad de elementos ordenados y almacenados en la nueva clave.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_sort.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::ListType(vec![String::from("pera"), String::from("manzana"), String::from("sandia")])
+/// ).build());
+///
+/// let res = command_key::sort(&vec![
+///     RespType::RBulkString("SORT".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RArray(sorted) => {
+///         assert_eq!(sorted, vec![RespType::RBulkString("manzana".to_string()), RespType::RBulkString("pera".to_string()), RespType::RBulkString("sandia".to_string())])
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_sort.csv");
+/// ```
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     //A hashpam is created to store all info about the SORT operation
     let aux_hash_map = generate_hashmap(cmd);
@@ -233,6 +515,57 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
+/// Devuelve todas las claves que coinciden con el patrón especificado.
+///
+/// El patrón debe ser glob-style, por ejemplo:
+///
+/// h\?llo coincide con hello, hallo and hxllo
+///
+/// h\*llo coincide con hllo and heeeello
+///
+/// h\[ae\]llo coincide con hello and hallo, pero no con hillo
+///
+/// h\[\^e\]llo coincide con hallo, hbllo, ... pero no con hello
+///
+/// h\[a-b\]llo coincide con hallo and hbllo
+///
+/// Devuelve una lista con los claves que coinciden con el patrón.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_keys.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+///  database.write().unwrap().add("animal".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("oso"))
+///  ).build());
+///  database.write().unwrap().add("animacion".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("soul"))
+///  ).build());
+///  database.write().unwrap().add("comida".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pizza"))
+///  ).build());
+///
+/// let res = command_key::keys(&vec![
+///     RespType::RBulkString("KEYS".to_string()),
+///     RespType::RBulkString("anima*".to_string()),
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RArray(matched) => {
+///         assert!(matched.contains(&RespType::RBulkString("animal".to_string())));
+///         assert!(matched.contains(&RespType::RBulkString("animacion".to_string())));
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_keys.csv");
+/// ```
 pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(pattern) = &cmd[1] {
         let new_database = database.read().unwrap();
@@ -257,17 +590,17 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// 1. Actualiza dos `keys` válidas:
 ///
 /// ```
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
-/// use std::time::SystemTime;
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
+/// # use std::time::SystemTime;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
 ///
 /// // Agrego los datos en la base
 ///
-/// let db = Database::new("dummy_db_doc_touch1.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let db = Database::new("dummy_db_doc_touch1.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
 ///
 /// let mut timeout_10seg = SystemTime::now()
 ///  .duration_since(SystemTime::UNIX_EPOCH)
@@ -275,40 +608,41 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// timeout_10seg += 10;
 ///
 /// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
-/// ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()])
+///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()])
 /// ).build());
 ///
 /// database.write().unwrap().add("verduras".to_string(),ValueTimeItemBuilder::new(
-/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_10seg).build()
+///     ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_10seg).build()
 /// );
 ///
 /// //Ejecuto el comando con los parámetros necesarios:
 /// let res = command_key::touch(&vec![
-/// RespType::RBulkString("TOUCH".to_string()),
-/// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("verduras".to_string())
+///     RespType::RBulkString("TOUCH".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("verduras".to_string())
 /// ], &database);
 ///
-/// match res {
-///     RespType::RInteger(quantity) => {
-///     assert_eq!(quantity, 2) }
-///     _ => assert!(false)
-/// }
+/// # match res {
+/// #     RespType::RInteger(quantity) => {
+///     assert_eq!(quantity, 2)
+/// # }
+/// #    _ => assert!(false)
+/// # }
 ///
-/// let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
+/// # let _ = std::fs::remove_file("dummy_db_doc_touch1.csv");
 /// ```
 /// 2. Itenta actualizar 2 `keys` donde una está expirada y la otra no existe en la database
 /// ```
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
-/// use std::time::{SystemTime, Duration};
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::services::commands::command_key;
-/// use std::thread::sleep;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItem, KeyAccessTime, ValueTimeItemBuilder};
+/// # use std::time::{SystemTime, Duration};
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use std::thread::sleep;
 ///
-/// let db = Database::new("dummy_db_doc_touch2.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let db = Database::new("dummy_db_doc_touch2.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
 ///
 /// let timeout_now = SystemTime::now()
 ///  .duration_since(SystemTime::UNIX_EPOCH)
@@ -317,23 +651,24 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// sleep(Duration::from_secs(1));
 ///
 /// database.write().unwrap().add("verduras".to_string(),ValueTimeItemBuilder::new(
-/// ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_now).build()
+///     ValueType::ListType(vec!["acelga".to_string(),"cebolla".to_string(),"zanahoria".to_string()])).with_timeout(timeout_now).build()
 /// );
 ///
 /// //Ejecuto el comando con los parámetros necesarios:
 /// let res = command_key::touch(&vec![
-/// RespType::RBulkString("TOUCH".to_string()),
-/// RespType::RBulkString("frutas".to_string()),
-/// RespType::RBulkString("verduras".to_string())
+///     RespType::RBulkString("TOUCH".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("verduras".to_string())
 /// ], &database);
 ///
-/// match res {
-///     RespType::RInteger(quantity) => {
-///     assert_eq!(quantity, 0) }
-///     _ => assert!(false)
-/// }
+/// # match res {
+/// #    RespType::RInteger(quantity) => {
+/// #    assert_eq!(quantity, 0)
+/// # }
+/// #    _ => assert!(false)
+/// # }
 ///
-/// let _ = std::fs::remove_file("dummy_db_doc_touch2.csv");
+/// # let _ = std::fs::remove_file("dummy_db_doc_touch2.csv");
 /// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
@@ -350,6 +685,84 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(number_of_touched_keys)
 }
 
+/// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos).
+///
+/// En caso que no sea una clave volátil retorna -1. Si no existe la clave, retorna -2.
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_ttl.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))).with_timeout(1925487534).build());
+///
+/// let res = command_key::get_ttl(&vec![
+///     RespType::RBulkString("TTL".to_string()),
+///     RespType::RBulkString("fruta".to_string())
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RInteger(time) => {
+///         assert!(time > 0)
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_ttl.csv");
+/// ```
+pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() > 1 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            let mut db = database.write().unwrap();
+            return match db.get_live_item(key) {
+                None => RespType::RSignedNumber(-2),
+                Some(item) => match item.get_timeout() {
+                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                    KeyAccessTime::Persistent => RespType::RInteger(0),
+                },
+            };
+        }
+    }
+    RespType::RInteger(0)
+}
+
+/// Retorna el tipo de dato almacenado en `key`.
+///
+/// Los tipos de datos posibles son: string, list y set.
+/// Si la clave no existe, devuelve none.
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+///
+/// # let db = Database::new("dummy_db_type.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
+///
+/// database.write().unwrap().add("fruta".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType(String::from("pera"))
+/// ).build());
+///
+/// let res = command_key::get_type(&vec![
+///     RespType::RBulkString("TYPE".to_string()),
+///     RespType::RBulkString("fruta".to_string())
+///     ], &database);
+///
+/// # match res {
+/// #    RespType::RBulkString(value_type) => {
+///         assert_eq!(value_type, "string".to_string())
+/// #    }
+/// #    _ => assert!(false)
+/// # }
+/// # let _ = std::fs::remove_file("dummy_db_type.csv");
+/// ```
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
@@ -366,12 +779,6 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
     }
     RespType::RBulkString(tipo)
 }
-
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//----------------------------------------FUNCIONES ADICIONALES------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------------------
 
 fn _sort_vec_by_min_max_values(
     lower_bound: &str,
@@ -408,24 +815,6 @@ fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
         posicion += 1;
     }
     aux_hash_map
-}
-
-/// Retorna el tiempo que le queda a una clave para que se cumpla su timeout (en segundos)
-/// En caso que no sea una clave volátil retorna (-1) y si no existe, retorna (-2)
-pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    if cmd.len() > 1 {
-        if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
-            return match db.get_live_item(key) {
-                None => RespType::RSignedNumber(-2),
-                Some(item) => match item.get_timeout() {
-                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                    KeyAccessTime::Persistent => RespType::RInteger(0),
-                },
-            };
-        }
-    }
-    RespType::RInteger(0)
 }
 
 #[test]

@@ -1,6 +1,8 @@
+//! Servicio auxiliar para detectar patrones de estilo glob.
+
 /// Determina si una cadena de caracteres sigue un patrón glob [glob-style pattern].
 ///
-/// # Examples
+/// # Ejemplos
 ///
 /// ```
 /// use proyecto_taller_1::services::utils::glob_pattern::g_match;
@@ -8,6 +10,7 @@
 /// let pattern = b"*.md";
 /// let my_string = b"an_example.md";
 /// assert_eq!(g_match(pattern, my_string), true);
+///
 /// let pattern = b"*.md";
 /// let my_string = b"wrong_example.ad";
 /// assert_eq!(g_match(pattern, my_string), false);

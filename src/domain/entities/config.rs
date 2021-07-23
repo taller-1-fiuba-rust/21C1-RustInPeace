@@ -7,6 +7,10 @@ use std::io::ErrorKind;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 
+/// Esta estructura representa a la configuración establecida en el archivo "redis.conf".
+/// Se compone por un HashMap donde cada clave es un parámetro de configuración y su valor, el valor establecido en el archivo.
+/// Mediante los comandos `config get` y `config set` el usuario puede editar la configuración default.
+/// Al actualizar un parámetro, inmediatamente se actualizará el archivo de configuración, manteniendo la consistencia entre esta estructura y el archivo.
 #[derive(Debug)]
 pub struct Config {
     config: HashMap<String, String>,

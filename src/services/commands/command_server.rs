@@ -179,55 +179,56 @@ fn get_errorstats_info() -> String {
 
 /// Retorna la cantidad de claves almacenadas.
 ///
-/// # Example
+/// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
-/// use proyecto_taller_1::services::commands::command_server;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
+/// # use proyecto_taller_1::services::commands::command_server;
 ///
-/// let db = Database::new("dummy_db_dbsize.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let db = Database::new("dummy_db_dbsize.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
 /// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
 ///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
 /// ).build());
 /// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
 ///     ValueType::StringType("fruta".to_string())
 /// ).build());
+///
 /// let dbsize = command_server::dbsize(&database);
 /// assert_eq!(dbsize, RespType::RInteger(2));
-/// std::fs::remove_file("dummy_db_dbsize.csv").unwrap();
+/// # std::fs::remove_file("dummy_db_dbsize.csv").unwrap();
 /// ```
 pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
     RespType::RInteger(database.read().unwrap().get_size())
 }
 
-//hay que hacerlo con las opciones sync/async??
 /// Elimina todas claves y valores almacenados.
 ///
 /// Elimina todas las claves y valores almacenados en la base de datos
 /// Devuelve el mensaje "Erased database"
-/// # Example
+/// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::domain::implementations::database::Database;
-/// use std::sync::{Arc, RwLock};
-/// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
-/// use proyecto_taller_1::services::commands::command_server;
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::domain::implementations::database::Database;
+/// # use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
+/// # use proyecto_taller_1::services::commands::command_server;
 ///
-/// let db = Database::new("dummy_db_flushdb.csv".to_string());
-/// let mut database = Arc::new(RwLock::new(db));
+/// # let db = Database::new("dummy_db_flushdb.csv".to_string());
+/// # let mut database = Arc::new(RwLock::new(db));
 /// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
 ///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()])
 /// ).build());
 /// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
 ///     ValueType::StringType("fruta".to_string())
 /// ).build());
+///
 /// let removed = command_server::flushdb(&database);
 /// assert_eq!(removed, RespType::RBulkString("Erased database".to_string()));
 /// assert_eq!(command_server::dbsize(&database), RespType::RInteger(0));
-/// std::fs::remove_file("dummy_db_flushdb.csv").unwrap();
+/// # std::fs::remove_file("dummy_db_flushdb.csv").unwrap();
 /// ```
 pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
     let mut new_database = database.write().unwrap();
@@ -239,22 +240,24 @@ pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Busca en la configuración el valor del atributo especificado
 /// En caso de encontrarlo, lo devuelve, sino devuelve Error.
-/// # Example
+/// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::domain::entities::config::Config;
-/// use proyecto_taller_1::services::commands::command_server;
-/// use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::domain::entities::config::Config;
+/// # use proyecto_taller_1::services::commands::command_server;
+/// # use std::sync::{Arc, RwLock};
 ///
-/// std::fs::File::create("./src/dummy_config_get.txt").unwrap();
+/// # std::fs::File::create("./src/dummy_config_get.txt").unwrap();
 /// let mut config = Config::new("./src/dummy_config_get.txt".to_string());
 /// config
 /// .set_attribute(String::from("maxmemory"), String::from("2mb"))
 /// .unwrap();
+///
 /// let mut c = Arc::new(RwLock::new(config));
 /// let res = command_server::config_get(&c, &vec![RespType::RBulkString(String::from("get")), RespType::RBulkString(String::from("maxmemory"))]);
+///
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
-/// std::fs::remove_file("./src/dummy_config_get.txt").unwrap();
+/// # std::fs::remove_file("./src/dummy_config_get.txt").unwrap();
 /// ```
 pub fn config_get(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
     if cmd.len() == 2 {
@@ -282,21 +285,23 @@ pub fn config_get(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
 ///
 /// Configura el campo `field` con el valor especificado.
 /// En caso de exito devuelve "Ok", sino devuelve Error
-/// # Example
+/// # Ejemplo
 /// ```
-/// use proyecto_taller_1::services::utils::resp_type::RespType;
-/// use proyecto_taller_1::domain::entities::config::Config;
-/// use proyecto_taller_1::services::commands::command_server;
-/// use std::sync::{Arc, RwLock};
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::domain::entities::config::Config;
+/// # use proyecto_taller_1::services::commands::command_server;
+/// # use std::sync::{Arc, RwLock};
 ///
-/// std::fs::File::create("./src/dummy_config_set.txt").unwrap();
+/// # std::fs::File::create("./src/dummy_config_set.txt").unwrap();
 /// let mut config = Config::new("./src/dummy_config_set.txt".to_string());
 /// let mut c = Arc::new(RwLock::new(config));
+///
 /// let res = command_server::config_set(&c, &vec![RespType::RBulkString(String::from("set")), RespType::RBulkString(String::from("maxmemory")), RespType::RBulkString(String::from("2mb"))]);
 /// assert_eq!(res, RespType::RSimpleString("Ok".to_string()));
+///
 /// let res = command_server::config_get(&c, &vec![RespType::RBulkString(String::from("get")), RespType::RBulkString(String::from("maxmemory"))]);
 /// assert_eq!(res, RespType::RArray(vec![RespType::RBulkString("maxmemory".to_string()), RespType::RBulkString("2mb".to_string())]));
-/// std::fs::remove_file("./src/dummy_config_set.txt").unwrap();
+/// # std::fs::remove_file("./src/dummy_config_set.txt").unwrap();
 /// ```
 pub fn config_set(config: &Arc<RwLock<Config>>, cmd: &[RespType]) -> RespType {
     if cmd.len() == 3 {

@@ -11,7 +11,7 @@ use crate::{domain::entities::message::WorkerMessage, services::utils::resp_type
 ///
 /// Una vez que el cliente se suscribe a un canal, no puede ejecutar ningún otro comando.
 /// `Subscribe` es una función bloqueante, sólo recibe mensajes que hayan sido publicados al canal.
-/// Devuelve el nombre del canal y la cantidad de clientes suscritos al canal
+/// Devuelve el nombre del canal y la cantidad de clientes suscritos al canal.
 pub fn subscribe(
     cmd: &[RespType],
     tx: &Sender<WorkerMessage>,
@@ -84,7 +84,7 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
 
 /// Publica un mensaje en el canal pedido.
 ///
-/// A cada cliente suscrito al canal especificado se le envía, además del mensaje, el canal por el cual llega
+/// A cada cliente suscrito al canal especificado se le envía, además del mensaje, el canal por el cual llega.
 /// Este comando devuelve la cantidad de clientes que recibieron el mensaje.
 pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     if let RespType::RBulkString(channel) = &cmd[1] {
@@ -107,8 +107,8 @@ pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
 
 /// Lista canales activos o el numero de suscriptores de los canales especificados.
 ///
-/// Si el comando es seguido por "channels" se listan todos los canales activos
-/// Si el comando es seguido por "numsub" se listan los canales especificados y el numero de suscriptores
+/// Si el comando es seguido por "channels" se listan todos los canales activos.
+/// Si el comando es seguido por "numsub" se listan los canales especificados y el numero de suscriptores.
 pub fn pubsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     if let RespType::RBulkString(command) = &cmd[1] {
         match command.as_str() {
@@ -156,7 +156,7 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
 
 /// Devuelve el numero de suscriptores por cada canal.
 ///
-/// Retorna una lista de canales y su cantidad de suscriptores en la forma (canal, cantidad)
+/// Retorna una lista de canales y su cantidad de suscriptores en la forma (canal, cantidad).
 /// El orden de la lista es el mismo que en los parametros del comando [chequear esto]
 fn pubsub_numsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();

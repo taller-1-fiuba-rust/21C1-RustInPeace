@@ -1,3 +1,5 @@
+//! Servicios para comunicar solicitudes de clientes con la base de datos del servidor.
+
 pub mod commander;
 pub mod commands;
 pub mod database_service;

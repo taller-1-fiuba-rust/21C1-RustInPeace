@@ -1,3 +1,5 @@
+//! Punto de entrada de la aplicación.
+
 use crate::domain::entities::config::Config;
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
