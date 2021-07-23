@@ -834,6 +834,26 @@ fn shutdown() {
     let _: redis::RedisResult<()> = redis::cmd("SHUTDOWN").query(&mut con);
 }
 
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------SERVER COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
+pub fn test_info() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
+    return if ret.is_ok() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: ret.err().unwrap().to_string(),
+        }))
+    };
+}
+
 fn test_config_get_verbose() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("CONFIG")
@@ -926,6 +946,12 @@ fn _test_flushdb() -> TestResult {
         }));
     }
 }
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------KEYS COMMANDS-------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 
 fn test_keys_del() -> TestResult {
     let mut con = connect()?;
@@ -1220,6 +1246,28 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------STRING COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
 fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("MGET")
@@ -1258,6 +1306,154 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     }
 }
 
+fn test_string_append() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("mykey")
+        .arg(" World")
+        .query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_decrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DECRBY")
+        .arg("key_to_decr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 7 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("7"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_incrby() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("INCRBY")
+        .arg("key_to_incr")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 13 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("13"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_get() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GET").arg("key_1").query(&mut con)?;
+
+    if ret == String::from("value_key_1") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("value_key_1"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_strlen() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("STRLEN").arg("key_1").query(&mut con)?;
+
+    if ret == 11 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_getdel() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+
+    if ret == String::from("Hello") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Hello"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_getset() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("GETSET")
+        .arg("key_getset")
+        .arg("NewValue")
+        .query(&mut con)?;
+
+    if ret == String::from("OldValue") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("OldValue"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_mget() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("MGET")
+        .arg("mget_1")
+        .arg("mget_2")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("hola chau"),
+            got: format!("{} {}", ret[0], ret[1]),
+        }));
+    }
+}
+
+fn test_string_set() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("mykeyset")
+        .arg("valueset")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------LIST COMMANDS-------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 fn test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSH")
@@ -1659,150 +1855,6 @@ fn test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_ran
             got: ret.unwrap(),
         }))
     };
-}
-
-fn test_string_append() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("APPEND")
-        .arg("mykey")
-        .arg(" World")
-        .query(&mut con)?;
-
-    if ret == 11 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("11"),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_string_decrby() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("DECRBY")
-        .arg("key_to_decr")
-        .arg(3)
-        .query(&mut con)?;
-
-    if ret == 7 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("7"),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_string_incrby() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("INCRBY")
-        .arg("key_to_incr")
-        .arg(3)
-        .query(&mut con)?;
-
-    if ret == 13 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("13"),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_string_get() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("GET").arg("key_1").query(&mut con)?;
-
-    if ret == String::from("value_key_1") {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("value_key_1"),
-            got: ret,
-        }));
-    }
-}
-
-fn test_string_strlen() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("STRLEN").arg("key_1").query(&mut con)?;
-
-    if ret == 11 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("11"),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_string_getdel() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
-
-    if ret == String::from("Hello") {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("Hello"),
-            got: ret,
-        }));
-    }
-}
-
-fn test_string_getset() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("GETSET")
-        .arg("key_getset")
-        .arg("NewValue")
-        .query(&mut con)?;
-
-    if ret == String::from("OldValue") {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("OldValue"),
-            got: ret,
-        }));
-    }
-}
-
-fn test_string_mget() -> TestResult {
-    let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("MGET")
-        .arg("mget_1")
-        .arg("mget_2")
-        .query(&mut con)?;
-
-    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("hola chau"),
-            got: format!("{} {}", ret[0], ret[1]),
-        }));
-    }
-}
-
-fn test_string_set() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("SET")
-        .arg("mykeyset")
-        .arg("valueset")
-        .query(&mut con)?;
-
-    if ret == String::from("Ok") {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("Ok"),
-            got: ret,
-        }));
-    }
 }
 
 pub fn test_list_index() -> TestResult {
@@ -2243,26 +2295,12 @@ pub fn test_list_rpush_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_cla
     };
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-pub fn test_keys_touch() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("TOUCH")
-        .arg("frutas")
-        .arg("persistente")
-        .query(&mut con)?;
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------SET COMMANDS------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 
-    return if ret == 2 {
-        Ok(())
-    } else {
-        Err(Box::new(ReturnError {
-            expected: String::from("2"),
-            got: ret.to_string(),
-        }))
-    };
-}
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
@@ -2397,7 +2435,7 @@ pub fn test_set_srem_removes_returns_error() -> TestResult {
         }))
     };
 }
-
+//----------------------------------
 fn test_rpush_lista_inexistente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSH")
@@ -2419,18 +2457,11 @@ fn test_rpush_lista_inexistente() -> TestResult {
     }
 }
 
-pub fn test_info() -> TestResult {
-    let mut con = connect()?;
-    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
-    return if ret.is_ok() {
-        Ok(())
-    } else {
-        Err(Box::new(ReturnError {
-            expected: String::from(""),
-            got: ret.err().unwrap().to_string(),
-        }))
-    };
-}
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------PUBSUB COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 
 fn test_pubsub() -> TestResult {
     // Connection for subscriber api
