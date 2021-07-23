@@ -1949,70 +1949,71 @@ pub fn test_list_lpop() -> TestResult {
         }))
     };
 }
-
+//------------------------------------cambiar------------------------------------------------
 pub fn test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPOP")
+    let ret: () = redis::cmd("LPOP")
         .arg("listado_de_franceses_que_estudiaron_en_brest")
         .query(&mut con)?;
 
-    return if ret == String::from("()") {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("()"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
 
 pub fn test_list_lpop_con_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPOP")
+    let ret: () = redis::cmd("LPOP")
         .arg("listado_de_franceses_que_estudiaron_en_lyon")
         .arg("2")
         .query(&mut con)?;
 
-    return if ret == String::from("()") {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("()"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
 
 pub fn test_list_lpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPOP")
+    let ret: () = redis::cmd("LPOP")
         .arg("edad_maria")
         .arg("2")
         .query(&mut con)?;
 
-    return if ret == String::from("()") {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("()"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
 
 pub fn test_list_lpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("LPOP").arg("edad_maria").query(&mut con)?;
+    let ret: () = redis::cmd("LPOP").arg("edad_maria").query(&mut con)?;
 
-    return if ret == String::from("()") {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("()"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
+//------------------------------------------------------------------------------------
 
 pub fn test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len(
 ) -> TestResult {
