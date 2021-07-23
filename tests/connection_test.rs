@@ -5,7 +5,7 @@ use proyecto_taller_1::{
         entities::{config::Config, key_value_item::ValueType, server::Server},
         implementations::database::Database,
     },
-    services::{server_service, worker_service::ThreadPool},
+    services::{server_service, utils::resp_type::RespType, worker_service::ThreadPool},
 };
 use redis::RedisError;
 
@@ -175,12 +175,6 @@ fn test_main() {
 
     database.add(String::from("grupo_amigas"), added_item_17);
 
-    // let added_item_18 = ValueTimeItem::new_now(
-    //     ValueType::StringType(String::from("63")),
-    //     KeyAccessTime::Volatile(1635595186),
-    // );
-    // database.add(String::from("edad_mariana"), added_item_18);
-
     let added_item_18 =
         ValueTimeItemBuilder::new(ValueType::StringType(String::from("55"))).build();
     database.add(String::from("edad_mariana"), added_item_18);
@@ -215,45 +209,6 @@ fn test_main() {
     ]))
     .build();
     database.add(String::from("jinetes_de_tucuman"), added_item_list_21);
-
-    let added_item_list_30 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
-        "my".to_string(),
-        "dog".to_string(),
-        "my".to_string(),
-        "friend".to_string(),
-        "my".to_string(),
-        "family".to_string(),
-        "my".to_string(),
-        "dear".to_string(),
-    ]))
-    .build();
-    database.add(String::from("love_the_dog"), added_item_list_30);
-
-    let added_item_list_31 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
-        "my".to_string(),
-        "cat".to_string(),
-        "my".to_string(),
-        "friend".to_string(),
-        "my".to_string(),
-        "family".to_string(),
-        "my".to_string(),
-        "dear".to_string(),
-    ]))
-    .build();
-    database.add(String::from("love_the_cat"), added_item_list_31);
-
-    let added_item_list_32 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
-        "my".to_string(),
-        "bunny".to_string(),
-        "my".to_string(),
-        "friend".to_string(),
-        "my".to_string(),
-        "family".to_string(),
-        "my".to_string(),
-        "dear".to_string(),
-    ]))
-    .build();
-    database.add(String::from("love_the_bunny"), added_item_list_32);
 
     let added_item_22 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "argentina".to_string(),
@@ -327,43 +282,126 @@ fn test_main() {
         ValueTimeItemBuilder::new(ValueType::ListType(vec!["item_1".to_string()])).build();
     database.add(String::from("set_remove_4"), added_item_list_29);
 
+    let added_item_list_30 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+    database.add(String::from("love_the_dog"), added_item_list_30);
+
+    let added_item_list_31 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "cat".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+    database.add(String::from("love_the_cat"), added_item_list_31);
+
+    let added_item_list_32 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "bunny".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+    database.add(String::from("love_the_bunny"), added_item_list_32);
+
     let added_persistent =
         ValueTimeItemBuilder::new(ValueType::StringType("persistente".to_string())).build();
     database.add(String::from("persistente"), added_persistent);
 
-    let added_item_30 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+    let added_item_33 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "chocolate".to_string(),
         "frutilla".to_string(),
     ]))
     .build();
-    database.add(String::from("sabores"), added_item_30);
+    database.add(String::from("sabores"), added_item_33);
 
-    let added_item_31 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+    let added_item_34 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "baldur".to_string(),
         "odin".to_string(),
         "freya".to_string(),
         "mimir".to_string(),
     ]))
     .build();
-    database.add(String::from("norse_gods"), added_item_31);
+    database.add(String::from("norse_gods"), added_item_34);
 
-    let added_item_32 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+    let added_item_35 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hera".to_string(),
         "afrodita".to_string(),
         "chaos".to_string(),
         "artemis".to_string(),
     ]))
     .build();
-    database.add(String::from("greek_gods"), added_item_32);
+    database.add(String::from("greek_gods"), added_item_35);
 
-    let added_item_33 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+    let added_item_36 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "isis".to_string(),
         "osiris".to_string(),
         "horus".to_string(),
         "set".to_string(),
     ]))
     .build();
-    database.add(String::from("egyptian_gods"), added_item_33);
+    database.add(String::from("egyptian_gods"), added_item_36);
+
+    let added_item_37 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "pineapple_1".to_string(),
+        "pineapple_2".to_string(),
+        "pineapple_3".to_string(),
+        "pineapple_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("pineapple_mascots"), added_item_37);
+
+    let added_item_38 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "banana_1".to_string(),
+        "banana_2".to_string(),
+        "banana_3".to_string(),
+        "banana_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("banana_mascots"), added_item_38);
+
+    let added_item_39 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "borussia".to_string(),
+        "werder".to_string(),
+        "bayer".to_string(),
+    ]))
+    .build();
+    database.add(String::from("equipos_de_la_bundesliga"), added_item_39);
+
+    let added_item_40 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "chocolate a la leche condensada".to_string(),
+        "chocolate werder".to_string(),
+        "chocolate aires del Huapi".to_string(),
+    ]))
+    .build();
+    database.add(String::from("sabores_de_chocolate"), added_item_40);
+
+    //---------------------------------------------------------------
+    //---------------------------------------------------------------
+    //---------------------------------------------------------------
+
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------------------------------------------------
 
     let (server_sender, server_receiver) = mpsc::channel();
     let server_receiver = Arc::new(Mutex::new(server_receiver));
@@ -559,16 +597,16 @@ const TESTS: &[Test] = &[
         func: test_string_set,
     },
     Test {
-        name: "list command: push values into key - list type",
-        func: test_se_guardan_valores_en_una_lista_que_no_existe_previamente,
+        name: "list command: lpush values into key - list type",
+        func: test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente,
     },
     Test {
-        name: "list command: push values into existing key - list type",
-        func: test_se_guardan_valores_en_una_lista_ya_existente,
+        name: "list command: lpush values into existing key - list type",
+        func: test_lpush_se_guardan_valores_en_una_lista_ya_existente,
     },
     Test {
-        name: "list command: cannot push values into existing non-list type key",
-        func: test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
+        name: "list command: cannot lpush values into existing non-list type key",
+        func: test_lpush_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
         name: "list command: get lenght of existing list",
@@ -583,12 +621,16 @@ const TESTS: &[Test] = &[
         func: test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
-        name: "list command: pushx values into key - list type",
-        func: test_se_pushean_pushx_valores_en_una_lista_ya_existente,
+        name: "list command: lpushx values into key - list type",
+        func: test_se_lpushx_valores_en_una_lista_ya_existente,
     },
     Test {
-        name: "list command: cannot pushx values into non_existing key",
-        func: test_no_se_pushean_push_x_valores_en_una_lista_no_existente,
+        name: "list command: cannot lpushx values into non_existing key",
+        func: test_no_se_lpushx_valores_en_una_lista_no_existente,
+    },
+    Test {
+        name: "list command: cannot lpushx values into existing non-list type key",
+        func: test_lpushx_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista,
     },
     Test {
         name: "list command: lrange return value especified by lower and upper bounds",
@@ -607,6 +649,10 @@ const TESTS: &[Test] = &[
         func: test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len,
     },
     Test {
+        name: "list command: lrange return empty list as lb>ub",
+        func: test_se_devuelve_lista_vacia_porque_limite_inferior_supera_al_limite_superior,
+    },
+    Test {
         name: "list command: lrem remove only 3 repeated values from left to right",
         func: test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list,
     },
@@ -619,8 +665,24 @@ const TESTS: &[Test] = &[
         func: test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list,
     },
     Test {
+        name: "list command: lrem returns 0 as key does not exists",
+        func: test_se_devuelve_cero_si_se_busca_remover_un_valor_cuya_clave_no_existe,
+    },
+    Test {
         name: "list command: lindex",
         func: test_list_index,
+    },
+    Test {
+        name: "list command: lindex returns error when value not list type",
+        func: test_list_index_no_list_type_error,
+    },
+    Test {
+        name: "list command: lindex returns empty as index is outbounded",
+        func: test_list_index_devuelve_vacio_porque_esta_outbounded,
+    },
+    Test {
+        name: "list command: lindex returns value with negative index in bounds",
+        func: test_list_index_devuelve_elemento_index_valido_pero_negativo,
     },
     Test {
         name: "list command: lpop mylist",
@@ -631,6 +693,26 @@ const TESTS: &[Test] = &[
         func: test_list_lpop_with_count,
     },
     Test {
+        name: "list command: lpop (no count arg) return nill when key not found",
+        func: test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+    Test {
+        name: "list command: lpop (with count arg) return nill when key not found",
+        func: test_list_lpop_con_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+    Test {
+        name: "list command: lpop (no count arg) return nill when value type is not list",
+        func: test_list_lpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
+        name: "list command: lpop (with count arg) return nill when value type is not list",
+        func: test_list_lpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
+        name: "list command: lpop (with count arg) return less elements than count as count is greater than list size",
+        func: test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len,
+    },
+    Test {
         name: "list command: rpop mylist",
         func: test_list_rpop,
     },
@@ -639,12 +721,49 @@ const TESTS: &[Test] = &[
         func: test_list_rpop_with_count,
     },
     Test {
+        name: "list command: rpop asks 4 elements with count but returns only 3 as list_len is less that count",
+        func: test_list_rpop_with_count_greater_than_list_lenght,
+    },
+    Test {
+        name: "list command: rpop returns null as value is not list type (no count arg)",
+        func: test_list_rpop_sin_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+
+    Test {
+        name: "list command: rpop returns null as value is not list type (count arg)",
+        func: test_list_rpop_con_count_devuelve_nil_cuando_la_clave_no_existe,
+    },
+    Test {
+        name: "list command: rpop (no count arg) return nill when value type is not list",
+        func: test_list_rpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
+        name: "list command: rpop (with count arg) return nill when value type is not list",
+        func: test_list_rpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list,
+    },
+    Test {
         name: "list command: rpushx sabores vainilla coco",
         func: test_list_rpushx,
     },
     Test {
         name: "list command: rpushx paiseslimitrofes chile",
         func: test_list_rpushx_nonexisting_key_returns_zero,
+    },
+    Test {
+        name: "list command: rpushx cannot store value in non value list type - error",
+        func: test_list_rpushx_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list,
+    },
+    Test {
+        name: "list command: rpush values into existing key with list type value",
+        func: test_list_rpush,
+    },
+    Test {
+        name: "list command: rpush values in non existing key - it is created",
+        func: test_list_rpush_nonexisting_key_creates_key_value_pair_and_returns_list_size,
+    },
+    Test {
+        name: "list command: rpush cannot store value in non value list type - error",
+        func: test_list_rpush_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list,
     },
     Test {
         name: "list command: lset new element in list type value",
@@ -713,6 +832,25 @@ fn connect() -> Result<redis::Connection, Box<dyn Error>> {
 fn shutdown() {
     let mut con = connect().unwrap();
     let _: redis::RedisResult<()> = redis::cmd("SHUTDOWN").query(&mut con);
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------SERVER COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
+pub fn test_info() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
+    return if ret.is_ok() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: ret.err().unwrap().to_string(),
+        }))
+    };
 }
 
 fn test_config_get_verbose() -> TestResult {
@@ -807,6 +945,12 @@ fn _test_flushdb() -> TestResult {
         }));
     }
 }
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------KEYS COMMANDS-------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 
 fn test_keys_del() -> TestResult {
     let mut con = connect()?;
@@ -1101,6 +1245,28 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------STRING COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
 fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("MGET")
@@ -1137,354 +1303,6 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
             got: ret.to_string(),
         }));
     }
-}
-
-fn test_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LPUSH")
-        .arg("bandada_de_caranchos")
-        .arg("carancho_1")
-        .arg("carancho_2")
-        .arg("carancho_3")
-        .arg("carancho_4")
-        .arg("carancho_5")
-        .query(&mut con)?;
-
-    if ret == 5 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "5".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("LPUSH")
-        .arg("edad_luz")
-        .arg("jacinta")
-        .arg("leonela")
-        .arg("margarita")
-        .arg("leonilda")
-        .arg("murcia")
-        .query(&mut con)?;
-
-    if ret == "error - not list type".to_string() {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "error - not list type".to_string(),
-            got: ret,
-        }));
-    }
-}
-
-fn test_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LPUSH")
-        .arg("grupo_amigas")
-        .arg("jacinta")
-        .arg("leonela")
-        .arg("margarita")
-        .arg("leonilda")
-        .arg("murcia")
-        .query(&mut con)?;
-
-    if ret == 9 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "9".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_se_obtiene_la_longitud_de_la_lista_en_value() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
-
-    if ret == 6 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "6".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LLEN")
-        .arg("porotos_de_canasta")
-        .query(&mut con)?;
-
-    if ret == 0 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "0".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
-    let mut con = connect()?;
-    let ret: Result<usize, RedisError> = redis::cmd("LLEN").arg("edad_luz").query(&mut con);
-
-    if ret.is_err() {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "Not list type".to_string(),
-            got: format!("{:?}", ret),
-        }));
-    }
-}
-
-fn test_se_pushean_pushx_valores_en_una_lista_ya_existente() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LPUSHX")
-        .arg("frutas_raras")
-        .arg("granada")
-        .arg("mango")
-        .arg("morango")
-        .arg("anana")
-        .arg("kinoto")
-        .query(&mut con)?;
-
-    if ret == 9 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: 9.to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_no_se_pushean_push_x_valores_en_una_lista_no_existente() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LPUSHX")
-        .arg("gorilas_y_mandriles")
-        .arg("gorila_gutierrez")
-        .arg("gorila_sosa")
-        .arg("mandril_gonzalez")
-        .arg("mandril_galvan")
-        .query(&mut con)?;
-
-    if ret == 0 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: 0.to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("LRANGE")
-        .arg("jinetes_de_tucuman")
-        .arg("0")
-        .arg("4")
-        .query(&mut con)?;
-
-    if &ret[0] == &String::from("jinete_1")
-        && &ret[1] == &String::from("jinete_2")
-        && &ret[2] == &String::from("jinete_3")
-        && &ret[3] == &String::from("jinete_4")
-    {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
-            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
-        }));
-    }
-}
-
-fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("LRANGE")
-        .arg("jinetes_de_tucuman")
-        .arg("0")
-        .arg("20")
-        .query(&mut con)?;
-
-    if &ret[0] == &String::from("jinete_1")
-        && &ret[1] == &String::from("jinete_2")
-        && &ret[2] == &String::from("jinete_3")
-        && &ret[3] == &String::from("jinete_4")
-    {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
-            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
-        }));
-    }
-}
-
-fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("LRANGE")
-        .arg("jinetes_de_tucuman")
-        .arg("-3")
-        .arg("7")
-        .query(&mut con)?;
-
-    if &ret[0] == &String::from("jinete_6")
-        && &ret[1] == &String::from("jinete_7")
-        && &ret[2] == &String::from("jinete_8")
-    {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("jinete_6 jinete_7 jinete_8"),
-            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
-        }));
-    }
-}
-
-fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("LRANGE")
-        .arg("jinetes_de_tucuman")
-        .arg("-3")
-        .arg("70")
-        .query(&mut con)?;
-    if &ret[0] == &String::from("jinete_6")
-        && &ret[1] == &String::from("jinete_7")
-        && &ret[2] == &String::from("jinete_8")
-    {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: String::from("jinete_6 jinete_7 jinete_8"),
-            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
-        }));
-    }
-}
-
-fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LREM")
-        .arg("love_the_cat")
-        .arg("3")
-        .arg("my")
-        .query(&mut con)?;
-    if ret == 3 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: 3.to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list() -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LREM")
-        .arg("love_the_bunny")
-        .arg("0")
-        .arg("my")
-        .query(&mut con)?;
-    if ret == 4 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: 4.to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: usize = redis::cmd("LREM")
-        .arg("love_the_dog")
-        .arg("-3")
-        .arg("my")
-        .query(&mut con)?;
-
-    if ret == 3 {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: 3.to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente() -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("LSET")
-        .arg("norse_gods")
-        .arg("2")
-        .arg("bragi")
-        .query(&mut con)?;
-
-    if ret == "Ok".to_string() {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "Ok".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-
-fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret: String = redis::cmd("LSET")
-        .arg("greek_gods")
-        .arg("-2")
-        .arg("apollo")
-        .query(&mut con)?;
-
-    if ret == "Ok".to_string() {
-        return Ok(());
-    } else {
-        return Err(Box::new(ReturnError {
-            expected: "Ok".to_string(),
-            got: ret.to_string(),
-        }));
-    }
-}
-//PROBANDO*******************
-fn test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error(
-) -> TestResult {
-    let mut con = connect()?;
-    let ret = redis::cmd("LSET")
-        .arg("egyptian_gods")
-        .arg("15")
-        .arg("hathor")
-        .query(&mut con);
-    assert!(ret.is_err());
-
-    return if ret.is_err() {
-        Ok(())
-    } else {
-        Err(Box::new(ReturnError {
-            expected: String::from("Value stored at key set_remove_4 is not a Set"),
-            got: ret.unwrap(),
-        }))
-    };
 }
 
 fn test_string_append() -> TestResult {
@@ -1630,6 +1448,413 @@ fn test_string_set() -> TestResult {
         }));
     }
 }
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------LIST COMMANDS-------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+fn test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSH")
+        .arg("bandada_de_caranchos")
+        .arg("carancho_1")
+        .arg("carancho_2")
+        .arg("carancho_3")
+        .arg("carancho_4")
+        .arg("carancho_5")
+        .query(&mut con)?;
+
+    if ret == 5 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "5".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_lpush_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("LPUSH")
+        .arg("edad_luz")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not list type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_lpush_se_guardan_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSH")
+        .arg("grupo_amigas")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con)?;
+
+    if ret == 9 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "9".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_obtiene_la_longitud_de_la_lista_en_value() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LLEN").arg("edades_amigos").query(&mut con)?;
+
+    if ret == 6 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "6".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_obtiene_cero_como_la_longitud_de_key_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LLEN")
+        .arg("porotos_de_canasta")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "0".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_no_se_obtiene_len_de_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<usize, RedisError> = redis::cmd("LLEN").arg("edad_luz").query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "Not list type".to_string(),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_se_lpushx_valores_en_una_lista_ya_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("frutas_raras")
+        .arg("granada")
+        .arg("mango")
+        .arg("morango")
+        .arg("anana")
+        .arg("kinoto")
+        .query(&mut con)?;
+
+    if ret == 9 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 9.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_no_se_lpushx_valores_en_una_lista_no_existente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LPUSHX")
+        .arg("gorilas_y_mandriles")
+        .arg("gorila_gutierrez")
+        .arg("gorila_sosa")
+        .arg("mandril_gonzalez")
+        .arg("mandril_galvan")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 0.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_lpushx_no_se_guardan_valores_en_un_value_cuyo_tipo_no_es_una_lista() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("LPUSHX")
+        .arg("edad_luz")
+        .arg("jacinta")
+        .arg("leonela")
+        .arg("margarita")
+        .arg("leonilda")
+        .arg("murcia")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not list type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_en_rango(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("4")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_mayor_a_long_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("0")
+        .arg("20")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("jinete_1")
+        && &ret[1] == &String::from("jinete_2")
+        && &ret[2] == &String::from("jinete_3")
+        && &ret[3] == &String::from("jinete_4")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_1 jinete_2 jinete_3 jinete_4"),
+            got: format!("{} {} {} {}", ret[0], ret[1], ret[2], ret[3]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("-3")
+        .arg("7")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("jinete_6")
+        && &ret[1] == &String::from("jinete_7")
+        && &ret[2] == &String::from("jinete_8")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_6 jinete_7 jinete_8"),
+            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_de_elementos_especificado_por_limite_superior_e_inferior_menor_a_la_1ra_pos_de_la_lista_con_upper_bound_mayor_a_len(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("-3")
+        .arg("70")
+        .query(&mut con)?;
+    if &ret[0] == &String::from("jinete_6")
+        && &ret[1] == &String::from("jinete_7")
+        && &ret[2] == &String::from("jinete_8")
+    {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_6 jinete_7 jinete_8"),
+            got: format!("{} {} {}", ret[0], ret[1], ret[2]),
+        }));
+    }
+}
+
+fn test_se_devuelve_lista_vacia_porque_limite_inferior_supera_al_limite_superior() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LRANGE")
+        .arg("jinetes_de_tucuman")
+        .arg("5")
+        .arg("3")
+        .query(&mut con)?;
+    if &ret == &vec!["".to_string()] {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: format!("{}", ret[0]),
+        }));
+    }
+}
+
+fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_cat")
+        .arg("3")
+        .arg("my")
+        .query(&mut con)?;
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_eliminan_todos_los_valores_repetidos_un_value_de_tipo_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_bunny")
+        .arg("0")
+        .arg("my")
+        .query(&mut con)?;
+    if ret == 4 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 4.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_devuelve_cero_si_se_busca_remover_un_valor_cuya_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_snake")
+        .arg("2")
+        .arg("my")
+        .query(&mut con)?;
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 0.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_eliminan_3_valores_repetidos_de_izquierda_a_derecha_de_un_value_de_tipo_list_reverso(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("LREM")
+        .arg("love_the_dog")
+        .arg("-3")
+        .arg("my")
+        .query(&mut con)?;
+
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LSET")
+        .arg("norse_gods")
+        .arg("2")
+        .arg("bragi")
+        .query(&mut con)?;
+
+    if ret == "Ok".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "Ok".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_list_reemplaza_un_elemento_de_value_list_type_exitosamente_empleando_indice_negativo_valido(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LSET")
+        .arg("greek_gods")
+        .arg("-2")
+        .arg("apollo")
+        .query(&mut con)?;
+
+    if ret == "Ok".to_string() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: "Ok".to_string(),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_list_no_reemplaza_un_elemento_de_value_list_type_con_indice_fuera_de_rango_error(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret = redis::cmd("LSET")
+        .arg("egyptian_gods")
+        .arg("15")
+        .arg("hathor")
+        .query(&mut con);
+    assert!(ret.is_err());
+
+    return if ret.is_err() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Value stored at key set_remove_4 is not a Set"),
+            got: ret.unwrap(),
+        }))
+    };
+}
 
 pub fn test_list_index() -> TestResult {
     let mut con = connect()?;
@@ -1661,6 +1886,56 @@ pub fn test_list_index() -> TestResult {
     };
 }
 
+pub fn test_list_index_no_list_type_error() -> TestResult {
+    let mut con = connect()?;
+    let ret = redis::cmd("LINDEX")
+        .arg("edad_maria")
+        .arg("0")
+        .query(&mut con);
+    assert!(ret.is_err());
+
+    return if ret.is_err() {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("Value is not a list"),
+            got: ret.unwrap(),
+        }))
+    };
+}
+
+pub fn test_list_index_devuelve_vacio_porque_esta_outbounded() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LINDEX")
+        .arg("marcas_de_vinos_en_damajuana")
+        .arg("0")
+        .query(&mut con)?;
+    return if ret == String::from("") {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from(""),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_list_index_devuelve_elemento_index_valido_pero_negativo() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("LINDEX")
+        .arg("jinetes_de_tucuman")
+        .arg("-1")
+        .query(&mut con)?;
+    if ret == String::from("jinete_8") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("jinete_8"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
 pub fn test_list_lpop() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("LPOP").arg("paises").query(&mut con)?;
@@ -1671,6 +1946,101 @@ pub fn test_list_lpop() -> TestResult {
         Err(Box::new(ReturnError {
             expected: String::from("argentina"),
             got: ret.to_string(),
+        }))
+    };
+}
+//------------------------------------cambiar------------------------------------------------
+pub fn test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("LPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_brest")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_lpop_con_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("LPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_lyon")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_lpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("LPOP")
+        .arg("edad_maria")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_lpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("LPOP").arg("edad_maria").query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+//------------------------------------------------------------------------------------
+
+pub fn test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("LPOP")
+        .arg("pineapple_mascots")
+        .arg("8")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("pineapple_1"))
+        && ret.contains(&String::from("pineapple_2"))
+        && ret.contains(&String::from("pineapple_3"))
+        && ret.contains(&String::from("pineapple_4"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("pineapple_1"),
+                    String::from("pineapple_2"),
+                    String::from("pineapple_3"),
+                    String::from("pineapple_4")
+                ]
+            ),
+            got: format!("{:?}", ret),
         }))
     };
 }
@@ -1726,6 +2096,97 @@ pub fn test_list_rpop_with_count() -> TestResult {
     };
 }
 
+pub fn test_list_rpop_with_count_greater_than_list_lenght() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("RPOP")
+        .arg("equipos_de_la_bundesliga")
+        .arg("4")
+        .query(&mut con)?;
+
+    return if ret.contains(&String::from("borussia"))
+        && ret.contains(&String::from("werder"))
+        && ret.contains(&String::from("bayer"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("borussia"),
+                    String::from("werder"),
+                    String::from("bayer")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_brest")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_con_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("listado_de_franceses_que_estudiaron_en_brest")
+        .arg("4")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_con_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP")
+        .arg("edad_maria")
+        .arg("2")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_list_rpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("RPOP").arg("edad_maria").query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 pub fn test_list_rpushx() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSHX")
@@ -1761,22 +2222,85 @@ pub fn test_list_rpushx_nonexisting_key_returns_zero() -> TestResult {
     };
 }
 
-pub fn test_keys_touch() -> TestResult {
+pub fn test_list_rpushx_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list(
+) -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("TOUCH")
-        .arg("frutas")
-        .arg("persistente")
+    let ret: Result<String, RedisError> = redis::cmd("RPUSHX")
+        .arg("edad_maria")
+        .arg("25")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+pub fn test_list_rpush() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSHX")
+        .arg("sabores_de_chocolate")
+        .arg("chocolate amargo")
+        .arg("chocolate marroc")
         .query(&mut con)?;
 
-    return if ret == 2 {
+    return if ret == 5 {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("2"),
+            expected: 5.to_string(),
             got: ret.to_string(),
         }))
     };
 }
+
+pub fn test_list_rpush_nonexisting_key_creates_key_value_pair_and_returns_list_size() -> TestResult
+{
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("RPUSH")
+        .arg("sabores_silvestres_de_helado")
+        .arg("frutos rojos del este")
+        .arg("menta de primera cosecha")
+        .arg("grosellas aireadas")
+        .query(&mut con)?;
+
+    return if ret == 3 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: 3.to_string(),
+            got: ret.to_string(),
+        }))
+    };
+}
+pub fn test_list_rpush_arrroja_error_cuando_se_intenta_almacenar_dato_en_una_clave_que_no_guarda_un_valor_de_tipo_list(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("RPUSHX")
+        .arg("edad_maria")
+        .arg("25")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error missing parameter"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------SET COMMANDS------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
 pub fn test_set_add() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SADD")
@@ -1911,7 +2435,7 @@ pub fn test_set_srem_removes_returns_error() -> TestResult {
         }))
     };
 }
-
+//----------------------------------
 fn test_rpush_lista_inexistente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSH")
@@ -1933,18 +2457,11 @@ fn test_rpush_lista_inexistente() -> TestResult {
     }
 }
 
-pub fn test_info() -> TestResult {
-    let mut con = connect()?;
-    let ret: Result<String, RedisError> = redis::cmd("INFO").query(&mut con);
-    return if ret.is_ok() {
-        Ok(())
-    } else {
-        Err(Box::new(ReturnError {
-            expected: String::from(""),
-            got: ret.err().unwrap().to_string(),
-        }))
-    };
-}
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------PUBSUB COMMANDS-----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
 
 fn test_pubsub() -> TestResult {
     // Connection for subscriber api

@@ -137,7 +137,8 @@ pub fn handle_command(
                     ]))
                 }
                 "lpush" => return Some(command_list::push(&array, database, true)),
-                "lindex" => return Some(command_list::get_index(&array, database)),
+                //"lindex" => return Some(command_list::get_index(&array, database)),
+                "lindex" => return Some(command_list::lindex(&array, database)),
                 "llen" => return Some(command_list::llen(&array, database)),
                 "lpop" => return Some(command_list::lpop(&array, database)),
                 "sadd" => return Some(command_set::add(&array, database)),

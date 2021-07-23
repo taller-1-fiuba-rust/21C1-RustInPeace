@@ -117,10 +117,44 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else {
             let popped_elements = db.pop_elements_from_list(key, 1);
+            if popped_elements == None {
+                return RespType::RBulkString("()".to_string());
+            }
             if let Some(popped_element) = popped_elements {
                 if !popped_element.is_empty() {
                     return RespType::RBulkString(popped_element[0].to_owned());
                 }
+            }
+        }
+    }
+    RespType::RError("Invalid request".to_string())
+}
+
+pub fn rpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    let mut db = database.write().unwrap();
+    if let RespType::RBulkString(key) = &cmd[1] {
+        if cmd.len() == 3 {
+            if let RespType::RBulkString(cantidad) = &cmd[2] {
+                let popped_elements =
+                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                if let Some(popped) = popped_elements {
+                    let mut p = Vec::new();
+                    popped.iter().for_each(|element| {
+                        p.push(RespType::RBulkString(element.to_string()));
+                    });
+                    return RespType::RArray(p);
+                } else {
+                    return RespType::RNullBulkString();
+                }
+            }
+        } else {
+            let popped_elements = db.rpop_elements_from_list(key, 1);
+            if let Some(popped_element) = popped_elements {
+                if !popped_element.is_empty() {
+                    return RespType::RBulkString(popped_element[0].to_owned());
+                }
+            } else {
+                return RespType::RNullBulkString();
             }
         }
     }
@@ -187,7 +221,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
         {
             RespType::RInteger(resultado)
         } else {
-            RespType::RBulkString("error - not list type".to_string())
+            RespType::RError("error - not list type".to_string())
         }
     } else {
         RespType::RError("empty request".to_string())
@@ -316,7 +350,8 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// A partir de una `key` dada, se busca la lista asociada y se devuelve
 /// el valor ubicado en la posición `index`.
-/// Si la key no existe o la cantidad de parámetros enviados en `cmd` son
+/// Si la key no existe se devuelve un nill
+/// Si la cantidad de parámetros enviados en `cmd` son
 /// incorrectos se retorna un error con mensaje informando el problema.
 /// Si el valor asociado a la `key` no es una lista también se devuelve
 /// un error.
@@ -407,7 +442,7 @@ pub fn get_index(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
                         if let ValueType::ListType(items) = vti.get_value() {
                             if iindex.abs() as usize > items.len() {
                                 //Fuera de rango
-                                return RespType::RNullBulkString();
+                                return RespType::RBulkString("".to_string());
                             }
                             let i = iindex.abs() as usize;
                             return if iindex >= 0 {
@@ -484,6 +519,30 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else {
             RespType::RInteger(0)
+        }
+    } else {
+        RespType::RError("Invalid request".to_string())
+    }
+}
+
+///Esta funcion reemplaza a get_index
+pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
+    if cmd.len() == 3 {
+        let mut db = database.write().unwrap();
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(index) = &cmd[2] {
+                let current_value_in_list_by_index =
+                    db.get_value_from_list_value_type_by_index(key, index);
+                if current_value_in_list_by_index == None {
+                    RespType::RError("value is not list type".to_string())
+                } else {
+                    RespType::RBulkString(current_value_in_list_by_index.unwrap())
+                }
+            } else {
+                RespType::RError("Invalid request".to_string())
+            }
+        } else {
+            RespType::RError("Invalid request".to_string())
         }
     } else {
         RespType::RError("Invalid request".to_string())
