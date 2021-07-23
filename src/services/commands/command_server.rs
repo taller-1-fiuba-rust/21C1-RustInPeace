@@ -184,19 +184,17 @@ fn get_errorstats_info() -> String {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use proyecto_taller_1::services::commands::command_server;
 ///
 /// # let db = Database::new("dummy_db_dbsize.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
 ///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
-///     KeyAccessTime::Persistent
-/// ));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("fruta".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// ).build());
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("fruta".to_string())
+/// ).build());
 ///
 /// let dbsize = command_server::dbsize(&database);
 /// assert_eq!(dbsize, RespType::RInteger(2));
@@ -215,19 +213,17 @@ pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use proyecto_taller_1::services::commands::command_server;
 ///
 /// # let db = Database::new("dummy_db_flushdb.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()]),
-///     KeyAccessTime::Persistent
-/// ));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("fruta".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::ListType(vec!["kiwi".to_string(),"pomelo".to_string(),"sandia".to_string()])
+/// ).build());
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("fruta".to_string())
+/// ).build());
 ///
 /// let removed = command_server::flushdb(&database);
 /// assert_eq!(removed, RespType::RBulkString("Erased database".to_string()));

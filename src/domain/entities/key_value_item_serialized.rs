@@ -1,6 +1,8 @@
 //! Realiza la deserealización de los datos del arhivo dump
 
-use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item::{
+    KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder, ValueType,
+};
 use std::collections::HashSet;
 use std::str::FromStr;
 /// Struct que representa una línea en el dump de la base de datos
@@ -90,7 +92,10 @@ impl KeyValueItemSerialized {
                 let timeout = line[2].parse::<KeyAccessTime>().unwrap();
                 (
                     line[0].to_string(),
-                    ValueTimeItem::new(value, timeout, last_access_time),
+                    ValueTimeItemBuilder::new(value)
+                        .with_key_access_time(timeout)
+                        .with_last_access_time(last_access_time)
+                        .build(),
                 )
             }
             Err(_) => {

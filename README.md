@@ -1,17 +1,16 @@
-# Redis Oxidado
-## <ins>Proyecto:</ins> Taller de Programación I
-## Facultad de Ingeniería de la Universidad de Buenos Aires
----
-### Equipo: ###
+# Redis Oxidado - Taller de Programación I  #
+ Facultad de Ingeniería de la Universidad de Buenos Aires
+
+**Equipo:**
 
 Lionel Guglielmone  
-<ins>Padrón</ins>: TBC
+*Padrón*: 96963
 
 Daniela Leloutre  
-<ins>Padrón</ins>: TBC
+*Padrón*: 96783
 
 María Sol Orive  
-<ins>Padrón</ins>: 91351
+*Padrón*: 91351
 
 
 [Repositorio](https://github.com/taller-1-fiuba-rust/RustInPeace)  

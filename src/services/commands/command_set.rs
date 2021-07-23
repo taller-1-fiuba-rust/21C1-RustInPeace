@@ -1,6 +1,6 @@
 //! Servicio que implementa todos los comandos de tipo Set
 
-use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashSet;
@@ -24,7 +24,7 @@ use std::sync::{Arc, RwLock};
 /// # use proyecto_taller_1::services::commands::command_set;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_add.csv".to_string());
@@ -33,10 +33,9 @@ use std::sync::{Arc, RwLock};
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::SetType(set),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::SetType(set)
+/// ).build());
 ///
 /// let res = command_set::add(&vec![
 ///     RespType::RBulkString("SADD".to_string()),
@@ -63,10 +62,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         // Creo el set
                         let mut set = HashSet::new();
                         set.insert(value_to_add.to_string());
-                        let vti = ValueTimeItem::new_now(
-                            ValueType::SetType(set),
-                            KeyAccessTime::Persistent,
-                        );
+                        let vti = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
                         db.add(key.to_string(), vti);
                         RespType::RInteger(1)
                     }
@@ -102,7 +98,7 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::commands::command_set;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_scard.csv".to_string());
@@ -111,10 +107,8 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::SetType(set),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::SetType(set)).build());
 ///
 /// let res = command_set::scard(&vec![
 ///     RespType::RBulkString("SCARD".to_string()),
@@ -145,7 +139,7 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::commands::command_set;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_sismember.csv".to_string());
@@ -154,10 +148,9 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::SetType(set),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::SetType(set)
+/// ).build());
 ///
 /// let res = command_set::sismember(&vec![
 ///     RespType::RBulkString("SISMEMBER".to_string()),
@@ -190,7 +183,7 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 /// # use proyecto_taller_1::services::commands::command_set;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem, ValueTimeItemBuilder};
 /// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_smembers.csv".to_string());
@@ -199,10 +192,9 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::SetType(set),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::SetType(set)
+/// ).build());
 ///
 /// let res = command_set::smembers(&vec![
 ///     RespType::RBulkString("SMEMBERS".to_string()),
@@ -248,7 +240,7 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// # use proyecto_taller_1::services::commands::command_set;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItem};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueType, ValueTimeItemBuilder};
 /// # use std::collections::HashSet;
 ///
 /// # let db = Database::new("dummy_db_srem.csv".to_string());
@@ -257,10 +249,9 @@ pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// set.insert("kiwi".to_string());
 /// set.insert("pomelo".to_string());
 /// set.insert("sandia".to_string());
-/// database.write().unwrap().add("frutas".to_string(),ValueTimeItem::new_now(
-///     ValueType::SetType(set),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("frutas".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::SetType(set)
+/// ).build());
 ///
 /// let res = command_set::srem(&vec![
 ///     RespType::RBulkString("SREM".to_string()),

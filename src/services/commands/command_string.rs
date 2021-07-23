@@ -1,7 +1,7 @@
 //! Servicio que implementa todos los comandos de tipo String.
 
-use crate::domain::entities::key_value_item::KeyAccessTime;
-use crate::domain::entities::key_value_item::{ValueTimeItem, ValueType};
+use crate::domain::entities::key_value_item::ValueTimeItemBuilder;
+use crate::domain::entities::key_value_item::ValueType;
 use crate::errors::database_error::DatabaseError;
 use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
 use std::vec;
@@ -21,14 +21,13 @@ use std::{
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_append.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("animal".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("puerco".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("animal".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("puerco".to_string())
+/// ).build());
 ///
 /// let res = command_string::append(&vec![
 ///     RespType::RBulkString("APPEND".to_string()),
@@ -69,14 +68,13 @@ pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_decrby.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("edad".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("30".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("edad".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("30".to_string())
+/// ).build());
 ///
 /// let res = command_string::decrby(&vec![
 ///     RespType::RBulkString("DECRBY".to_string()),
@@ -127,14 +125,13 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_incrby.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("edad".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("30".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("edad".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("30".to_string())
+/// ).build());
 ///
 /// let res = command_string::incrby(&vec![
 ///     RespType::RBulkString("INCRBY".to_string()),
@@ -181,14 +178,13 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_get.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("alfonso".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("alfonso".to_string())
+/// ).build());
 ///
 /// let res = command_string::get(&vec![
 ///     RespType::RBulkString("GET".to_string()),
@@ -227,18 +223,16 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_mget.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("alfonso".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
-/// database.write().unwrap().add("apellido".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("alvarez".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("alfonso".to_string())
+/// ).build());
+/// database.write().unwrap().add("apellido".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("alvarez".to_string())
+/// ).build());
 ///
 /// let res = command_string::mget(&vec![
 ///     RespType::RBulkString("MGET".to_string()),
@@ -285,14 +279,13 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_getdel.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("alfonso".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("alfonso".to_string())
+/// ).build());
 ///
 /// let res = command_string::getdel(&vec![
 ///     RespType::RBulkString("GETDEL".to_string()),
@@ -340,14 +333,13 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_getset.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("nombre".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("alfonso".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("nombre".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("alfonso".to_string())
+/// ).build());
 ///
 /// let res = command_string::getdel(&vec![
 ///     RespType::RBulkString("GETSET".to_string()),
@@ -397,14 +389,13 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
+/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_strlen.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
-/// database.write().unwrap().add("animal".to_string(),ValueTimeItem::new_now(
-///     ValueType::StringType("puerco".to_string()),
-///     KeyAccessTime::Persistent
-/// ));
+/// database.write().unwrap().add("animal".to_string(),ValueTimeItemBuilder::new(
+///     ValueType::StringType("puerco".to_string())
+/// ).build());
 ///
 /// let res = command_string::strlen(&vec![
 ///     RespType::RBulkString("STRLEN".to_string()),
@@ -444,7 +435,6 @@ pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_mset.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
@@ -476,10 +466,9 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         }
         for (pos, e) in vec_aux.iter().enumerate().step_by(2) {
-            let vt_item = ValueTimeItem::new_now(
-                ValueType::StringType(vec_aux[pos + 1].to_string()),
-                KeyAccessTime::Persistent,
-            );
+            let vt_item =
+                ValueTimeItemBuilder::new(ValueType::StringType(vec_aux[pos + 1].to_string()))
+                    .build();
             db.add(e.to_string(), vt_item);
         }
         RespType::RBulkString("Ok".to_string())
@@ -508,7 +497,6 @@ pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # use proyecto_taller_1::services::utils::resp_type::RespType;
 /// # use proyecto_taller_1::domain::implementations::database::Database;
 /// # use std::sync::{Arc, RwLock};
-/// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime};
 ///
 /// # let db = Database::new("dummy_db_set.csv".to_string());
 /// # let mut database = Arc::new(RwLock::new(db));
