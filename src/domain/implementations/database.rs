@@ -1035,12 +1035,12 @@ impl Database {
                         popped_elements = list.drain(..list.len()).collect();
                     }
                     item.set_value(ValueType::ListType(list));
-                    return Some(popped_elements);
+                    Some(popped_elements)
                 }
-                _ => return None,
+                _ => None,
             }
         } else {
-            return None;
+            None
         }
     }
 
@@ -1101,12 +1101,12 @@ impl Database {
                         popped_elements = list.drain(..list.len()).collect();
                     }
                     item.set_value(ValueType::ListType(list));
-                    return Some(popped_elements);
+                    Some(popped_elements)
                 }
-                _ => return None,
+                _ => None,
             }
         } else {
-            return None;
+            None
         }
     }
 
