@@ -319,10 +319,33 @@ impl Database {
                 }
                 Some(vec_values_selected_by_index)
             } else {
-                None
+                Some(vec!["".to_string()])
             }
         } else {
             None
+        }
+    }
+
+    pub fn get_value_from_list_value_type_by_index(
+        &mut self,
+        key: &str,
+        index: &str,
+    ) -> Option<String> {
+        if self.key_exists(key.to_string()) {
+            let mut index_aux = index.parse::<isize>().unwrap();
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let current_value_len = current_value.len() as isize;
+                if index_aux < 0 {
+                    index_aux += current_value_len;
+                };
+                Some(current_value[index_aux as usize].to_owned())
+            } else {
+                None
+            }
+        } else {
+            Some("".to_string())
         }
     }
 
@@ -1002,16 +1025,23 @@ impl Database {
     /// let _ = std::fs::remove_file("dummy_db_pop.csv");
     /// ```
     pub fn pop_elements_from_list(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
-        let mut popped_elements = Vec::new();
         if let Some(item) = self.get_mut_live_item(key) {
-            if let ValueType::ListType(mut list) = item.get_copy_of_value() {
-                popped_elements = list.drain(..count).collect(); //validar count < len
-                item.set_value(ValueType::ListType(list));
+            match item.get_copy_of_value() {
+                ValueType::ListType(mut list) => {
+                    let popped_elements;
+                    if count < list.len() {
+                        popped_elements = list.drain(..count).collect();
+                    } else {
+                        popped_elements = list.drain(..list.len()).collect();
+                    }
+                    item.set_value(ValueType::ListType(list));
+                    Some(popped_elements)
+                }
+                _ => None,
             }
         } else {
-            return None;
+            None
         }
-        Some(popped_elements)
     }
 
     /// Elimina y retorna los últimos elementos de la lista almacenada en `key`.
@@ -1050,6 +1080,8 @@ impl Database {
                     }
                 }
                 item.set_value(ValueType::ListType(list));
+            } else {
+                return None;
             }
         } else {
             return None;
@@ -1057,6 +1089,28 @@ impl Database {
         Some(popped_elements)
     }
 
+    ////////////////////////////////////////////////////////////
+    pub fn pop_elements_from_list2(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
+        if let Some(item) = self.get_mut_live_item(key) {
+            match item.get_copy_of_value() {
+                ValueType::ListType(mut list) => {
+                    let popped_elements;
+                    if count < list.len() {
+                        popped_elements = list.drain(..count).collect();
+                    } else {
+                        popped_elements = list.drain(..list.len()).collect();
+                    }
+                    item.set_value(ValueType::ListType(list));
+                    Some(popped_elements)
+                }
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    /////////////////////////////////////////////////////////
     /* Si el servidor se reinicia se deben cargar los items del file */
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
@@ -1161,79 +1215,78 @@ impl Database {
     ) -> usize {
         let mut cant_elementos_eliminados = 0;
         let cant_max = cantidad_maxima.parse::<isize>().unwrap();
-        let old_value = self.get_mut_live_item(&key.to_string()).unwrap();
-        let item_optional = old_value.get_value();
-        if let ValueType::ListType(mut items) = item_optional.to_owned() {
-            let len_value_list = items.len();
-            match cant_max.cmp(&0) {
-                Ordering::Greater => {
-                    let mut index = 0;
-                    for item in items.to_owned() {
-                        if cant_elementos_eliminados == cant_max {
-                            break;
-                        }
-                        if item == element {
-                            items.remove(index);
-                            cant_elementos_eliminados += 1;
-                        } else {
-                            index += 1;
-                        }
-                    }
-                }
-                Ordering::Less => {
-                    let mut index = len_value_list - 1;
-                    for item in items.to_owned().into_iter().rev() {
-                        if cant_elementos_eliminados == cant_max.abs() {
-                            break;
-                        } else {
+        if self.key_exists(key.to_string()) {
+            let old_value = self.get_mut_live_item(&key.to_string()).unwrap();
+            let item_optional = old_value.get_value();
+            if let ValueType::ListType(mut items) = item_optional.to_owned() {
+                let len_value_list = items.len();
+                match cant_max.cmp(&0) {
+                    Ordering::Greater => {
+                        let mut index = 0;
+                        for item in items.to_owned() {
+                            if cant_elementos_eliminados == cant_max {
+                                break;
+                            }
                             if item == element {
                                 items.remove(index);
                                 cant_elementos_eliminados += 1;
-                            };
-                            if index > 0 {
-                                index -= 1;
                             } else {
-                                index = 0
+                                index += 1;
                             }
                         }
                     }
+                    Ordering::Less => {
+                        let mut index = len_value_list - 1;
+                        for item in items.to_owned().into_iter().rev() {
+                            if cant_elementos_eliminados == cant_max.abs() {
+                                break;
+                            } else {
+                                if item == element {
+                                    items.remove(index);
+                                    cant_elementos_eliminados += 1;
+                                };
+                                if index > 0 {
+                                    index -= 1;
+                                } else {
+                                    index = 0
+                                }
+                            }
+                        }
+                    }
+                    Ordering::Equal => {
+                        items.retain(|x| *x != element);
+                        cant_elementos_eliminados =
+                            (len_value_list as isize) - (items.len() as isize);
+                    }
                 }
-                Ordering::Equal => {
-                    items.retain(|x| *x != element);
-                    cant_elementos_eliminados = (len_value_list as isize) - (items.len() as isize);
-                }
+                old_value.set_value(ValueType::ListType(items));
             }
-            old_value.set_value(ValueType::ListType(items));
         }
         cant_elementos_eliminados as usize
     }
 }
 
 #[test]
-fn test_00_filter_keys_by_pattern() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_000_filter_keys_by_pattern() {
     let mut db = Database::new(String::from("./src/dummy_00.txt"));
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string())).build();
     let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("valor_3".to_string())).build();
     let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("valor_4".to_string())).build();
-
     db.items.insert("weight_bananas".to_string(), vt_1);
     db.items.insert("apples_weight".to_string(), vt_2);
     db.items
         .insert("deliciosos_kiwi_weight_baratos".to_string(), vt_3);
     db.items.insert("banana_weight".to_string(), vt_4);
 
-    // db.get_values_of_external_keys_that_match_a_pattern("banana");
     let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
     assert_eq!(vec_filtered.len(), 4);
     let _ = std::fs::remove_file("./src/dummy_00.txt");
 }
 
 #[test]
-fn test_01_empty_database_returns_cero() {
+fn test_001_empty_database_returns_cero() {
     let db = Database {
         dbfilename: "file".to_string(),
         items: HashMap::new(),
@@ -1243,9 +1296,7 @@ fn test_01_empty_database_returns_cero() {
 }
 
 #[test]
-fn test_02_database_copies_value_to_new_key() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_002_database_copies_value_to_new_key() {
     let mut db = Database::new(String::from("./src/dummy.txt"));
     db.add(
         "clave_1".to_string(),
@@ -1264,8 +1315,7 @@ fn test_02_database_copies_value_to_new_key() {
 }
 
 #[test]
-fn test_03_database_copy_replaces_key_with_new_value() {
-    use crate::domain::entities::key_value_item::ValueType;
+fn test_003_database_copy_replaces_key_with_new_value() {
     let mut db = Database::new(String::from("./src/dummy2.txt"));
     db.add(
         "clave_1".to_string(),
@@ -1297,7 +1347,7 @@ fn test_03_database_copy_replaces_key_with_new_value() {
 }
 
 #[test]
-fn test_04_clean_items_deletes_all_items() {
+fn test_004_clean_items_deletes_all_items() {
     let mut db = Database::new(String::from("./src/database1.txt"));
     db.clean_items();
     assert_eq!(db.get_size(), 0);
@@ -1305,8 +1355,7 @@ fn test_04_clean_items_deletes_all_items() {
 }
 
 #[test]
-fn test_05_deletes_an_item_succesfully() {
-    use crate::domain::entities::key_value_item::ValueType;
+fn test_005_deletes_an_item_succesfully() {
     let mut db = Database::new("file2".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
@@ -1325,9 +1374,8 @@ fn test_05_deletes_an_item_succesfully() {
 }
 
 #[test]
-fn test_06_persist_changes_type_of_access_time() {
-    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
-
+fn test_006_persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
     let mut db = Database::new("file".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
@@ -1337,7 +1385,6 @@ fn test_06_persist_changes_type_of_access_time() {
     let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("valor_2".to_string()))
         .with_timeout(1825601548)
         .build();
-
     db.items.insert("weight_bananas".to_string(), vt_1);
     db.items.insert("apples_weight".to_string(), vt_2);
 
@@ -1353,9 +1400,7 @@ fn test_06_persist_changes_type_of_access_time() {
 }
 
 #[test]
-fn test_07_add_item() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_007_add_item() {
     let mut db = Database {
         dbfilename: "file".to_string(),
         items: HashMap::new(),
@@ -1373,9 +1418,7 @@ fn test_07_add_item() {
 }
 
 #[test]
-fn test_08_delete_item() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_008_delete_item() {
     let mut db = Database {
         dbfilename: "file".to_string(),
         items: HashMap::new(),
@@ -1391,7 +1434,7 @@ fn test_08_delete_item() {
 }
 
 #[test]
-fn test_09_filename_is_correct() {
+fn test_009_filename_is_correct() {
     let db = Database {
         dbfilename: "file".to_string(),
         items: HashMap::new(),
@@ -1400,9 +1443,7 @@ fn test_09_filename_is_correct() {
 }
 
 #[test]
-fn test_10_load_items_from_file() {
-    use crate::domain::entities::key_value_item::KeyAccessTime;
-
+fn test_010_load_items_from_file() {
     let mut file = File::create("file_5".to_string()).expect("Unable to open");
     file.write_all(b"124key;1623433670;1623433677;string;value2\n")
         .unwrap();
@@ -1422,7 +1463,7 @@ fn test_10_load_items_from_file() {
 }
 
 #[test]
-fn test_11_create_database_file() {
+fn test_011_create_database_file() {
     assert!(!std::path::Path::new("new_file").exists());
     let _db = Database::new("new_file".to_string());
     assert!(std::path::Path::new("new_file").exists());
@@ -1430,11 +1471,10 @@ fn test_11_create_database_file() {
 }
 
 #[test]
-fn test_12_save_items_to_file() {
-    use crate::domain::entities::key_value_item::ValueType;
+fn test_012_save_items_to_file() {
     use std::io::BufReader;
 
-    let mut db = Database::new("file".to_string());
+    let mut db = Database::new("file_save".to_string());
 
     let list = vec![
         "un_item_string".to_string(),
@@ -1469,14 +1509,12 @@ fn test_12_save_items_to_file() {
         _ => assert!(false),
     }
 
-    let _ = std::fs::remove_file("file");
+    let _ = std::fs::remove_file("file_save");
 }
 
 #[test]
-fn test_13_size_in_memory_is_correct() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file1".to_string());
+fn test_013_size_in_memory_is_correct() {
+    let mut db = Database::new("file013".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("valor_1".to_string()))
         .with_timeout(0)
@@ -1487,13 +1525,12 @@ fn test_13_size_in_memory_is_correct() {
         .build();
     db.items.insert("weight_bananas".to_string(), vt_1);
     db.items.insert("apples_weight".to_string(), vt_2);
-    std::fs::remove_file("file1").unwrap();
+    std::fs::remove_file("file013").unwrap();
 }
 
 #[test]
-fn test_14_persist_changes_type_of_access_time() {
-    use crate::domain::entities::key_value_item::{KeyAccessTime, ValueType};
-
+fn test_014_persist_changes_type_of_access_time() {
+    use crate::domain::entities::key_value_item::KeyAccessTime;
     let mut db = Database::new(String::from("./src/dummy_persist.txt"));
     let _res = db.items.insert(
         "clave_1".to_string(),
@@ -1509,9 +1546,7 @@ fn test_14_persist_changes_type_of_access_time() {
 }
 
 #[test]
-fn test_15_append_adds_string_to_end_of_existing_value() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_015_append_adds_string_to_end_of_existing_value() {
     let mut db = Database::new(String::from("./src/dummy_appends_2.txt"));
     let _res = db.items.insert(
         "mykey".to_string(),
@@ -1524,7 +1559,7 @@ fn test_15_append_adds_string_to_end_of_existing_value() {
 }
 
 #[test]
-fn test_16_append_adds_string_to_new_value() {
+fn test_016_append_adds_string_to_new_value() {
     let mut db = Database::new(String::from("./src/dummy_appends_1.txt"));
 
     let len = db.append_string(&"mykey".to_string(), &" World".to_string());
@@ -1533,9 +1568,7 @@ fn test_16_append_adds_string_to_new_value() {
 }
 
 #[test]
-fn test_17_decr_key_to_existing_key() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_017_decr_key_to_existing_key() {
     let mut db = Database::new(String::from("./src/dummy_decr_1.txt"));
     let _res = db.items.insert(
         "mykey".to_string(),
@@ -1548,7 +1581,7 @@ fn test_17_decr_key_to_existing_key() {
 }
 
 #[test]
-fn test_18_decr_by_to_new_key() {
+fn test_018_decr_by_to_new_key() {
     let mut db = Database::new(String::from("./src/dummy_decr.txt"));
 
     let res = db.decrement_key_by(&"mykey".to_string(), 3).unwrap();
@@ -1557,9 +1590,7 @@ fn test_18_decr_by_to_new_key() {
 }
 
 #[test]
-fn test_19_decr_by_to_invalid_string_value() {
-    use crate::domain::entities::key_value_item::ValueType;
-
+fn test_019_decr_by_to_invalid_string_value() {
     let mut db = Database::new(String::from("./src/dummy_decr_2.txt"));
     let _res = db.items.insert(
         "mykey".to_string(),
@@ -1572,10 +1603,9 @@ fn test_19_decr_by_to_invalid_string_value() {
 }
 
 #[test]
-fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file10".to_string());
+fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_lista_de_elementos()
+{
+    let mut db = Database::new("file020".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1589,7 +1619,6 @@ fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_li
     let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
         .with_timeout(0)
         .build();
-
     db.items.insert("weight_bananas".to_string(), vt_1);
     db.items.insert("weight_apples".to_string(), vt_2);
     db.items.insert("weight_kiwi".to_string(), vt_3);
@@ -1604,14 +1633,12 @@ fn test_20_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_li
     let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
     let algo = tuplas.unwrap();
     println!("{:?}", algo);
-    let _removed = std::fs::remove_file("file10".to_string());
+    let _removed = std::fs::remove_file("file020".to_string());
 }
 
 #[test]
-fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file11".to_string());
+fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
+    let mut db = Database::new("file021".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1648,17 +1675,16 @@ fn test_21_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
 
     let pat = "m?riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
     for key in matching_keys {
         println!("{:?}", key)
     }
-    let _removed = std::fs::remove_file("file11".to_string());
+    let _removed = std::fs::remove_file("file021".to_string());
 }
 
 #[test]
-fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file12".to_string());
+fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
+    let mut db = Database::new("file022".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1687,6 +1713,7 @@ fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes(
     let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
         .with_timeout(0)
         .build();
+
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -1698,18 +1725,16 @@ fn test_22_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes(
 
     let pat = "m[ae]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
+
     for key in matching_keys {
         println!("{:?}", key)
     }
-    let _removed = std::fs::remove_file("file12".to_string());
+    let _removed = std::fs::remove_file("file022".to_string());
 }
 
 #[test]
-fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file13".to_string());
+fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
+    let mut db = Database::new("file023".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1746,17 +1771,16 @@ fn test_23_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchet
 
     let pat = "m[^a]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
     for key in matching_keys {
         println!("{:?}", key)
     }
-    let _removed = std::fs::remove_file("file13".to_string());
+    let _removed = std::fs::remove_file("file023".to_string());
 }
 
 #[test]
-fn test_24_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file14".to_string());
+fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
+    let mut db = Database::new("file024".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1794,17 +1818,16 @@ fn test_24_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchet
 
     let pat = "m[a-o]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
+
     for key in matching_keys {
         println!("{:?}", key)
     }
-    let _ = std::fs::remove_file("file14".to_string());
+    let _ = std::fs::remove_file("file024".to_string());
 }
 
 #[test]
-fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file15".to_string());
+fn test_025_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
+    let mut db = Database::new("file025".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
@@ -1812,12 +1835,14 @@ fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
     let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
         .with_timeout(0)
         .build();
+
     let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
         .with_timeout(0)
         .build();
     let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
         .with_timeout(0)
         .build();
+
     let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(0)
         .build();
@@ -1841,18 +1866,16 @@ fn test_25_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
 
     let pat = "m*a";
     let matching_keys = db.get_keys_that_match_pattern(pat);
+    //let algo = tuplas.unwrap();
     for key in matching_keys {
         println!("{:?}", key)
     }
-    let _ = std::fs::remove_file("file15".to_string());
+    let _ = std::fs::remove_file("file025".to_string());
 }
 
 #[test]
-fn test_26_expire_key() {
-    use crate::domain::entities::key_value_item::ValueType;
-    use std::time::SystemTime;
-
-    let mut db = Database::new("file100".to_string());
+fn test_026_expire_key() {
+    let mut db = Database::new("file026".to_string());
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(1825601548)
         .build();
@@ -1869,15 +1892,12 @@ fn test_26_expire_key() {
         }
         None => assert!(false),
     }
-    let _ = std::fs::remove_file("file100".to_string());
+    let _ = std::fs::remove_file("file026".to_string());
 }
 
 #[test]
-fn test_22_reboot_time() {
-    use crate::domain::entities::key_value_item::ValueType;
-    use std::time::SystemTime;
-
-    let mut db = Database::new("file022a".to_string());
+fn test_027_reboot_time() {
+    let mut db = Database::new("file027".to_string());
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(1925583652)
         .with_last_access_time(u64::from_str("1211111").unwrap())
@@ -1896,13 +1916,11 @@ fn test_22_reboot_time() {
         assert!(false)
     }
 
-    let _ = std::fs::remove_file("file022a".to_string());
+    let _ = std::fs::remove_file("file027".to_string());
 }
 #[test]
-fn test_22_reboot_time_expired() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file022b".to_string());
+fn test_028_reboot_time_expired() {
+    let mut db = Database::new("file028".to_string());
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(12123120)
         .with_last_access_time(u64::from_str("1211111").unwrap())
@@ -1917,14 +1935,12 @@ fn test_22_reboot_time_expired() {
         assert!(false)
     }
 
-    let _ = std::fs::remove_file("file022b".to_string());
+    let _ = std::fs::remove_file("file028".to_string());
 }
 
 #[test]
-fn test_23_expired_passive_keys() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file023".to_string());
+fn test_029_expired_passive_keys() {
+    let mut db = Database::new("file029".to_string());
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(1625326138)
         .build();
@@ -1937,14 +1953,12 @@ fn test_23_expired_passive_keys() {
         None => assert!(true),
     }
     assert!(db.items.get("key123").is_none());
-    let _ = std::fs::remove_file("file023".to_string());
+    let _ = std::fs::remove_file("file029".to_string());
 }
 
 #[test]
-fn test_24_retrieve_live_keys() {
-    use crate::domain::entities::key_value_item::ValueType;
-
-    let mut db = Database::new("file024".to_string());
+fn test_030_retrieve_live_keys() {
+    let mut db = Database::new("file030".to_string());
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
         .with_timeout(1665326138)
         .build();
@@ -1957,14 +1971,14 @@ fn test_24_retrieve_live_keys() {
         None => assert!(false),
     }
     assert!(db.items.get("key123").is_some());
-    let _ = std::fs::remove_file("file024".to_string());
+    let _ = std::fs::remove_file("file030".to_string());
 }
 
 #[test]
-fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
+fn test_031_se_obtienen_las_claves_que_contienen_solo_string_values() {
     use std::collections::HashSet;
 
-    let mut db = Database::new("file025".to_string());
+    let mut db = Database::new("file031".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("chau".to_string())).build();
@@ -1992,13 +2006,13 @@ fn test_27_se_obtienen_las_claves_que_contienen_solo_string_values() {
     assert!(aux.is_none());
     let aux = db.get_string_value_by_key("valores");
     assert!(aux.is_none());
-    let _ = std::fs::remove_file("file025".to_string());
+    let _ = std::fs::remove_file("file031".to_string());
 }
 
 #[test]
-fn test_28_scard_de_set_existente_devuelve_cantidad_de_elementos() {
+fn test_032_scard_de_set_existente_devuelve_cantidad_de_elementos() {
     use std::collections::HashSet;
-    let mut db = Database::new("file026".to_string());
+    let mut db = Database::new("file032".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
@@ -2008,58 +2022,58 @@ fn test_28_scard_de_set_existente_devuelve_cantidad_de_elementos() {
     db.items.insert("valores".to_string(), vt);
     let len = db.get_len_of_set("valores");
     assert_eq!(len, 2);
-    let _ = std::fs::remove_file("file026".to_string());
+    let _ = std::fs::remove_file("file032".to_string());
 }
 
 #[test]
-fn test_29_scard_de_set_devuelve_cero_si_no_existe() {
-    let mut db = Database::new("file027".to_string());
+fn test_033_scard_de_set_devuelve_cero_si_no_existe() {
+    let mut db = Database::new("file033".to_string());
 
     let len = db.get_len_of_set("valores");
     assert_eq!(len, 0);
-    let _ = std::fs::remove_file("file027".to_string());
+    let _ = std::fs::remove_file("file033".to_string());
 }
 
 #[test]
-fn test_30_scard_de_set_devuelve_cero_si_no_es_tipo_set() {
+fn test_034_scard_de_set_devuelve_cero_si_no_es_tipo_set() {
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string()))
         .with_timeout(0)
         .build();
-    let mut db = Database::new("file028".to_string());
+    let mut db = Database::new("file034".to_string());
     db.items.insert("saludo".to_string(), vt_1);
 
     let len = db.get_len_of_set("saludo");
     assert_eq!(len, 0);
-    let _ = std::fs::remove_file("file028".to_string());
+    let _ = std::fs::remove_file("file034".to_string());
 }
 
 #[test]
-fn test_31_ismember_de_set_devuelve_cero_si_no_es_tipo_set() {
+fn test_035_ismember_de_set_devuelve_cero_si_no_es_tipo_set() {
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string()))
         .with_timeout(0)
         .build();
 
-    let mut db = Database::new("file029".to_string());
+    let mut db = Database::new("file035".to_string());
     db.items.insert("saludo".to_string(), vt_1);
 
     let len = db.is_member_of_set("saludo", "hola");
     assert_eq!(len, 0);
-    let _ = std::fs::remove_file("file029".to_string());
+    let _ = std::fs::remove_file("file035".to_string());
 }
 
 #[test]
-fn test_31_ismember_de_set_devuelve_cero_si_no_existe_clave() {
-    let mut db = Database::new("file030".to_string());
+fn test_036_ismember_de_set_devuelve_cero_si_no_existe_clave() {
+    let mut db = Database::new("file036".to_string());
 
     let len = db.is_member_of_set("valores", "hola");
     assert_eq!(len, 0);
-    let _ = std::fs::remove_file("file030".to_string());
+    let _ = std::fs::remove_file("file036".to_string());
 }
 
 #[test]
-fn test_32_ismember_de_set_existente_devuelve_uno() {
+fn test_037_ismember_de_set_existente_devuelve_uno() {
     use std::collections::HashSet;
-    let mut db = Database::new("file031".to_string());
+    let mut db = Database::new("file037".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
 
@@ -2068,13 +2082,13 @@ fn test_32_ismember_de_set_existente_devuelve_uno() {
     db.items.insert("valores".to_string(), vt);
     let is_member = db.is_member_of_set("valores", "value_1");
     assert_eq!(is_member, 1);
-    let _ = std::fs::remove_file("file031".to_string());
+    let _ = std::fs::remove_file("file037".to_string());
 }
 
 #[test]
-fn test_33_ismember_de_set_existente_devuelve_cero_si_no_pertenece_al_set() {
+fn test_038_ismember_de_set_existente_devuelve_cero_si_no_pertenece_al_set() {
     use std::collections::HashSet;
-    let mut db = Database::new("file032".to_string());
+    let mut db = Database::new("file038".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
 
@@ -2083,13 +2097,13 @@ fn test_33_ismember_de_set_existente_devuelve_cero_si_no_pertenece_al_set() {
     db.items.insert("valores".to_string(), vt);
     let is_member = db.is_member_of_set("valores", "value_2");
     assert_eq!(is_member, 0);
-    let _ = std::fs::remove_file("file032".to_string());
+    let _ = std::fs::remove_file("file038".to_string());
 }
 
 #[test]
-fn test_34_get_members_of_set_existente_devuelve_elementos_del_set() {
+fn test_039_get_members_of_set_existente_devuelve_elementos_del_set() {
     use std::collections::HashSet;
-    let mut db = Database::new("file033".to_string());
+    let mut db = Database::new("file039".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
@@ -2103,13 +2117,13 @@ fn test_34_get_members_of_set_existente_devuelve_elementos_del_set() {
     assert!(members.contains(&&String::from("value_2")));
     assert!(members.contains(&&String::from("value_3")));
     assert_eq!(members.len(), 3);
-    let _ = std::fs::remove_file("file033".to_string());
+    let _ = std::fs::remove_file("file039".to_string());
 }
 
 #[test]
-fn test_35_remove_member_from_existing_set_returns_true() {
+fn test_040_remove_member_from_existing_set_returns_true() {
     use std::collections::HashSet;
-    let mut db = Database::new("file034".to_string());
+    let mut db = Database::new("file040".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
@@ -2120,13 +2134,13 @@ fn test_35_remove_member_from_existing_set_returns_true() {
     let removed = db.remove_member_from_set("valores", "value_1").unwrap();
     assert_eq!(removed, true);
 
-    let _ = std::fs::remove_file("file034".to_string());
+    let _ = std::fs::remove_file("file040".to_string());
 }
 
 #[test]
-fn test_36_remove_member_from_non_existing_set_returns_false() {
+fn test_041_remove_member_from_non_existing_set_returns_false() {
     use std::collections::HashSet;
-    let mut db = Database::new("file035".to_string());
+    let mut db = Database::new("file041".to_string());
     let mut this_set = HashSet::new();
     this_set.insert("value_1".to_string());
     this_set.insert("value_2".to_string());
@@ -2137,34 +2151,32 @@ fn test_36_remove_member_from_non_existing_set_returns_false() {
     let removed = db.remove_member_from_set("valores", "value_1").unwrap();
     assert_eq!(removed, false);
 
-    let _ = std::fs::remove_file("file035".to_string());
+    let _ = std::fs::remove_file("file041".to_string());
 }
 
 #[test]
-fn test_37_remove_member_from_list_type_returns_none() {
-    let mut db = Database::new("file036".to_string());
+fn test_042_remove_member_from_list_type_returns_none() {
+    let mut db = Database::new("file042".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let removed = db.remove_member_from_set("saludo", "value_1");
     assert!(removed.is_none());
 
-    let _ = std::fs::remove_file("file036".to_string());
+    let _ = std::fs::remove_file("file042".to_string());
 }
 
 #[test]
-fn test_38_pop_one_element_from_list_returns_popped_element() {
-    let mut db = Database::new("file037".to_string());
+fn test_043_pop_one_element_from_list_returns_popped_element() {
+    let mut db = Database::new("file043".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let removed = db.pop_elements_from_list("saludo", 1).unwrap();
     assert_eq!(removed, vec![String::from("hola")]);
@@ -2175,12 +2187,12 @@ fn test_38_pop_one_element_from_list_returns_popped_element() {
         assert!(false);
     }
 
-    let _ = std::fs::remove_file("file037".to_string());
+    let _ = std::fs::remove_file("file043".to_string());
 }
 
 #[test]
-fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
-    let mut db = Database::new("file038".to_string());
+fn test_044_pop_multiple_elements_from_list_returns_popped_elements() {
+    let mut db = Database::new("file044".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
@@ -2188,7 +2200,6 @@ fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
         "bye".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let removed = db.pop_elements_from_list("saludo", 2).unwrap();
     assert_eq!(removed, vec![String::from("hola"), String::from("chau")]);
@@ -2199,18 +2210,17 @@ fn test_39_pop_multiple_elements_from_list_returns_popped_elements() {
         assert!(false);
     }
 
-    let _ = std::fs::remove_file("file038".to_string());
+    let _ = std::fs::remove_file("file044".to_string());
 }
 
 #[test]
-fn test_40_rpop_one_element_from_list_returns_popped_element() {
-    let mut db = Database::new("file039".to_string());
+fn test_045_rpop_one_element_from_list_returns_popped_element() {
+    let mut db = Database::new("file045".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let removed = db.rpop_elements_from_list("saludo", 1).unwrap();
     assert_eq!(removed, vec![String::from("chau")]);
@@ -2221,12 +2231,12 @@ fn test_40_rpop_one_element_from_list_returns_popped_element() {
         assert!(false);
     }
 
-    let _ = std::fs::remove_file("file039".to_string());
+    let _ = std::fs::remove_file("file045".to_string());
 }
 
 #[test]
-fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
-    let mut db = Database::new("file040".to_string());
+fn test_046_rpop_multiple_elements_from_list_returns_popped_elements() {
+    let mut db = Database::new("file046".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
@@ -2234,7 +2244,6 @@ fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
         "bye".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let removed = db.rpop_elements_from_list("saludo", 2).unwrap();
     assert_eq!(removed, vec![String::from("bye"), String::from("hello")]);
@@ -2245,12 +2254,12 @@ fn test_41_rpop_multiple_elements_from_list_returns_popped_elements() {
         assert!(false);
     }
 
-    let _ = std::fs::remove_file("file040".to_string());
+    let _ = std::fs::remove_file("file046".to_string());
 }
 
 #[test]
-fn test_42_rpush_multiple_elements_to_list_returns_length() {
-    let mut db = Database::new("file041".to_string());
+fn test_047_rpush_multiple_elements_to_list_returns_length() {
+    let mut db = Database::new("file047".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
@@ -2258,7 +2267,6 @@ fn test_42_rpush_multiple_elements_to_list_returns_length() {
         "bye".to_string(),
     ]))
     .build();
-
     db.items.insert("saludo".to_string(), vt);
     let len = db.push_vec_to_list(
         vec![String::from("salut"), String::from("au revoir")],
@@ -2266,12 +2274,12 @@ fn test_42_rpush_multiple_elements_to_list_returns_length() {
     );
     assert_eq!(len, 6);
 
-    let _ = std::fs::remove_file("file041".to_string());
+    let _ = std::fs::remove_file("file047".to_string());
 }
 
 #[test]
-fn test_43_rpush_to_nonexisting_key_returns_zero() {
-    let mut db = Database::new("file042".to_string());
+fn test_048_rpush_to_nonexisting_key_returns_zero() {
+    let mut db = Database::new("file048".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::ListType(vec![
         "hola".to_string(),
         "chau".to_string(),
@@ -2279,7 +2287,6 @@ fn test_43_rpush_to_nonexisting_key_returns_zero() {
         "bye".to_string(),
     ]))
     .build();
-
     db.items.insert("despido".to_string(), vt);
     let len = db.push_vec_to_list(
         vec![String::from("salut"), String::from("au revoir")],
@@ -2287,14 +2294,13 @@ fn test_43_rpush_to_nonexisting_key_returns_zero() {
     );
     assert_eq!(len, 0);
 
-    let _ = std::fs::remove_file("file042".to_string());
+    let _ = std::fs::remove_file("file048".to_string());
 }
 
 #[test]
-fn test_44_rpush_to_string_returns_zero() {
-    let mut db = Database::new("file043".to_string());
+fn test_049_rpush_to_string_returns_zero() {
+    let mut db = Database::new("file049".to_string());
     let vt = ValueTimeItemBuilder::new(ValueType::StringType("hola".to_string())).build();
-
     db.items.insert("saludo".to_string(), vt);
     let len = db.push_vec_to_list(
         vec![String::from("salut"), String::from("au revoir")],
@@ -2302,12 +2308,12 @@ fn test_44_rpush_to_string_returns_zero() {
     );
     assert_eq!(len, 0);
 
-    let _ = std::fs::remove_file("file043".to_string());
+    let _ = std::fs::remove_file("file049".to_string());
 }
 
 #[test]
-fn test_29_se_eliminan_3_elementos_de_value_list_type() {
-    let mut db = Database::new("file044".to_string());
+fn test_050_se_eliminan_3_elementos_de_value_list_type() {
+    let mut db = Database::new("file050".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2330,12 +2336,12 @@ fn test_29_se_eliminan_3_elementos_de_value_list_type() {
 
     assert_eq!(3, values_deleted);
 
-    std::fs::remove_file("file044".to_string()).unwrap();
+    std::fs::remove_file("file050".to_string()).unwrap();
 }
 
 #[test]
-fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
-    let mut db = Database::new("file045".to_string());
+fn test_051_se_eliminan_todos_los_elementos_de_value_list_type() {
+    let mut db = Database::new("file051".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2357,12 +2363,12 @@ fn test_30_se_eliminan_todos_los_elementos_de_value_list_type() {
         db.delete_elements_of_value_list("phrase", "0".to_string(), "my".to_string());
 
     assert_eq!(4, values_deleted);
-    std::fs::remove_file("file045".to_string()).unwrap();
+    std::fs::remove_file("file051".to_string()).unwrap();
 }
 
 #[test]
-fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
-    let mut db = Database::new("file046".to_string());
+fn test_052_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
+    let mut db = Database::new("file052".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2382,12 +2388,115 @@ fn test_31_se_eliminan_3_elementos_de_value_list_type_en_reversa() {
     let values_deleted =
         db.delete_elements_of_value_list("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, values_deleted);
-    std::fs::remove_file("file046".to_string()).unwrap();
+    std::fs::remove_file("file052".to_string()).unwrap();
 }
 
 #[test]
-fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
-    let mut db = Database::new("file047".to_string());
+fn test_053_se_obtienen_3_elementos_de_un_value_de_tipo_list_clave_existe() {
+    let mut db = Database::new("file053".to_string());
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let elements_got = db
+        .get_values_from_list_value_type("phrase", "2", "4")
+        .unwrap();
+    assert_eq!(3, elements_got.len());
+    std::fs::remove_file("file053".to_string()).unwrap();
+}
+
+#[test]
+fn test_054_se_obtienen_3_elementos_de_un_value_de_tipo_list_clave_existe_con_lb_y_ub_negativos() {
+    let mut db = Database::new("file054".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let elements_got = db
+        .get_values_from_list_value_type("phrase", "-4", "-2")
+        .unwrap();
+    assert_eq!(3, elements_got.len());
+    std::fs::remove_file("file054".to_string()).unwrap();
+}
+
+#[test]
+fn test_055_se_obtiene_un_vector_vacio_de_1_elemento_cuando_lb_es_mayor_que_ub() {
+    let mut db = Database::new("file055".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let elements_got = db
+        .get_values_from_list_value_type("phrase", "5", "2")
+        .unwrap();
+    assert_eq!(1, elements_got.len());
+    std::fs::remove_file("file055".to_string()).unwrap();
+}
+
+#[test]
+fn test_056_se_obtiene_un_vector_de_longitud_maxima_lenght_cuando_ub_es_mayor_que_lenght() {
+    let mut db = Database::new("file056".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "my".to_string(),
+        "dog".to_string(),
+        "my".to_string(),
+        "friend".to_string(),
+        "my".to_string(),
+        "family".to_string(),
+        "my".to_string(),
+        "dear".to_string(),
+    ]))
+    .build();
+
+    db.items.insert("mia".to_string(), vt_1);
+    db.items.insert("phrase".to_string(), vt_2);
+    let elements_got = db
+        .get_values_from_list_value_type("phrase", "0", "200")
+        .unwrap();
+    assert_eq!(8, elements_got.len());
+    std::fs::remove_file("file056".to_string()).unwrap();
+}
+
+#[test]
+fn test_057_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
+    let mut db = Database::new("file057".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2406,12 +2515,12 @@ fn test_32_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "2"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
-    std::fs::remove_file("file047".to_string()).unwrap();
+    std::fs::remove_file("file057".to_string()).unwrap();
 }
 
 #[test]
-fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo() {
-    let mut db = Database::new("file048".to_string());
+fn test_058_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo() {
+    let mut db = Database::new("file058".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2430,12 +2539,12 @@ fn test_33_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo(
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(4, trozo_value_list_type.unwrap().len());
-    std::fs::remove_file("file048".to_string()).unwrap();
+    std::fs::remove_file("file058".to_string()).unwrap();
 }
 
 #[test]
-fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_negativos() {
-    let mut db = Database::new("file049".to_string());
+fn test_059_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_negativos() {
+    let mut db = Database::new("file059".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2454,12 +2563,12 @@ fn test_34_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_n
     db.items.insert("phrase".to_string(), vt_2);
     let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
-    std::fs::remove_file("file049".to_string()).unwrap();
+    std::fs::remove_file("file059".to_string()).unwrap();
 }
 
 #[test]
-fn test_35_se_pisan_valores_en_value_de_tipo_list_type() {
-    let mut db = Database::new("file050".to_string());
+fn test_060_se_pisan_valores_en_value_de_tipo_list_type() {
+    let mut db = Database::new("file060".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2484,12 +2593,12 @@ fn test_35_se_pisan_valores_en_value_de_tipo_list_type() {
         assert_eq!("sergio".to_string(), items[0]);
     }
     assert_eq!(true, vec_actualizado);
-    std::fs::remove_file("file050".to_string()).unwrap();
+    std::fs::remove_file("file060".to_string()).unwrap();
 }
 
 #[test]
-fn test_36_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rango() {
-    let mut db = Database::new("file051".to_string());
+fn test_061_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rango() {
+    let mut db = Database::new("file061".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2509,12 +2618,12 @@ fn test_36_no_se_reemplaza_valor_en_value_de_tipo_list_type_porque_fuera_de_rang
     let vec_actualizado =
         db.replace_element_in_list_type_value("nombres_masculinos", "sergio", "10");
     assert_eq!(false, vec_actualizado);
-    std::fs::remove_file("file051".to_string()).unwrap();
+    std::fs::remove_file("file061".to_string()).unwrap();
 }
 
 #[test]
-fn test_36_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbound() {
-    let mut db = Database::new("file052".to_string());
+fn test_062_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbound() {
+    let mut db = Database::new("file062".to_string());
 
     let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
     let vt_2 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
@@ -2539,5 +2648,5 @@ fn test_36_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbou
         assert_eq!("sergio".to_string(), items[7]);
     }
     assert_eq!(true, vec_actualizado);
-    std::fs::remove_file("file052".to_string()).unwrap();
+    std::fs::remove_file("file062".to_string()).unwrap();
 }
