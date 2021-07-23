@@ -4,7 +4,7 @@ use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use crate::errors::database_error::DatabaseError;
 use regex::Regex;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -421,7 +421,6 @@ impl Database {
     /// let _ = std::fs::remove_file("dummy_db_doc_reboot2.csv");
     /// ```
     ///
-
     pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem> {
         let mut item = self.get_mut_live_item(&key);
         if let Some(item) = &mut item {
@@ -472,7 +471,6 @@ impl Database {
                     }
                 }
                 None => {
-                    // Si no existe la key, la creo.
                     self.add(
                         destination,
                         ValueTimeItemBuilder::new(new_value)
@@ -1107,6 +1105,30 @@ impl Database {
             }
         } else {
             None
+        }
+    }
+
+    //faltan tests unitarios
+    pub fn add_element_to_set(&mut self, key: &str, values_to_add: Vec<&String>) -> Option<usize> {
+        let mut added = 0;
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::SetType(mut old_value) = item.get_copy_of_value() {
+                values_to_add.iter().for_each(|element| {
+                    added += old_value.insert(element.to_string()) as usize;
+                });
+                item.set_value(ValueType::SetType(old_value));
+                Some(added)
+            } else {
+                None
+            }
+        } else {
+            let mut set = HashSet::new();
+            values_to_add.iter().for_each(|element| {
+                added += set.insert(element.to_string()) as usize;
+            });
+            let vti = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+            self.add(key.to_string(), vti);
+            Some(added)
         }
     }
 
