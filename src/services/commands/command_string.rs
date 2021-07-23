@@ -99,10 +99,7 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 let number = decr.parse::<i64>();
                 return match number {
                     Ok(decr) => match db.decrement_key_by(key, decr) {
-                        Ok(res) => {
-                            //falla si el nro es negativo
-                            RespType::RInteger(res.try_into().unwrap())
-                        }
+                        Ok(res) => RespType::RSignedNumber(res.try_into().unwrap()),
                         Err(e) => RespType::RError(e.to_string()),
                     },
                     Err(e) => RespType::RError(e.to_string()),

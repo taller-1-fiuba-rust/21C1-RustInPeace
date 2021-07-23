@@ -393,9 +393,14 @@ fn test_main() {
     .build();
     database.add(String::from("sabores_de_chocolate"), added_item_40);
 
-    //---------------------------------------------------------------
-    //---------------------------------------------------------------
-    //---------------------------------------------------------------
+    let added_item_41 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "banana_passion_1".to_string(),
+        "banana_passion_2".to_string(),
+        "banana_passion_3".to_string(),
+        "banana_passion_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("banana_passions"), added_item_41);
 
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
@@ -561,12 +566,36 @@ const TESTS: &[Test] = &[
         func: test_se_setean_multiples_claves_nunca_falla,
     },
     Test {
+        name: "string command: set new value in existing key that is not string type, it never fails",
+        func: test_se_setea_clave_a_una_clave_existente_que_no_aloja_un_valor_de_tipo_string_y_nunca_falla,
+    },
+    Test {
         name: "string command: append mykey newvalue",
         func: test_string_append,
     },
     Test {
+        name: "string command: append mykey newvalue into non-existing key",
+        func: test_string_append_clave_que_no_existe_por_lo_que_se_crea_y_se_almacena_el_valor,
+    },
+    Test {
+        name: "string command: append mykey newvalue cannot as value type is not string, returns zero",
+        func: test_string_append_into_not_string_type_returns_zero,
+    },
+    Test {
         name: "string command: decrby mykey 3",
         func: test_string_decrby,
+    },
+    Test {
+        name: "string command: decrby mykey 3 to key that does not exists, -3 is result",
+        func: test_string_decrby_en_clave_que_no_existe_crea_la_clave_y_la_decrementa_en_el_valor_pasado,
+    },
+    Test {
+        name: "string command: decrby mykey returns error as type is not string",
+        func: test_string_decrby_devuelve_error_si_el_tipo_de_dato_no_es_string,
+    },
+    Test {
+        name: "string command: decrby mykey returns error as string type cannot be represented as integer",
+        func: test_string_decrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer,
     },
     Test {
         name: "string command: incrby mykey 3",
@@ -1305,6 +1334,24 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     }
 }
 
+fn test_se_setea_clave_a_una_clave_existente_que_no_aloja_un_valor_de_tipo_string_y_nunca_falla(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("MSET")
+        .arg("banana_mascots")
+        .arg("mister_banana")
+        .query(&mut con)?;
+
+    if ret == "Ok" {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
 fn test_string_append() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("APPEND")
@@ -1317,6 +1364,41 @@ fn test_string_append() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("11"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_append_clave_que_no_existe_por_lo_que_se_crea_y_se_almacena_el_valor() -> TestResult
+{
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("nombre_del_nieto_del_sobrino_del_primo_del_hermano_del_abuelo")
+        .arg("luciano")
+        .query(&mut con)?;
+
+    if ret == 7 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("7"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_append_into_not_string_type_returns_zero() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("banana_passions")
+        .arg(" World")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
             got: ret.to_string(),
         }));
     }
@@ -1338,6 +1420,58 @@ fn test_string_decrby() -> TestResult {
         }));
     }
 }
+
+fn test_string_decrby_en_clave_que_no_existe_crea_la_clave_y_la_decrementa_en_el_valor_pasado(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("DECRBY")
+        .arg("key_to_decr_that_doesnt_exists")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == -3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("-3"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_decrby_devuelve_error_si_el_tipo_de_dato_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("DECRBY")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_decrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("DECRBY").arg("key_1").arg(3).query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - string cannot be represented as integer"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+//--------------------------------------SEGUIR DESDE ACA EN ADELANTE-----------------------------------------------
 
 fn test_string_incrby() -> TestResult {
     let mut con = connect()?;
@@ -1453,6 +1587,7 @@ fn test_string_set() -> TestResult {
 //-----------------------------------------------------LIST COMMANDS-------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
+
 fn test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSH")
@@ -1949,7 +2084,7 @@ pub fn test_list_lpop() -> TestResult {
         }))
     };
 }
-//------------------------------------cambiar------------------------------------------------
+
 pub fn test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
     let mut con = connect()?;
     let ret: () = redis::cmd("LPOP")
@@ -2013,7 +2148,6 @@ pub fn test_list_lpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list
         }))
     };
 }
-//------------------------------------------------------------------------------------
 
 pub fn test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len(
 ) -> TestResult {
