@@ -567,7 +567,6 @@ pub fn generate_options(cmd: &[RespType]) -> Vec<(String, Option<&String>)> {
         (String::from("get_old_value"), None),
     ];
     for (pos, argumento) in cmd.iter().skip(3).enumerate() {
-        println!("pos: {}", pos);
         if let RespType::RBulkString(arg) = argumento {
             if (arg == "ex") || (arg == "px") || (arg == "exat") || (arg == "pxat") {
                 if let RespType::RBulkString(expire_at) = &cmd[pos + 4] {

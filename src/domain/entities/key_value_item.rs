@@ -261,58 +261,46 @@ impl ValueTimeItem {
         self.value = new_value;
     }
 
-    pub fn sort_descending(&self) -> Option<Vec<&String>> {
-        let current_value = &self.value;
+    pub fn sort_descending(&self) -> Vec<String> {
+        let current_value = self.value.clone();
         match current_value {
-            ValueType::ListType(current_list) => {
-                //let mut vec = Vec::new();
-                let mut vec: Vec<_> = current_list.iter().collect();
-                vec.sort();
-                vec.reverse();
-                Some(vec)
+            ValueType::ListType(mut current_list) => {
+                current_list.sort();
+                current_list.reverse();
+                current_list
             }
             ValueType::SetType(current_set) => {
-                let mut vec: Vec<_> = current_set.iter().collect();
+                let mut vec: Vec<String> = current_set.into_iter().collect();
                 vec.sort();
                 vec.reverse();
-                Some(vec)
+                vec
             }
-            _ => None,
+            ValueType::StringType(current_string) => vec![current_string],
         }
     }
 
-    pub fn sort(&self) -> Option<Vec<&String>> {
-        let current_value_item = &self.value;
+    pub fn sort(&self) -> Vec<String> {
+        let current_value_item = self.value.clone();
         match current_value_item {
-            ValueType::ListType(current_list) => {
-                let mut vec: Vec<_> = current_list.iter().collect();
-                vec.sort();
-                Some(vec)
+            ValueType::ListType(mut current_list) => {
+                current_list.sort();
+                current_list
             }
             ValueType::SetType(current_set) => {
-                let mut vec: Vec<_> = current_set.iter().collect();
+                let mut vec: Vec<String> = current_set.into_iter().collect();
                 vec.sort();
-                Some(vec)
+                vec
             }
-            _ => None,
+            ValueType::StringType(current_string) => vec![current_string],
         }
     }
 
-    pub fn get_value_version_2(&self) -> Option<Vec<&String>> {
+    pub fn get_value_as_vec(&self) -> Vec<&String> {
         let current_value_item = &self.value;
         match current_value_item {
-            ValueType::ListType(current_list) => {
-                let vec: Vec<_> = current_list.iter().collect();
-                Some(vec)
-            }
-            ValueType::SetType(current_set) => {
-                let vec: Vec<_> = current_set.iter().collect();
-                Some(vec)
-            }
-            ValueType::StringType(current_string) => {
-                let vec = vec![current_string];
-                Some(vec)
-            }
+            ValueType::ListType(current_list) => current_list.iter().collect(),
+            ValueType::SetType(current_set) => current_set.iter().collect(),
+            ValueType::StringType(current_string) => vec![current_string],
         }
     }
 
@@ -420,14 +408,14 @@ fn test_005_list_of_numbers_is_sorted_ascending() {
     .with_timeout(0)
     .build();
 
-    let lista_ordenada = kv_item.sort().unwrap();
+    let lista_ordenada = kv_item.sort();
     assert_eq!(
         lista_ordenada,
         vec![
-            &String::from("1"),
-            &String::from("20"),
-            &String::from("34"),
-            &String::from("65")
+            String::from("1"),
+            String::from("20"),
+            String::from("34"),
+            String::from("65")
         ]
     );
 }
@@ -445,14 +433,14 @@ fn test_006_list_of_numbers_is_sorted_descending() {
     .with_timeout(0)
     .build();
 
-    let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+    let lista_ordenada_inversamente = kv_item.sort_descending();
     assert_eq!(
         lista_ordenada_inversamente,
         vec![
-            &String::from("65"),
-            &String::from("34"),
-            &String::from("20"),
-            &String::from("1")
+            String::from("65"),
+            String::from("34"),
+            String::from("20"),
+            String::from("1")
         ]
     );
 }
@@ -470,14 +458,14 @@ fn test_007_list_of_words_is_sorted_inverse_abc() {
     .with_timeout(0)
     .build();
 
-    let lista_ordenada_inversamente = kv_item.sort_descending().unwrap();
+    let lista_ordenada_inversamente = kv_item.sort_descending();
     assert_eq!(
         lista_ordenada_inversamente,
         vec![
-            &String::from("juan"),
-            &String::from("irma"),
-            &String::from("domingo"),
-            &String::from("dominga")
+            String::from("juan"),
+            String::from("irma"),
+            String::from("domingo"),
+            String::from("dominga")
         ]
     )
 }
@@ -494,14 +482,14 @@ fn test_008_list_of_words_is_sorted_abc() {
     ]))
     .with_timeout(0)
     .build();
-    let lista_ordenada = kv_item.sort().unwrap();
+    let lista_ordenada = kv_item.sort();
     assert_eq!(
         lista_ordenada,
         vec![
-            &String::from("dominga"),
-            &String::from("domingo"),
-            &String::from("irma"),
-            &String::from("juan")
+            String::from("dominga"),
+            String::from("domingo"),
+            String::from("irma"),
+            String::from("juan")
         ]
     );
 }

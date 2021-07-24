@@ -1181,7 +1181,7 @@ fn test_sort_by_external_key_value_using_pattern_ascending() -> TestResult {
     let ret: Vec<String> = redis::cmd("SORT")
         .arg("grupo_amigas")
         .arg("BY")
-        .arg("edad_")
+        .arg("edad_*")
         .query(&mut con)?;
     if &ret[0] == &String::from("maria")
         && &ret[1] == &String::from("clara")
@@ -1202,7 +1202,7 @@ fn test_sort_by_external_key_value_using_pattern_descending() -> TestResult {
     let ret: Vec<String> = redis::cmd("SORT")
         .arg("grupo_amigas")
         .arg("BY")
-        .arg("edad_")
+        .arg("edad_*")
         .arg("DESC")
         .query(&mut con)?;
     if &ret[0] == &String::from("luz")
