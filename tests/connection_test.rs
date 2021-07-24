@@ -430,6 +430,24 @@ fn test_main() {
     let added_item_47 =
         ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de damasco"))).build();
     database.add(String::from("botellon_de_jugo_23"), added_item_47);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_espigado_1".to_string());
+    set.insert("granadero_espigado_2".to_string());
+    let added_item_set_48 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_espigados"), added_item_set_48);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_atolondrado_1".to_string());
+    set.insert("granadero_atolondrado_2".to_string());
+    let added_item_set_49 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_atolondrados"), added_item_set_49);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_taciturno_1".to_string());
+    set.insert("granadero_taciturno_2".to_string());
+    let added_item_set_50 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_taciturnos"), added_item_set_50);
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
@@ -911,16 +929,60 @@ const TESTS: &[Test] = &[
         func: test_set_add,
     },
     Test {
+        name: "set command: sadd to non-existing key , it is created and the value added",
+        func: test_set_add_clave_no_existe_se_crea_la_clave_con_valor,
+    },
+    Test {
+        name: "set command: sadd value is ignored as specified value is already a member of value",
+        func: test_set_add_valor_ya_es_miembro,
+    },
+    Test {
+        name: "set command: sadd cannot perform as key holds no set-value type , it is string type",
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_string_type,
+    },
+    Test {
+        name: "set command: sadd cannot perform as key holds no set-value type , it is list type",
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_list_type,
+    },
+    Test {
         name: "set command: scard",
         func: test_set_scard,
+    },
+    Test {
+        name: "set command: scard returns 0 as key does not exists",
+        func: test_set_scard_devuelve_cero_para_clave_inexistente,
+    },
+    Test {
+        name: "set command: scard cannot perform as key holds no-set value type - error", 
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
     },
     Test {
         name: "set command: ismember",
         func: test_set_ismember,
     },
     Test {
+        name: "set command: ismember cannot perform as key holds no-set value type - error",
+        func: test_set_ismember_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
+    },
+    Test {
+        name: "set command: ismember returns 0 as value is not member",
+        func: test_set_ismember_devuelve_cero_porque_el_valor_no_es_miembro,
+    },
+    Test {
+        name: "set command: ismember returns 0 as key-value does not exist",
+        func: test_set_ismember_devuelve_cero_porque_la_clave_no_existe,
+    },
+    Test {
         name: "set command: smembers",
         func: test_set_smembers,
+    },
+    Test {
+        name: "set command: smembers cannot perform as key holds no-set value type - error",
+        func: test_set_members_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
+    },
+    Test {
+        name: "set command: smembers return nill when key not found",
+        func: test_set_smembers_devuelve_nil_cuando_la_clave_no_existe,
     },
     Test {
         name: "set command: srem",
@@ -2869,6 +2931,81 @@ pub fn test_set_add() -> TestResult {
     };
 }
 
+pub fn test_set_add_valor_ya_es_miembro() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SADD")
+        .arg("granaderos_espigados")
+        .arg("granadero_espigado_1")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_add_clave_no_existe_se_crea_la_clave_con_valor() -> TestResult {
+    let mut con = connect()?;
+    let ret_initial: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    let ret: usize = redis::cmd("SADD")
+        .arg("granaderos_agasajados")
+        .arg("granadero_agasajado_1")
+        .query(&mut con)?;
+
+    let ret_final: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    return if ret == 1 && ret_initial == (ret_final - 1) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("'0' and db_size_after_getdel == db_size_before_getdel - 1"),
+            got: format!(
+                "added_elements: {:?} , db_size_after_get_del {:?} , db_size_before_get_del {:?} ",
+                ret, ret_final, ret_initial
+            ),
+        }))
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_string_type(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SADD")
+        .arg("edad_maria")
+        .arg("maria parisina")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_list_type(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SADD")
+        .arg("jinetes_de_tucuman")
+        .arg("jinete sin caballo")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
 pub fn test_set_scard() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SCARD").arg("set_values_1").query(&mut con)?;
@@ -2880,6 +3017,39 @@ pub fn test_set_scard() -> TestResult {
             expected: String::from("2"),
             got: ret.to_string(),
         }))
+    };
+}
+
+pub fn test_set_scard_devuelve_cero_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SCARD")
+        .arg("granaderos_empetrolados")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SCARD")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
     };
 }
 
@@ -2900,6 +3070,58 @@ pub fn test_set_ismember() -> TestResult {
     };
 }
 
+pub fn test_set_ismember_devuelve_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("granaderos_enajenados")
+        .arg("granadero_enajenado_1")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember_devuelve_cero_porque_el_valor_no_es_miembro() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("granaderos_espigados")
+        .arg("granadero_espigado_5")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SISMEMBER")
+        .arg("jinetes_de_tucuman")
+        .arg("jinete_1")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
 pub fn test_set_smembers() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("SMEMBERS").arg("set_values_1").query(&mut con)?;
@@ -2914,6 +3136,37 @@ pub fn test_set_smembers() -> TestResult {
             ),
             got: format!("{:?}", ret),
         }))
+    };
+}
+
+pub fn test_set_smembers_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("SMEMBERS")
+        .arg("granaderos_acobardados")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_set_members_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SISMEMBER").arg("edad_maria").query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
     };
 }
 
@@ -2986,7 +3239,7 @@ pub fn test_set_srem_removes_returns_error() -> TestResult {
         }))
     };
 }
-//----------------------------------
+
 fn test_rpush_lista_inexistente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSH")
