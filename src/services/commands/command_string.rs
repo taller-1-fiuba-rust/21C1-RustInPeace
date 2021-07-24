@@ -83,7 +83,7 @@ pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ], &database);
 ///
 /// # match res {
-/// #    RespType::RInteger(new_edad) => {
+/// #    RespType::RSignedNumber(new_edad) => {
 ///     assert_eq!(new_edad, 23)
 /// # }
 /// #    _ => assert!(false)

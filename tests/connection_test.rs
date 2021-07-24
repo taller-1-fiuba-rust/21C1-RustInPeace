@@ -402,6 +402,34 @@ fn test_main() {
     .build();
     database.add(String::from("banana_passions"), added_item_41);
 
+    let added_item_42 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "carpintero_1".to_string(),
+        "carpintero_2".to_string(),
+        "carpintero_3".to_string(),
+        "carpintero_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("pajaros_carpinteros"), added_item_42);
+
+    let added_item_43 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de kiwi"))).build();
+    database.add(String::from("botellon_de_jugo_1"), added_item_43);
+
+    let added_item_44 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de grosellas"))).build();
+    database.add(String::from("botellon_de_jugo_2"), added_item_44);
+
+    let added_item_45 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de tamarindo"))).build();
+    database.add(String::from("botellon_de_jugo_3"), added_item_45);
+
+    let added_item_46 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de remolacha"))).build();
+    database.add(String::from("botellon_de_jugo_10"), added_item_46);
+
+    let added_item_47 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de damasco"))).build();
+    database.add(String::from("botellon_de_jugo_23"), added_item_47);
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
@@ -602,20 +630,64 @@ const TESTS: &[Test] = &[
         func: test_string_incrby,
     },
     Test {
+        name: "string command: incrby mykey 3 to key that does not exists, 3 is result",
+        func: test_string_incrby_en_clave_que_no_existe_crea_la_clave_y_la_incrementa_en_el_valor_pasado,
+    },
+    Test {
+        name: "string command: incrby mykey returns error as type is not string",
+        func: test_string_incrby_devuelve_error_si_el_tipo_de_dato_no_es_string,
+    },
+    Test {
+        name: "string command: incrby mykey returns error as string type cannot be represented as integer",
+        func: test_string_incrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer,
+    },
+    Test {
         name: "string command: get key_1",
         func: test_string_get,
+    },
+    Test {
+        name: "string command: get cannot get non-existing key-value, nill is returned",
+        func: test_string_get_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: get cannot get non-string key-value, error is returned",
+        func: test_string_get_devuelve_error_cuando_se_aplica_get_para_valor_que_no_es_string,
     },
     Test {
         name: "string command: getdel key_getdel",
         func: test_string_getdel,
     },
     Test {
+        name: "string command: getdel returns nill as key does not exists",
+        func: test_string_getdel_devuelve_nulo_cuando_se_aplica_getdel_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: getdel thorws error as key holds value which is not string",
+        func: test_string_getdel_devuelve_error_cuando_se_aplica_getdel_para_valor_que_no_es_string,
+    },
+    Test {
         name: "string command: getset key_getset",
         func: test_string_getset,
     },
     Test {
+        name: "string command: getset returns nill as key does not exists",
+        func: test_string_getset_devuelve_nulo_cuando_se_aplica_getset_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: getset thorws error as key holds value which is not string",
+        func: test_string_getset_devuelve_error_cuando_se_aplica_getset_para_valor_que_no_es_string,
+    },
+    Test {
         name: "string command: strlen key_1",
         func: test_string_strlen,
+    },
+    Test {
+        name: "string command: strlen is zero when key does not exist",
+        func: test_string_strlen_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: get cannot get non-string key-value, error is returned",
+        func: test_string_get_arroja_error_cuando_se_aplica_get_para_valor_que_no_es_string,
     },
     Test {
         name: "string command: mget key_1 mykey",
@@ -624,6 +696,34 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: set mykeyset setvalue",
         func: test_string_set,
+    },
+    Test {
+        name: "string command: set returns null when key does not exist",
+        func: test_string_set_devuelve_nulo_cuando_se_aplica_set_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with ex argument",
+        func: test_string_set_with_ex_argument,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with keepttl argument",
+        func: test_string_set_with_keepttl_argument,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with nx argument sets succesfully as key does not already exist",
+        func: test_string_set_with_nx_argument_key_does_not_already_exist,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with nx argument throws error as key already exists",
+        func: test_string_set_with_nx_argument_key_already_exists_throws_error,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with xx argument throws error as key does not already exist",
+        func: test_string_set_with_xx_argument_key_does_not_already_exist_then_throws_error,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with xx argument successful as key already exists",
+        func: test_string_set_with_xx_argument_succesfull_as_key_already_exists,
     },
     Test {
         name: "list command: lpush values into key - list type",
@@ -1315,6 +1415,23 @@ fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult
     }
 }
 
+fn test_string_mget() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("MGET")
+        .arg("mget_1")
+        .arg("mget_2")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("hola chau"),
+            got: format!("{} {}", ret[0], ret[1]),
+        }));
+    }
+}
+
 fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("MSET")
@@ -1471,8 +1588,6 @@ fn test_string_decrby_devuelve_error_porque_el_string_no_se_puede_representar_co
     }
 }
 
-//--------------------------------------SEGUIR DESDE ACA EN ADELANTE-----------------------------------------------
-
 fn test_string_incrby() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("INCRBY")
@@ -1486,6 +1601,56 @@ fn test_string_incrby() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("13"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_incrby_en_clave_que_no_existe_crea_la_clave_y_la_incrementa_en_el_valor_pasado(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("INCRBY")
+        .arg("key_to_incr_that_doesnt_exists")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("3"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_incrby_devuelve_error_si_el_tipo_de_dato_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INCRBY")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_incrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INCRBY").arg("key_1").arg(3).query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - string cannot be represented as integer"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1504,6 +1669,39 @@ fn test_string_get() -> TestResult {
     }
 }
 
+fn test_string_get_devuelve_error_cuando_se_aplica_get_para_valor_que_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("GET")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+fn test_string_get_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GET")
+        .arg("ricardito_corazon_de_surubi")
+        .arg(3)
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 fn test_string_strlen() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("STRLEN").arg("key_1").query(&mut con)?;
@@ -1518,16 +1716,86 @@ fn test_string_strlen() -> TestResult {
     }
 }
 
-fn test_string_getdel() -> TestResult {
+fn test_string_strlen_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+    let ret: usize = redis::cmd("STRLEN")
+        .arg("ricardito_corazon_de_surubi")
+        .query(&mut con)?;
 
-    if ret == String::from("Hello") {
+    if ret == 0 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("Hello"),
-            got: ret,
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_get_arroja_error_cuando_se_aplica_get_para_valor_que_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("STRLEN")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not list type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_getdel() -> TestResult {
+    let mut con = connect()?;
+    let ret_initial: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+    let ret_final: usize = redis::cmd("DBSIZE").query(&mut con)?;
+
+    if ret == String::from("Hello") && ret_initial == (ret_final + 1) {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("'Hello' and db_size_after_getdel == db_size_before_getdel - 1"),
+            got: format!(
+                "value: {:?} , db_size_after_get_del {:?} , db_size_before_get_del {:?} ",
+                ret, ret_final, ret_initial
+            ),
+        }));
+    }
+}
+
+fn test_string_getdel_devuelve_nulo_cuando_se_aplica_getdel_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GETDEL")
+        .arg("alfredito_corazon_de_cachalote")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+fn test_string_getdel_devuelve_error_cuando_se_aplica_getdel_para_valor_que_no_es_string(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("GETDEL")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1539,31 +1807,53 @@ fn test_string_getset() -> TestResult {
         .arg("NewValue")
         .query(&mut con)?;
 
-    if ret == String::from("OldValue") {
+    let ret_stored_new_value: String = redis::cmd("GET").arg("key_getset").query(&mut con)?;
+    if (ret == String::from("OldValue")) && (ret_stored_new_value == String::from("newvalue")) {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("OldValue"),
-            got: ret,
+            expected: format!("old value: OldValue , new value: NewValue"), //String::from("OldValue"),
+            got: format!(
+                "old value: {:?} , new value: {:?}",
+                ret, ret_stored_new_value
+            ),
         }));
     }
 }
 
-fn test_string_mget() -> TestResult {
+fn test_string_getset_devuelve_error_cuando_se_aplica_getset_para_valor_que_no_es_string(
+) -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("MGET")
-        .arg("mget_1")
-        .arg("mget_2")
-        .query(&mut con)?;
+    let ret: Result<String, RedisError> = redis::cmd("GETSET")
+        .arg("jinetes_de_tucuman")
+        .arg("NewValue")
+        .query(&mut con);
 
-    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+    if ret.is_err() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("hola chau"),
-            got: format!("{} {}", ret[0], ret[1]),
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
         }));
     }
+}
+
+fn test_string_getset_devuelve_nulo_cuando_se_aplica_getset_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GETSET")
+        .arg("alfredito_corazon_de_cachalote")
+        .arg("NewValue")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
 }
 
 fn test_string_set() -> TestResult {
@@ -1582,6 +1872,133 @@ fn test_string_set() -> TestResult {
         }));
     }
 }
+
+fn test_string_set_with_ex_argument() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_1")
+        .arg("jugo de frambuesas")
+        .arg("EX")
+        .arg("60")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_keepttl_argument() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_2")
+        .arg("jugo de frambuesas")
+        .arg("KEEPTTL")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_nx_argument_key_does_not_already_exist() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_4")
+        .arg("jugo de limon y lima")
+        .arg("NX")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_nx_argument_key_already_exists_throws_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SET")
+        .arg("botellon_de_jugo_23")
+        .arg("jugo de zapallo")
+        .arg("NX")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key already exists"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_set_with_xx_argument_succesfull_as_key_already_exists() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_10")
+        .arg("jugo de palta")
+        .arg("XX")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_xx_argument_key_does_not_already_exist_then_throws_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SET")
+        .arg("botellon_de_jugo_87")
+        .arg("jugo de mandioca")
+        .arg("XX")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_set_devuelve_nulo_cuando_se_aplica_set_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("SET")
+        .arg("alfredito_corazon_de_cachalote")
+        .arg("valueset")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------LIST COMMANDS-------------------------------------------------------------
