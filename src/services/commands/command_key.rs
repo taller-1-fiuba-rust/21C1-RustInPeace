@@ -431,7 +431,6 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
 /// Si alguno de los límites no puede representarse con un número entero positivo, se asignan como default 0 para límite inferior y el largo del vector para límite superior.
 /// * BY pattern: Permite ordenar a partir de claves externas y sus valores asociados.
-/// * STORE key: Almacena la lista ordenada en `key`.
 ///
 /// Devuelve una lista con los elementos ordenados. Si se especifica el parámetro `store`, devuelve la cantidad de elementos ordenados y almacenados en la nueva clave.
 ///
@@ -513,7 +512,6 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// * ALPHA: Ordena alfabeticamente.
 /// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
 /// * BY pattern: Permite ordenar a partir de claves externas y sus valores asociados.
-/// * STORE key: Almacena la lista ordenada en `key`.
 ///
 /// # Ejemplo
 /// ```
@@ -649,12 +647,12 @@ pub fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
 /// ```
 pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(pattern) = &cmd[1] {
-        let new_database = database.read().unwrap();
-        let pattern_matching_keys = new_database.get_keys_that_match_pattern(pattern);
-        let mut vec = vec![];
-        pattern_matching_keys
-            .into_iter()
-            .for_each(|value| vec.push(RespType::RBulkString(value)));
+        let db = database.read().unwrap();
+        let matching_keys = db.get_keys_that_match_pattern(pattern);
+        let vec = matching_keys
+            .iter()
+            .map(|k| RespType::RBulkString(k.to_string()))
+            .collect();
         RespType::RArray(vec)
     } else {
         RespType::RBulkString("No matching keys".to_string())

@@ -2,7 +2,7 @@ use crate::domain::entities::key_value_item::{KeyAccessTime, ValueTimeItem};
 use crate::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType};
 use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use crate::errors::database_error::DatabaseError;
-use regex::Regex;
+use crate::services::utils::glob_pattern;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -75,42 +75,44 @@ impl Database {
     }
 
     /// Devuelve las claves que hacen *match* con un *pattern* sin uso de regex (limitado)
-    pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
-        let mut vector_keys = vec![];
-        for key in &self.items {
-            let current_key = key.to_owned().0.to_string();
-            if !key.1.is_expired() {
-                vector_keys.push(current_key);
-            }
-        }
-        let mut vector_keys_filtered = vec![];
-        for key in vector_keys {
-            if key.contains(&pattern.to_string()) {
-                vector_keys_filtered.push(key);
-            }
-        }
-        vector_keys_filtered
-    }
+    // pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
+    //     let mut vector_keys = vec![];
+    //     for key in &self.items {
+    //         let current_key = key.to_owned().0.to_string();
+    //         if !key.1.is_expired() {
+    //             vector_keys.push(current_key);
+    //         }
+    //     }
+    //     let mut vector_keys_filtered = vec![];
+    //     for key in vector_keys {
+    //         if key.contains(&pattern.to_string()) {
+    //             vector_keys_filtered.push(key);
+    //         }
+    //     }
+    //     vector_keys_filtered
+    // }
 
     /// Devuelve las claves que hacen *match* con un *pattern* con uso de regex (exhaustivo)
     pub fn get_keys_that_match_pattern(&self, pattern: &str) -> Vec<String> {
-        let mut vec_matching_keys = vec![];
+        let mut matching_keys = vec![];
         //aca agarro todas las claves disponibles en un vector
-        let mut vector_keys = vec![];
+        // let mut vector_keys = vec![];
         for key in &self.items {
-            let current_key = key.to_owned().0.to_string();
-            if !key.1.is_expired() {
-                vector_keys.push(current_key);
+            let current_key = key.0.to_string();
+            if !key.1.is_expired()
+                && glob_pattern::g_match(pattern.as_bytes(), current_key.as_bytes())
+            {
+                matching_keys.push(current_key);
             }
         }
         //aca genero el regex a partir de pattern y lo comparo contra todas las claves
-        let re = Regex::new(pattern).unwrap();
-        for key in vector_keys {
-            if re.is_match(&key) {
-                vec_matching_keys.push(key);
-            }
-        }
-        vec_matching_keys
+        // let re = Regex::new(pattern).unwrap();
+        // for key in vector_keys {
+        //     if re.is_match(&key) {
+        //         vec_matching_keys.push(key);
+        //     }
+        // }
+        matching_keys
     }
 
     ///devuelve **true** si la clave existe en *database*
@@ -1311,7 +1313,7 @@ fn test_000_filter_keys_by_pattern() {
         .insert("deliciosos_kiwi_weight_baratos".to_string(), vt_3);
     db.items.insert("banana_weight".to_string(), vt_4);
 
-    let vec_filtered = db.get_keys_that_match_pattern_sin_regex("weight".to_string());
+    let vec_filtered = db.get_keys_that_match_pattern("*weight*");
     assert_eq!(vec_filtered.len(), 4);
     let _ = std::fs::remove_file("./src/dummy_00.txt");
 }
