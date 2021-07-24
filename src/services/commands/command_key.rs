@@ -406,15 +406,18 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 
 /// Devuelve los elementos contenidos en una lista o set de forma ordenada.
 ///
-/// Ordena una lista o set alojado en `key`.Por defecto, ordena de mayor a menos.
+/// Ordena una lista o set alojado en `key`. Por defecto, ordena de menor a mayor.
+///
 /// Admite los parámetros:
-/// * DESC: Ordena de mayor a menor.
+///
+/// * ASC | DESC: Ordena de menor a mayor (asc) o de mayor a menor (desc).
 /// * ALPHA: Ordena alfabeticamente.
 /// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
-/// * BY: Permite ordenar a partir de claves externas y sus valores asociados.
+/// Si alguno de los límites no puede representarse con un número entero positivo, se asignan como default 0 para límite inferior y el largo del vector para límite superior.
+/// * BY pattern: Permite ordenar a partir de claves externas y sus valores asociados.
 /// * STORE key: Almacena la lista ordenada en `key`.
 ///
-/// Devuelve una lista con los elementos ordenados. Si se especificó el parámetro `store`, devuelve la cantidad de elementos ordenados y almacenados en la nueva clave.
+/// Devuelve una lista con los elementos ordenados. Si se especifica el parámetro `store`, devuelve la cantidad de elementos ordenados y almacenados en la nueva clave.
 ///
 /// # Ejemplo
 /// ```
@@ -445,73 +448,44 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// # let _ = std::fs::remove_file("dummy_db_sort.csv");
 /// ```
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    //A hashpam is created to store all info about the SORT operation
-    let aux_hash_map = generate_hashmap(cmd);
-    let mut vector = Vec::new();
-    if let RespType::RBulkString(current_key) = &cmd[1] {
-        let mut sorted_list: Vec<&String> = Vec::new();
-        let mut auxiliary_vec = Vec::new();
-        let mut database_lock = database.write().unwrap();
-        if aux_hash_map.contains_key("by") {
-            if let RespType::RBulkString(pat) = aux_hash_map.get("by").unwrap() {
-                let mut tuple_vector = database_lock
-                    .get_values_and_associated_external_key_values(
-                        pat.to_string(),
-                        current_key.to_string(),
-                    )
-                    .unwrap();
-                tuple_vector.sort_by_key(|k| k.1.clone());
-                for val in tuple_vector {
-                    auxiliary_vec.push(val.0.clone());
-                }
-                for j in &auxiliary_vec {
-                    sorted_list.push(j)
-                }
-                if aux_hash_map.contains_key("desc") {
-                    sorted_list.reverse()
-                }
-                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
-                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
-                        if let RespType::RBulkString(upper_bound) =
-                            aux_hash_map.get("upper").unwrap()
-                        {
-                            let min = lower_bound.parse::<usize>().unwrap();
-                            let max = upper_bound.parse::<usize>().unwrap();
-                            sorted_list = sorted_list[min..max].to_vec();
-                        }
-                    }
+    let parameters = generate_hashmap(cmd);
+    if let RespType::RBulkString(key) = &cmd[1] {
+        let mut db = database.write().unwrap();
+        let mut sorted: Vec<String> = Vec::new();
+        if parameters.contains_key("by") {
+            if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
+                let mut elements_to_sort =
+                    db.get_values_of_keys_matching_pattern(pattern.to_string(), key.to_string());
+                elements_to_sort.sort_by_key(|k| k.1.to_owned());
+                sorted = elements_to_sort.iter().map(|e| e.0.to_owned()).collect();
+                if parameters.contains_key("desc") {
+                    sorted.reverse()
                 }
             }
-        } else {
-            let my_list_value_optional = database_lock.get_live_item(current_key);
-            if let Some(my_list_value) = my_list_value_optional {
-                if aux_hash_map.contains_key("desc") {
-                    //ordeno descendentemente
-                    sorted_list = my_list_value.sort_descending().unwrap();
-                } else {
-                    //ordeno ascendentemente
-                    sorted_list = my_list_value.sort().unwrap();
-                }
-                if (aux_hash_map.contains_key("lower")) || (aux_hash_map.contains_key("upper")) {
-                    if let RespType::RBulkString(lower_bound) = aux_hash_map.get("lower").unwrap() {
-                        if let RespType::RBulkString(upper_bound) =
-                            aux_hash_map.get("upper").unwrap()
-                        {
-                            let min = lower_bound.parse::<usize>().unwrap();
-                            let max = upper_bound.parse::<usize>().unwrap();
-                            sorted_list = sorted_list[min..max].to_vec();
-                            //sorted_list = sort_vec_by_min_max_values(lower_bound, upper_, sorted_list);
-                        }
-                    }
+        } else if let Some(item) = db.get_live_item(key) {
+            if parameters.contains_key("desc") {
+                sorted = item.sort_descending();
+            } else {
+                sorted = item.sort();
+            }
+        }
+        if (parameters.contains_key("lower")) && (parameters.contains_key("upper")) {
+            if let RespType::RBulkString(lower_bound) = parameters.get("lower").unwrap() {
+                if let RespType::RBulkString(upper_bound) = parameters.get("upper").unwrap() {
+                    let min = lower_bound.parse::<usize>().unwrap_or(0);
+                    let max = upper_bound.parse::<usize>().unwrap_or(sorted.len());
+                    sorted = sorted[min..max].to_vec();
                 }
             }
         }
-        sorted_list
-            .into_iter()
-            .for_each(|value| vector.push(RespType::RBulkString(value.to_string())));
-        RespType::RArray(vector)
+        RespType::RArray(
+            sorted
+                .iter()
+                .map(|e| RespType::RBulkString(e.to_string()))
+                .collect(),
+        )
     } else {
-        RespType::RBulkString("empty".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
