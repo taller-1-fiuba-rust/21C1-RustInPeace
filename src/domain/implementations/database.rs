@@ -74,29 +74,37 @@ impl Database {
         &self.items
     }
 
-    /// Devuelve las claves que hacen *match* con un *pattern* sin uso de regex (limitado)
-    // pub fn get_keys_that_match_pattern_sin_regex(&self, pattern: String) -> Vec<String> {
-    //     let mut vector_keys = vec![];
-    //     for key in &self.items {
-    //         let current_key = key.to_owned().0.to_string();
-    //         if !key.1.is_expired() {
-    //             vector_keys.push(current_key);
-    //         }
-    //     }
-    //     let mut vector_keys_filtered = vec![];
-    //     for key in vector_keys {
-    //         if key.contains(&pattern.to_string()) {
-    //             vector_keys_filtered.push(key);
-    //         }
-    //     }
-    //     vector_keys_filtered
-    // }
-
-    /// Devuelve las claves que hacen *match* con un *pattern* con uso de regex (exhaustivo)
+    /// Devuelve todas las claves que coinciden con el patrón.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_matching_keys.csv".to_string());
+    /// let mut list = vec![String::from("pedro"), String::from("luis"), String::from("juan"), String::from("pepe")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("amigos".to_string(), vt);
+    ///
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("25".to_string())).build();
+    /// db.add("edad_pedro".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("23".to_string())).build();
+    /// db.add("edad_luis".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("35".to_string())).build();
+    /// db.add("edad_juan".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("22".to_string())).build();
+    /// db.add("ed_pepe".to_string(), vt);
+    ///
+    /// let matching = db.get_keys_that_match_pattern("edad*");
+    /// assert!(matching.contains(&"edad_pedro".to_string()));
+    /// assert!(matching.contains(&"edad_luis".to_string()));
+    /// assert!(matching.contains(&"edad_juan".to_string()));
+    /// assert!(!matching.contains(&"ed_pepe".to_string()));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_matching_keys.csv");
+    /// ```
     pub fn get_keys_that_match_pattern(&self, pattern: &str) -> Vec<String> {
         let mut matching_keys = vec![];
-        //aca agarro todas las claves disponibles en un vector
-        // let mut vector_keys = vec![];
         for key in &self.items {
             let current_key = key.0.to_string();
             if !key.1.is_expired()
@@ -105,13 +113,6 @@ impl Database {
                 matching_keys.push(current_key);
             }
         }
-        //aca genero el regex a partir de pattern y lo comparo contra todas las claves
-        // let re = Regex::new(pattern).unwrap();
-        // for key in vector_keys {
-        //     if re.is_match(&key) {
-        //         vec_matching_keys.push(key);
-        //     }
-        // }
         matching_keys
     }
 
