@@ -470,10 +470,8 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         let mut sorted: Vec<String> = Vec::new();
         if parameters.contains_key("by") {
             if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
-                let mut elements_to_sort = db.get_values_and_associated_external_key_values(
-                    pattern.to_string(),
-                    key.to_string(),
-                );
+                let mut elements_to_sort =
+                    db.get_values_of_keys_matching_pattern(pattern.to_string(), key.to_string());
                 elements_to_sort.sort_by_key(|k| k.1.to_owned());
                 sorted = elements_to_sort.iter().map(|e| e.0.to_owned()).collect();
                 if parameters.contains_key("desc") {
@@ -861,21 +859,6 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         }
     }
     RespType::RBulkString(tipo)
-}
-
-fn _sort_vec_by_min_max_values(
-    lower_bound: &str,
-    upper_bound: &str,
-    sorted_list: Vec<&String>,
-) -> Vec<String> {
-    let min = lower_bound.parse::<usize>().unwrap();
-    let max = upper_bound.parse::<usize>().unwrap();
-    let list = sorted_list[min..max].to_vec();
-    let mut aux = vec![];
-    for elemento in list {
-        aux.push(elemento.to_string());
-    }
-    aux
 }
 
 #[test]

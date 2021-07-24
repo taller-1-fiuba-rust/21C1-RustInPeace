@@ -127,40 +127,40 @@ impl Database {
         self.items.insert(key, value);
     }
 
-    /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
-    /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
-    // pub fn get_values_of_external_keys_that_match_a_pattern(
-    //     &self,
-    //     elements: Vec<String>,
-    //     pat: &str,
-    // ) -> Vec<(String, String)> {
-    //     let mut values = Vec::new();
-    //     for element in elements {
-    //         let patterned_key = pat.replace('*', element.as_str());
-    //         if self.items.contains_key(&patterned_key) {
-    //             if let ValueType::StringType(value) = self.items.get(&patterned_key).unwrap().get_value() { //CHECK
-    //                 values.push((element.to_string(), value.to_string()));
-    //             }
-    //         }
-    //         // if self.items.contains_key(&patterned_key) {
-    //         //     let current_value = self
-    //         //         .items
-    //         //         .get(&patterned_key)
-    //         //         .unwrap()
-    //         //         .get_value_as_vec();
-    //         //     let vectorcito = (element.to_string(), current_value[0].to_string());
-    //         //     values.push(vectorcito);
-    //         // }
-    //     }
-    //     values
-    // }
-
-    /// primero busca el valor guardado en `key` y lo agarra en forma de vector (elementos)
-    /// despues
-    /// busca las keys que cumplen con el patron + elemento
-    /// se queda con todos los valores que cumplan el patron
-    /// ejemplo nombres y edades
-    pub fn get_values_and_associated_external_key_values(
+    /// Busca los valores de las claves asociadas al patrón especificado.
+    ///
+    /// Reemplaza el "*" del patrón por cada elemento perteneciente a `key` y busca su valor asociado.
+    /// Por ejemplo, si se tiene la clave "Amigos" con los valores "Pedro", "Luis", "Juan" y para cada uno de estos valores, hay una clave asociada del tipo "edad_{Nombre}".
+    /// Si el patrón es "edad_*", la función devuelve: [("Pedro", 25), ("Luis", 23), ("Juan", 35)]
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_external_keys.csv".to_string());
+    /// let mut list = vec![String::from("pedro"), String::from("luis"), String::from("juan"), String::from("pepe")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("amigos".to_string(), vt);
+    ///
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("25".to_string())).build();
+    /// db.add("edad_pedro".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("23".to_string())).build();
+    /// db.add("edad_luis".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("35".to_string())).build();
+    /// db.add("edad_juan".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("22".to_string())).build();
+    /// db.add("edad_pepe".to_string(), vt);
+    ///
+    /// let values = db.get_values_of_keys_matching_pattern("edad_*".to_string(), "amigos".to_string());
+    /// assert!(values.contains(&("pedro".to_string(), "25".to_string())));
+    /// assert!(values.contains(&("luis".to_string(), "23".to_string())));
+    /// assert!(values.contains(&("juan".to_string(), "35".to_string())));
+    /// assert!(values.contains(&("pepe".to_string(), "22".to_string())));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_external_keys.csv");
+    /// ```
+    pub fn get_values_of_keys_matching_pattern(
         &mut self,
         pat: String,
         key: String,
@@ -178,7 +178,6 @@ impl Database {
                     if let ValueType::StringType(value) =
                         self.items.get(&patterned_key).unwrap().get_value()
                     {
-                        //CHECK
                         associated_values.push((element.to_string(), value.to_string()));
                     }
                 }
@@ -1658,10 +1657,8 @@ fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_l
     db.items.insert("weight_kiwi".to_string(), vt_3);
     db.items.insert("weight_pear".to_string(), vt_4);
 
-    let tuplas = db.get_values_and_associated_external_key_values(
-        "weight_*".to_string(),
-        "frutas".to_string(),
-    );
+    let tuplas =
+        db.get_values_of_keys_matching_pattern("weight_*".to_string(), "frutas".to_string());
 
     assert!(tuplas.contains(&("pear".to_string(), "5".to_string())));
     assert!(tuplas.contains(&("apples".to_string(), "2".to_string())));
