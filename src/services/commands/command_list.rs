@@ -216,9 +216,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
             }
         }
 
-        if let Some(resultado) =
-            new_database.push_new_values_into_existing_or_non_existing_key_value_pair(vec_aux, key)
-        {
+        if let Some(resultado) = new_database.add_to_list_type(vec_aux, key, false) {
             RespType::RInteger(resultado)
         } else {
             RespType::RError("error - not list type".to_string())
@@ -232,6 +230,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
 ///
 /// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al comienzo de la misma.
 /// Retorna un valor de tipo entero que representa la longitud de la lista luego de haber insertado los nuevos elementos.
+/// Si la clave no es de tipo lista, devuelve 0.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
 ///
 /// # Ejemplos
@@ -274,7 +273,9 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 vec_aux.push(value.to_string());
             }
         }
-        let resultado = new_database.push_new_values_into_existing_key_value_pair(vec_aux, key);
+        let resultado = new_database
+            .add_to_list_type(vec_aux, key, true)
+            .unwrap_or(0);
         RespType::RInteger(resultado)
     } else {
         RespType::RError("Invalid request".to_string())
