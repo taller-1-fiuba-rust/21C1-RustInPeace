@@ -73,6 +73,10 @@ fn test_main() {
         .set_attribute(String::from("verbose"), String::from("1"))
         .unwrap();
 
+    config
+        .set_attribute(String::from("port"), String::from("8080"))
+        .unwrap();
+
     let mut database = Database::new(db_file);
 
     let added_item_1 =
@@ -523,17 +527,16 @@ fn test_main() {
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
     let verbose = String::from("0");
-    let port_2 = port.clone();
     let dir = String::from("127.0.0.1");
 
     let handle: thread::JoinHandle<()> = thread::spawn(|| {
         let h = thread::spawn(|| {
             let mut server =
-                Server::new(port_2, log_file, verbose, server_receiver, config_path).unwrap();
+                Server::new(port, log_file, verbose, server_receiver, config_path).unwrap();
             server.listen();
         });
 
-        server_service::init(database, config, port, dir, server_sender);
+        server_service::init(database, config, dir, server_sender);
         h.join().unwrap();
     });
 

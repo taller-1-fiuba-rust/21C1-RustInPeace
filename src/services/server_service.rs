@@ -16,25 +16,25 @@ use std::thread;
 
 /// Inicia la conexion TCP
 ///
-/// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
+/// Crea un Threadpool con 10 workers y en un hilo de ejecución distinto crea una conexión TCP
 /// que va a quedar pendiente de recibir clientes y mensajes nuevos.
 /// Establece un channel entre la entidad `Server` y el cliente para que cada cliente pueda recibir y enviar información
 /// al servidor de manera concurrente.
+/// En un tercer hilo de ejecución se hace una bajada periódica de los datos almacenados en Database al archivo `dump.rdb`.
 pub fn init(
     db: Database,
     config: Config,
-    port: String,
     dir: String,
     server_sender: Sender<WorkerMessage>,
 ) {
-    let pool = ThreadPool::new(4);
+    let port = config.get_attribute(String::from("port")).expect("Error: Port config not set.");
+    let pool = ThreadPool::new(10);
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
     let cloned_db = database.clone();
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
-            // Creo un thread para que vaya iterando mientras el server esté up
             thread::spawn(move || {
                 dump_to_file(cloned_db);
             });
@@ -55,11 +55,11 @@ pub fn init(
                 }
             }
         }
-        Err(_) => {
-            println!("Listener couldn't be created");
+        Err(e) => {
+            panic!("Listener couldn't be created. Error: {}", e.to_string());
         }
     }
-    println!("Shutting down.");
+    println!("Shutting down...");
 }
 
 /// Lee e interpreta mensajes del cliente.
@@ -76,7 +76,7 @@ pub fn handle_connection(
     config: Arc<RwLock<Config>>,
 ) {
     let client_addrs = stream.peer_addr().unwrap();
-    let client = Client::new(client_addrs, stream.try_clone().unwrap());
+    let client = Client::new(client_addrs, stream.try_clone().expect("Couldn't clone stream."));
     tx.send(WorkerMessage::AddClient(client)).unwrap();
 
     log(
@@ -130,7 +130,7 @@ pub fn handle_connection(
                             client_addrs,
                             &database,
                             &config,
-                            stream.try_clone().unwrap(),
+                            // stream.try_clone().unwrap(),
                         ) {
                             let response = parse_response(res);
                             log(
@@ -179,14 +179,16 @@ pub fn handle_connection(
     );
 }
 
-/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-/// El sender envia el mensaje Log
+/// Envia un mensaje al Logger.
+///
+/// El sender envia el mensaje al servidor para que lo escriba en el archivo de logs.
 fn log(msg: String, tx: &Sender<WorkerMessage>) {
     tx.send(WorkerMessage::Log(msg)).unwrap();
 }
 
-/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-/// El sender envia el mensaje Verbose
+/// Imprime un mensaje por consola.
+///
+/// El sender envia el mensaje al servidor para que lo imprima.
 fn verbose(msg: String, tx: &Sender<WorkerMessage>) {
     tx.send(WorkerMessage::Verb(msg)).unwrap();
 }

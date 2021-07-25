@@ -46,7 +46,7 @@ pub enum WorkerMessage {
     InfoStats(Sender<String>),
     AddClient(Client),
     CloseClient(SocketAddr),
-    Subscribe(String, SocketAddr, Sender<usize>, TcpStream),
+    Subscribe(String, SocketAddr, Sender<usize>),//, TcpStream),
     Unsubscribe(String, SocketAddr, Sender<usize>),
     UnsubscribeAll(SocketAddr, Sender<usize>),
     Publish(String, Sender<usize>, String),

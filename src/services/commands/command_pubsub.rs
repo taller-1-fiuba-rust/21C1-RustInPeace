@@ -16,7 +16,7 @@ pub fn subscribe(
     cmd: &[RespType],
     tx: &Sender<WorkerMessage>,
     addrs: SocketAddr,
-    stream: TcpStream,
+    // stream: TcpStream,
 ) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();
 
@@ -26,7 +26,7 @@ pub fn subscribe(
                 channel.to_string(),
                 addrs,
                 messages_sender.clone(),
-                stream.try_clone().unwrap(),
+                // stream.try_clone().unwrap(),
             ))
             .unwrap();
 
