@@ -216,9 +216,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
             }
         }
 
-        if let Some(resultado) =
-            new_database.push_new_values_into_existing_or_non_existing_key_value_pair(vec_aux, key)
-        {
+        if let Some(resultado) = new_database.add_to_list_type(vec_aux, key, false) {
             RespType::RInteger(resultado)
         } else {
             RespType::RError("error - not list type".to_string())
@@ -232,6 +230,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
 ///
 /// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al comienzo de la misma.
 /// Retorna un valor de tipo entero que representa la longitud de la lista luego de haber insertado los nuevos elementos.
+/// Si la clave no es de tipo lista, devuelve 0.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
 ///
 /// # Ejemplos
@@ -274,7 +273,9 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 vec_aux.push(value.to_string());
             }
         }
-        let resultado = new_database.push_new_values_into_existing_key_value_pair(vec_aux, key);
+        let resultado = new_database
+            .add_to_list_type(vec_aux, key, true)
+            .unwrap_or(0);
         RespType::RInteger(resultado)
     } else {
         RespType::RError("Invalid request".to_string())
@@ -327,7 +328,7 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(lower_bound) = &cmd[2] {
             if let RespType::RBulkString(upper_bound) = &cmd[3] {
                 if let Some(value_vec) =
-                    new_database.get_values_from_list_value_type(key, lower_bound, upper_bound)
+                    new_database.get_values_in_range(key, lower_bound, upper_bound)
                 {
                     let mut value_vec_resptype = vec![];
                     for elemento in value_vec {
@@ -430,22 +431,16 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
-                let current_value_in_list_by_index =
-                    db.get_value_from_list_value_type_by_index(key, index);
-                if current_value_in_list_by_index == None {
-                    RespType::RError("value is not list type".to_string())
+                let current_value_in_list_by_index = db.get_value_by_index(key, index);
+                if let Some(value) = current_value_in_list_by_index {
+                    return RespType::RBulkString(value);
                 } else {
-                    RespType::RBulkString(current_value_in_list_by_index.unwrap())
+                    return RespType::RError("value is not list type".to_string());
                 }
-            } else {
-                RespType::RError("Invalid request".to_string())
             }
-        } else {
-            RespType::RError("Invalid request".to_string())
         }
-    } else {
-        RespType::RError("Invalid request".to_string())
     }
+    RespType::RError("Invalid request".to_string())
 }
 
 /// Elimina las primeras `count` ocurrencias del elemento especificado perteneciente a la lista almacenada en `key`.

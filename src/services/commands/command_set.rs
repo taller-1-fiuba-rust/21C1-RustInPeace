@@ -49,7 +49,6 @@ use std::sync::{Arc, RwLock};
 /// # }
 /// # let _ = std::fs::remove_file("dummy_db_add.csv");
 /// ```
-///
 pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {

@@ -140,7 +140,23 @@ pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 
 /// Verifica que si el ultimo parametro es `replace`.
 /// Si es `replace`, devuelve true, sino devuelve false.
-fn copy_should_replace(cmd: &[RespType]) -> bool {
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+///
+///
+/// let replace = command_key::copy_should_replace(&vec![
+///     RespType::RBulkString("COPY".to_string()),
+///     RespType::RBulkString("pet".to_string()),
+///     RespType::RBulkString("clone".to_string()),
+///     RespType::RBulkString("replace".to_string()),
+///     ]);
+///
+/// assert!(replace);
+/// ```
+pub fn copy_should_replace(cmd: &[RespType]) -> bool {
     if cmd.len() == 4 {
         if let RespType::RBulkString(replace) = &cmd[3] {
             if replace == "replace" {
@@ -424,7 +440,6 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 /// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
 /// Si alguno de los límites no puede representarse con un número entero positivo, se asignan como default 0 para límite inferior y el largo del vector para límite superior.
 /// * BY pattern: Permite ordenar a partir de claves externas y sus valores asociados.
-/// * STORE key: Almacena la lista ordenada en `key`.
 ///
 /// Devuelve una lista con los elementos ordenados. Si se especifica el parámetro `store`, devuelve la cantidad de elementos ordenados y almacenados en la nueva clave.
 ///
@@ -498,6 +513,96 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     }
 }
 
+/// Genera un hashmap a partir de los parámetros ingresados por el usuario.
+///
+/// Los parámetros pueden ser:
+///
+/// * ASC | DESC: Ordena de menor a mayor (asc) o de mayor a menor (desc).
+/// * ALPHA: Ordena alfabeticamente.
+/// * LIMIT lower count: Limita la cantidad de elementos. Toma `count` elementos desde la posicion `lower`.
+/// * BY pattern: Permite ordenar a partir de claves externas y sus valores asociados.
+///
+/// # Ejemplo
+/// ```
+/// # use proyecto_taller_1::services::utils::resp_type::RespType;
+/// # use proyecto_taller_1::services::commands::command_key;
+/// # use std::collections::HashMap;
+///
+/// let cmd = vec![
+///     RespType::RBulkString("SORT".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("ASC".to_string()),
+///     ];
+///
+/// let asc_map = command_key::generate_hashmap(&cmd);
+/// let mut map = HashMap::new();
+/// let key = RespType::RBulkString(String::from("frutas"));
+/// map.insert(String::from("key"), &key);
+/// map.insert(String::from("asc"), &RespType::RInteger(1));
+/// assert_eq!(asc_map, map);
+///
+/// let cmd = vec![
+///     RespType::RBulkString("SORT".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("BY".to_string()),
+///     RespType::RBulkString("max*".to_string()),
+///     ];
+///
+/// let by_map = command_key::generate_hashmap(&cmd);
+/// let mut map = HashMap::new();
+/// let key = RespType::RBulkString(String::from("frutas"));
+/// map.insert(String::from("key"), &key);
+/// let by = RespType::RBulkString(String::from("max*"));
+/// map.insert(String::from("by"), &by);
+/// assert_eq!(by_map, map);
+///
+/// let cmd = vec![
+///     RespType::RBulkString("SORT".to_string()),
+///     RespType::RBulkString("frutas".to_string()),
+///     RespType::RBulkString("BY".to_string()),
+///     RespType::RBulkString("max*".to_string()),
+///     RespType::RBulkString("LIMIT".to_string()),
+///     RespType::RBulkString("0".to_string()),
+///     RespType::RBulkString("10".to_string()),
+///     ];
+///
+/// let multi_map = command_key::generate_hashmap(&cmd);
+/// let mut map = HashMap::new();
+/// let key = RespType::RBulkString(String::from("frutas"));
+/// map.insert(String::from("key"), &key);
+/// let by = RespType::RBulkString(String::from("max*"));
+/// map.insert(String::from("by"), &by);
+/// let lower = RespType::RBulkString(String::from("0"));
+/// map.insert(String::from("lower"), &lower);
+/// let upper = RespType::RBulkString(String::from("10"));
+/// map.insert(String::from("upper"), &upper);
+/// assert_eq!(multi_map, map);
+/// ```
+pub fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
+    let mut aux_hash_map = HashMap::new();
+    let mut pos = 1;
+    while pos < cmd.len() {
+        if let RespType::RBulkString(arg) = &cmd[pos] {
+            let arg = arg.to_lowercase();
+            if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
+                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
+                pos += 1;
+            } else if (arg == "by") || (arg == "store") {
+                aux_hash_map.insert(arg.to_string(), &cmd[pos + 1]);
+                pos += 2;
+            } else if arg == "limit" {
+                aux_hash_map.insert("lower".to_string(), &cmd[pos + 1]);
+                aux_hash_map.insert("upper".to_string(), &cmd[pos + 2]);
+                pos += 3;
+            } else {
+                aux_hash_map.insert("key".to_string(), &cmd[pos]);
+                pos += 1;
+            }
+        }
+    }
+    aux_hash_map
+}
+
 /// Devuelve todas las claves que coinciden con el patrón especificado.
 ///
 /// El patrón debe ser glob-style, por ejemplo:
@@ -551,12 +656,12 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(pattern) = &cmd[1] {
-        let new_database = database.read().unwrap();
-        let pattern_matching_keys = new_database.get_keys_that_match_pattern(pattern);
-        let mut vec = vec![];
-        pattern_matching_keys
-            .into_iter()
-            .for_each(|value| vec.push(RespType::RBulkString(value)));
+        let db = database.read().unwrap();
+        let matching_keys = db.get_keys_that_match_pattern(pattern);
+        let vec = matching_keys
+            .iter()
+            .map(|k| RespType::RBulkString(k.to_string()))
+            .collect();
         RespType::RArray(vec)
     } else {
         RespType::RBulkString("No matching keys".to_string())
@@ -761,43 +866,6 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         }
     }
     RespType::RBulkString(tipo)
-}
-
-fn _sort_vec_by_min_max_values(
-    lower_bound: &str,
-    upper_bound: &str,
-    sorted_list: Vec<&String>,
-) -> Vec<String> {
-    let min = lower_bound.parse::<usize>().unwrap();
-    let max = upper_bound.parse::<usize>().unwrap();
-    let list = sorted_list[min..max].to_vec();
-    let mut aux = vec![];
-    for elemento in list {
-        aux.push(elemento.to_string());
-    }
-    aux
-}
-
-/// Permite generar un hashmap a partir de un grupo de claves hardcodeadas y asociarles un valor de existencia
-fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
-    let mut aux_hash_map = HashMap::new();
-    let mut posicion = 1;
-    for argumento in cmd.iter().skip(1) {
-        if let RespType::RBulkString(arg) = argumento {
-            if (arg == "asc") || (arg == "desc") || (arg == "alpha") {
-                aux_hash_map.insert(arg.to_string(), &RespType::RInteger(1));
-            } else if (arg == "by") || (arg == "store") {
-                aux_hash_map.insert(arg.to_string(), &cmd[posicion + 1]);
-            } else if arg == "limit" {
-                aux_hash_map.insert("lower".to_string(), &cmd[posicion + 1]);
-                aux_hash_map.insert("upper".to_string(), &cmd[posicion + 2]);
-            } else {
-                aux_hash_map.insert("key".to_string(), argumento);
-            }
-        }
-        posicion += 1;
-    }
-    aux_hash_map
 }
 
 #[test]
