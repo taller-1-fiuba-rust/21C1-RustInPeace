@@ -4,7 +4,7 @@ use crate::domain::entities::key_value_item_serialized::KeyValueItemSerialized;
 use crate::errors::database_error::DatabaseError;
 use regex::Regex;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -113,70 +113,139 @@ impl Database {
         vec_matching_keys
     }
 
+    /// Busca los valores de las claves asociadas al patrón especificado.
+    ///
+    /// Reemplaza el "*" del patrón por cada elemento perteneciente a `key` y busca su valor asociado.
+    /// Por ejemplo, si se tiene la clave "Amigos" con los valores "Pedro", "Luis", "Juan" y para cada uno de estos valores, hay una clave asociada del tipo "edad_{Nombre}".
+    /// Si el patrón es "edad_*", la función devuelve: [("Pedro", 25), ("Luis", 23), ("Juan", 35)]
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_external_keys.csv".to_string());
+    /// let mut list = vec![String::from("pedro"), String::from("luis"), String::from("juan"), String::from("pepe")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("amigos".to_string(), vt);
+    ///
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("25".to_string())).build();
+    /// db.add("edad_pedro".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("23".to_string())).build();
+    /// db.add("edad_luis".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("35".to_string())).build();
+    /// db.add("edad_juan".to_string(), vt);
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("22".to_string())).build();
+    /// db.add("edad_pepe".to_string(), vt);
+    ///
+    /// let values = db.get_values_of_keys_matching_pattern("edad_*".to_string(), "amigos".to_string());
+    /// assert!(values.contains(&("pedro".to_string(), "25".to_string())));
+    /// assert!(values.contains(&("luis".to_string(), "23".to_string())));
+    /// assert!(values.contains(&("juan".to_string(), "35".to_string())));
+    /// assert!(values.contains(&("pepe".to_string(), "22".to_string())));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_external_keys.csv");
+    /// ```
+    pub fn get_values_of_keys_matching_pattern(
+        &mut self,
+        pat: String,
+        key: String,
+    ) -> Vec<(String, String)> {
+        let mut associated_values = Vec::new();
+        if let Some(item) = self.get_live_item(&key) {
+            let elements: Vec<String> = item
+                .get_value_as_vec()
+                .iter()
+                .map(|e| e.to_string())
+                .collect();
+            elements.iter().for_each(|element| {
+                let patterned_key = pat.replace('*', element.as_str());
+                if self.items.contains_key(&patterned_key) {
+                    if let ValueType::StringType(value) =
+                        self.items.get(&patterned_key).unwrap().get_value()
+                    {
+                        associated_values.push((element.to_string(), value.to_string()));
+                    }
+                }
+            });
+        }
+
+        associated_values
+    }
+
     ///devuelve **true** si la clave existe en *database*
     pub fn key_exists(&mut self, key: String) -> bool {
         return self.get_live_item(&key).is_some();
     }
 
-    ///devuelve **true** si la clave existe en *database*
-    // pub fn key_exists_2(&self, key: String) -> bool {
-    //     return self.items.contains_key(&key); // (&key).is_some();
-    // }
-    /// permite agregar *clave* y *valor* a la base de datos
     pub fn add(&mut self, key: String, value: ValueTimeItem) {
         self.items.insert(key, value);
     }
 
-    /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
-    /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
-    pub fn get_values_of_external_keys_that_match_a_pattern(
-        &self,
-        elements: Vec<String>,
-        pat: &str,
-    ) -> Option<Vec<(String, String)>> {
-        let mut vec_auxiliar = Vec::new();
-        for element in elements {
-            let patterned_key = pat.to_string() + element.as_str();
-            //println!("patterned key: {:?}", &patterned_key);
-            if self.items.contains_key(&patterned_key) {
-                let current_value = self
-                    .items
-                    .get(&patterned_key)
-                    .unwrap()
-                    .get_value_version_2()
-                    .unwrap();
-                let vectorcito = (element, current_value[0].to_string());
-                vec_auxiliar.push(vectorcito);
-            }
-        }
-        if !vec_auxiliar.is_empty() {
-            Some(vec_auxiliar)
-        } else {
-            None
-        }
-    }
+    // ///devuelve **true** si la clave existe en *database*
+    // pub fn key_exists(&mut self, key: String) -> bool {
+    //     return self.get_live_item(&key).is_some();
+    // }
 
-    pub fn get_values_and_associated_external_key_values(
-        &mut self,
-        pat: String,
-        key: String,
-    ) -> Option<Vec<(String, String)>> {
-        //aca agarro la key que me pasan por request
-        let my_list_value_optional = self.get_live_item(&key);
-        if let Some(my_list_value) = my_list_value_optional {
-            let elements = my_list_value.get_value_version_2().unwrap(); //aca tengo la lista guardada en la key q me pasaron
-            let mut vec_resptype_to_string = Vec::new();
-            for aux in elements {
-                vec_resptype_to_string.push(aux.to_string());
-            }
-            let tuple_vector = self
-                .get_values_of_external_keys_that_match_a_pattern(vec_resptype_to_string, &pat)
-                .unwrap();
-            Some(tuple_vector)
-        } else {
-            None
-        }
-    }
+    // ///devuelve **true** si la clave existe en *database*
+    // // pub fn key_exists_2(&self, key: String) -> bool {
+    // //     return self.items.contains_key(&key); // (&key).is_some();
+    // // }
+    // /// permite agregar *clave* y *valor* a la base de datos
+    // pub fn add(&mut self, key: String, value: ValueTimeItem) {
+    //     self.items.insert(key, value);
+    // }
+
+    // /// obtiene las claves de la **db** que hacen *match* con el **pat** + **element** (de
+    // /// **elements** y devuelve una tupla con (**element**,**patterned_key_value**)
+    // pub fn get_values_of_external_keys_that_match_a_pattern(
+    //     &self,
+    //     elements: Vec<String>,
+    //     pat: &str,
+    // ) -> Option<Vec<(String, String)>> {
+    //     let mut vec_auxiliar = Vec::new();
+    //     for element in elements {
+    //         let patterned_key = pat.to_string() + element.as_str();
+    //         //println!("patterned key: {:?}", &patterned_key);
+    //         if self.items.contains_key(&patterned_key) {
+    //             let current_value = self
+    //                 .items
+    //                 .get(&patterned_key)
+    //                 .unwrap()
+    //                 .get_value_version_2()
+    //                 .unwrap();
+    //             let vectorcito = (element, current_value[0].to_string());
+    //             vec_auxiliar.push(vectorcito);
+    //         }
+    //     }
+    //     if !vec_auxiliar.is_empty() {
+    //         Some(vec_auxiliar)
+    //     } else {
+    //         None
+    //     }
+    // }
+
+    // pub fn get_values_and_associated_external_key_values(
+    //     &mut self,
+    //     pat: String,
+    //     key: String,
+    // ) -> Option<Vec<(String, String)>> {
+    //     //aca agarro la key que me pasan por request
+    //     let my_list_value_optional = self.get_live_item(&key);
+    //     if let Some(my_list_value) = my_list_value_optional {
+    //         let elements = my_list_value.get_value_version_2().unwrap(); //aca tengo la lista guardada en la key q me pasaron
+    //         let mut vec_resptype_to_string = Vec::new();
+    //         for aux in elements {
+    //             vec_resptype_to_string.push(aux.to_string());
+    //         }
+    //         let tuple_vector = self
+    //             .get_values_of_external_keys_that_match_a_pattern(vec_resptype_to_string, &pat)
+    //             .unwrap();
+    //         Some(tuple_vector)
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn push_new_values_into_existing_key_value_pair(
         &mut self,
@@ -563,6 +632,7 @@ impl Database {
                     item.set_value(new_value);
                     len
                 } else {
+                    println!("entro aca??????????????????????");
                     0
                 }
             }
@@ -1109,6 +1179,29 @@ impl Database {
             None
         }
     }
+    //---------------------------------------
+    pub fn add_element_to_set(&mut self, key: &str, values_to_add: Vec<&String>) -> Option<usize> {
+        let mut added = 0;
+        if let Some(item) = self.get_mut_live_item(key) {
+            if let ValueType::SetType(mut old_value) = item.get_copy_of_value() {
+                values_to_add.iter().for_each(|element| {
+                    added += old_value.insert(element.to_string()) as usize;
+                });
+                item.set_value(ValueType::SetType(old_value));
+                Some(added)
+            } else {
+                None
+            }
+        } else {
+            let mut set = HashSet::new();
+            values_to_add.iter().for_each(|element| {
+                added += set.insert(element.to_string()) as usize;
+            });
+            let vti = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+            self.add(key.to_string(), vti);
+            Some(added)
+        }
+    }
 
     /////////////////////////////////////////////////////////
     /* Si el servidor se reinicia se deben cargar los items del file */
@@ -1607,32 +1700,30 @@ fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_l
 {
     let mut db = Database::new("file020".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let fruits = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "sandia".to_string(),
+        "pear".to_string(),
+        "apples".to_string(),
+    ]))
+    .build();
+
+    db.items.insert("frutas".to_string(), fruits);
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+
     db.items.insert("weight_bananas".to_string(), vt_1);
     db.items.insert("weight_apples".to_string(), vt_2);
     db.items.insert("weight_kiwi".to_string(), vt_3);
     db.items.insert("weight_pear".to_string(), vt_4);
 
-    let pat = "weight_";
-    let vec_strings = vec![
-        "sandia".to_string(),
-        "pear".to_string(),
-        "apples".to_string(),
-    ];
-    let tuplas = db.get_values_of_external_keys_that_match_a_pattern(vec_strings, pat);
-    let algo = tuplas.unwrap();
-    println!("{:?}", algo);
+    let tuplas =
+        db.get_values_of_keys_matching_pattern("weight_*".to_string(), "frutas".to_string());
+
+    assert!(tuplas.contains(&("pear".to_string(), "5".to_string())));
+    assert!(tuplas.contains(&("apples".to_string(), "2".to_string())));
     let _removed = std::fs::remove_file("file020".to_string());
 }
 

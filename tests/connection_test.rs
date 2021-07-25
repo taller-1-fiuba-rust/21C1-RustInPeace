@@ -393,10 +393,126 @@ fn test_main() {
     .build();
     database.add(String::from("sabores_de_chocolate"), added_item_40);
 
-    //---------------------------------------------------------------
-    //---------------------------------------------------------------
-    //---------------------------------------------------------------
+    let added_item_41 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "banana_passion_1".to_string(),
+        "banana_passion_2".to_string(),
+        "banana_passion_3".to_string(),
+        "banana_passion_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("banana_passions"), added_item_41);
 
+    let added_item_42 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "carpintero_1".to_string(),
+        "carpintero_2".to_string(),
+        "carpintero_3".to_string(),
+        "carpintero_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("pajaros_carpinteros"), added_item_42);
+
+    let added_item_43 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de kiwi"))).build();
+    database.add(String::from("botellon_de_jugo_1"), added_item_43);
+
+    let added_item_44 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de grosellas"))).build();
+    database.add(String::from("botellon_de_jugo_2"), added_item_44);
+
+    let added_item_45 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de tamarindo"))).build();
+    database.add(String::from("botellon_de_jugo_3"), added_item_45);
+
+    let added_item_46 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de remolacha"))).build();
+    database.add(String::from("botellon_de_jugo_10"), added_item_46);
+
+    let added_item_47 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("jugo de damasco"))).build();
+    database.add(String::from("botellon_de_jugo_23"), added_item_47);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_espigado_1".to_string());
+    set.insert("granadero_espigado_2".to_string());
+    let added_item_set_48 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_espigados"), added_item_set_48);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_atolondrado_1".to_string());
+    set.insert("granadero_atolondrado_2".to_string());
+    let added_item_set_49 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_atolondrados"), added_item_set_49);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_taciturno_1".to_string());
+    set.insert("granadero_taciturno_2".to_string());
+    let added_item_set_50 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(String::from("granaderos_taciturnos"), added_item_set_50);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_eliminado_1".to_string());
+    set.insert("granadero_eliminado_2".to_string());
+    let added_item_set_51 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(
+        String::from("granaderos_eliminados_tipo_set"),
+        added_item_set_51,
+    );
+
+    let added_item_52 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "granadero_eliminado_1".to_string(),
+        "granadero_eliminado_2".to_string(),
+        "granadero_eliminado_3".to_string(),
+        "granadero_eliminado_4".to_string(),
+    ]))
+    .build();
+    database.add(
+        String::from("granaderos_eliminados_tipo_list"),
+        added_item_52,
+    );
+
+    let added_item_53 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_999")))
+            .with_timeout(1635597186)
+            .build();
+
+    database.add(String::from("key_999"), added_item_53);
+
+    let added_item_54 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_frita_1".to_string(),
+        "molleja_frita_2".to_string(),
+        "molleja_frita_3".to_string(),
+        "molleja_frita_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_fritas"), added_item_54);
+
+    let added_item_55 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_gratinada_1".to_string(),
+        "molleja_gratinada_2".to_string(),
+        "molleja_gratinada_3".to_string(),
+        "molleja_gratinada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_gratinadas"), added_item_55);
+
+    let added_item_56 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_salteada_1".to_string(),
+        "molleja_salteada_2".to_string(),
+        "molleja_salteada_3".to_string(),
+        "molleja_salteada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_salteadas"), added_item_56);
+
+    let added_item_57 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_estofada_1".to_string(),
+        "molleja_estofada_2".to_string(),
+        "molleja_estofada_3".to_string(),
+        "molleja_estofada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_estofadas"), added_item_57);
+    
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
@@ -481,36 +597,88 @@ const TESTS: &[Test] = &[
     //     func: test_flushdb,
     // },
     Test {
-        name: "keys command: del",
-        func: test_keys_del,
+        name: "keys command: del string type",
+        func: test_keys_del_string_type,
+    },
+    Test {
+        name: "keys command: del set type",
+        func: test_keys_del_set_type,
+    },
+    Test {
+        name: "keys command: del list type",
+        func: test_keys_del_list_type,
+    },
+    Test {
+        name: "keys command: del ignore when key does not exist",
+        func: test_keys_del_ignora_la_operacion_cuando_la_clave_no_existe,
     },
     Test {
         name: "keys command: exists",
         func: test_keys_exists,
     },
     Test {
+        name: "keys command: exists returns 2 whe same key double-checked",
+        func: test_keys_exists_devuelve_2_cuando_se_chequea_doble_por_la_misma_clave,
+    },
+    Test {
+        name: "keys command: exists returns 2 as 2 out of 4 keys exist",
+        func: test_keys_exists_arroja_2_porque_2_de_las_4_claves_existen,
+    },
+    Test {
+        name: "keys command: exists returns 0 as key does not exist",
+        func: test_keys_exists_arroja_cero_porque_la_clave_no_existe,
+    },
+    Test {
         name: "keys command: persist",
         func: test_keys_persist,
+    },
+    Test {
+        name: "keys command: persist returns 0 as key has no timeout associated",
+        func: test_keys_persist_arroja_cero_porque_la_clave_no_tiene_asociada_un_timeout,
+    },
+    Test {
+        name: "keys command: persist returns 0 as key does not exist",
+        func: test_keys_persist_arroja_cero_porque_la_clave_no_existe,
     },
     Test {
         name: "keys command: expire",
         func: test_keys_expire,
     },
     Test {
+        name: "keys command: expire not performing as key does not exist",
+        func: test_keys_expire_no_aplica_expiracion_porque_la_clave_no_existe,
+    },
+    Test {
         name: "keys command: expireat",
         func: test_keys_expireat,
+    },
+    Test {
+        name: "keys command: expireat not performing as key does not exist",
+        func: test_keys_expireat_no_aplica_expiracion_porque_la_clave_no_existe,
     },
     Test {
         name: "keys command: ttl",
         func: test_keys_ttl,
     },
     Test {
-        name: "keys command: touch",
+        name: "keys command: ttl returns -1 as key has no timeout associated",
+        func: test_keys_ttl_clave_no_tiene_asociado_un_timeout,
+    },
+    Test {
+        name: "keys command: ttl -2 as key does no exist",
+        func: test_keys_ttl_clave_no_existe,
+    },
+    Test {
+        name: "keys command: touch 2 keys exist and 1 does not exist and it is ignored",
         func: test_keys_touch,
     },
     Test {
         name: "keys command: rename",
         func: test_keys_rename,
+    },
+    Test {
+        name: "keys command: rename - key does not exist throws error",
+        func: test_keys_rename_clave_no_existe_arroja_error,
     },
     Test {
         name: "keys command: copy",
@@ -519,6 +687,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: copy replace",
         func: test_keys_copy_with_replace,
+    },
+    Test {
+        name: "keys command: copy with no replace cannot replace destination key - error",
+        func: test_keys_copy_sin_replace_arroja_error_porque_la_clave_destino_ya_existe,
     },
     Test {
         name: "keys command: sort ascending",
@@ -546,13 +718,29 @@ const TESTS: &[Test] = &[
     },
     Test {
         name: "keys command: get value type list",
-        func: test_gets_value_type_list,
+        func: test_type_gets_value_type_list,
     },
     Test {
         name: "keys command: get value type list",
-        func: test_gets_value_type_string,
+        func: test_type_gets_value_type_string,
     },
     Test {
+        name: "keys command: get value type set",
+        func: test_type_gets_value_type_set,
+    },
+    Test {
+        name: "keys command: get value returns nothing as key does not exist",
+        func: test_type_gets_value_type_set_no_devuelve_nadacuando_se_aplica_type_para_clave_inexistente,
+    },
+    Test {
+        name: "keys command: keys return keys that match a pattern",
+        func: test_keys_gets_keys_that_match_a_pattern,
+    },
+    Test {
+        name: "keys command: keys return keys that match a pattern with ???",
+        func: test_keys_gets_keys_that_match_a_pattern_con_signo_de_pregunta,
+    },
+     Test {
         name: "string command: get only string value else nil",
         func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
     },
@@ -561,32 +749,100 @@ const TESTS: &[Test] = &[
         func: test_se_setean_multiples_claves_nunca_falla,
     },
     Test {
+        name: "string command: set new value in existing key that is not string type, it never fails",
+        func: test_se_setea_clave_a_una_clave_existente_que_no_aloja_un_valor_de_tipo_string_y_nunca_falla,
+    },
+    Test {
         name: "string command: append mykey newvalue",
         func: test_string_append,
+    },
+    Test {
+        name: "string command: append mykey newvalue into non-existing key",
+        func: test_string_append_clave_que_no_existe_por_lo_que_se_crea_y_se_almacena_el_valor,
+    },
+    Test {
+        name: "string command: append mykey newvalue cannot as value type is not string, returns zero",
+        func: test_string_append_into_not_string_type_returns_zero,
     },
     Test {
         name: "string command: decrby mykey 3",
         func: test_string_decrby,
     },
     Test {
+        name: "string command: decrby mykey 3 to key that does not exists, -3 is result",
+        func: test_string_decrby_en_clave_que_no_existe_crea_la_clave_y_la_decrementa_en_el_valor_pasado,
+    },
+    Test {
+        name: "string command: decrby mykey returns error as type is not string",
+        func: test_string_decrby_devuelve_error_si_el_tipo_de_dato_no_es_string,
+    },
+    Test {
+        name: "string command: decrby mykey returns error as string type cannot be represented as integer",
+        func: test_string_decrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer,
+    },
+    Test {
         name: "string command: incrby mykey 3",
         func: test_string_incrby,
+    },
+    Test {
+        name: "string command: incrby mykey 3 to key that does not exists, 3 is result",
+        func: test_string_incrby_en_clave_que_no_existe_crea_la_clave_y_la_incrementa_en_el_valor_pasado,
+    },
+    Test {
+        name: "string command: incrby mykey returns error as type is not string",
+        func: test_string_incrby_devuelve_error_si_el_tipo_de_dato_no_es_string,
+    },
+    Test {
+        name: "string command: incrby mykey returns error as string type cannot be represented as integer",
+        func: test_string_incrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer,
     },
     Test {
         name: "string command: get key_1",
         func: test_string_get,
     },
     Test {
+        name: "string command: get cannot get non-existing key-value, nill is returned",
+        func: test_string_get_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: get cannot get non-string key-value, error is returned",
+        func: test_string_get_devuelve_error_cuando_se_aplica_get_para_valor_que_no_es_string,
+    },
+    Test {
         name: "string command: getdel key_getdel",
         func: test_string_getdel,
+    },
+    Test {
+        name: "string command: getdel returns nill as key does not exists",
+        func: test_string_getdel_devuelve_nulo_cuando_se_aplica_getdel_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: getdel thorws error as key holds value which is not string",
+        func: test_string_getdel_devuelve_error_cuando_se_aplica_getdel_para_valor_que_no_es_string,
     },
     Test {
         name: "string command: getset key_getset",
         func: test_string_getset,
     },
     Test {
+        name: "string command: getset returns nill as key does not exists",
+        func: test_string_getset_devuelve_nulo_cuando_se_aplica_getset_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: getset thorws error as key holds value which is not string",
+        func: test_string_getset_devuelve_error_cuando_se_aplica_getset_para_valor_que_no_es_string,
+    },
+    Test {
         name: "string command: strlen key_1",
         func: test_string_strlen,
+    },
+    Test {
+        name: "string command: strlen is zero when key does not exist",
+        func: test_string_strlen_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: get cannot get non-string key-value, error is returned",
+        func: test_string_get_arroja_error_cuando_se_aplica_get_para_valor_que_no_es_string,
     },
     Test {
         name: "string command: mget key_1 mykey",
@@ -595,6 +851,34 @@ const TESTS: &[Test] = &[
     Test {
         name: "string command: set mykeyset setvalue",
         func: test_string_set,
+    },
+    Test {
+        name: "string command: set returns null when key does not exist",
+        func: test_string_set_devuelve_nulo_cuando_se_aplica_set_para_clave_inexistente,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with ex argument",
+        func: test_string_set_with_ex_argument,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with keepttl argument",
+        func: test_string_set_with_keepttl_argument,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with nx argument sets succesfully as key does not already exist",
+        func: test_string_set_with_nx_argument_key_does_not_already_exist,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with nx argument throws error as key already exists",
+        func: test_string_set_with_nx_argument_key_already_exists_throws_error,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with xx argument throws error as key does not already exist",
+        func: test_string_set_with_xx_argument_key_does_not_already_exist_then_throws_error,
+    },
+    Test {
+        name: "string command: set mykeyset setvalue with xx argument successful as key already exists",
+        func: test_string_set_with_xx_argument_succesfull_as_key_already_exists,
     },
     Test {
         name: "list command: lpush values into key - list type",
@@ -782,16 +1066,60 @@ const TESTS: &[Test] = &[
         func: test_set_add,
     },
     Test {
+        name: "set command: sadd to non-existing key , it is created and the value added",
+        func: test_set_add_clave_no_existe_se_crea_la_clave_con_valor,
+    },
+    Test {
+        name: "set command: sadd value is ignored as specified value is already a member of value",
+        func: test_set_add_valor_ya_es_miembro,
+    },
+    Test {
+        name: "set command: sadd cannot perform as key holds no set-value type , it is string type",
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_string_type,
+    },
+    Test {
+        name: "set command: sadd cannot perform as key holds no set-value type , it is list type",
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_list_type,
+    },
+    Test {
         name: "set command: scard",
         func: test_set_scard,
+    },
+    Test {
+        name: "set command: scard returns 0 as key does not exists",
+        func: test_set_scard_devuelve_cero_para_clave_inexistente,
+    },
+    Test {
+        name: "set command: scard cannot perform as key holds no-set value type - error", 
+        func: test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
     },
     Test {
         name: "set command: ismember",
         func: test_set_ismember,
     },
     Test {
+        name: "set command: ismember cannot perform as key holds no-set value type - error",
+        func: test_set_ismember_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
+    },
+    Test {
+        name: "set command: ismember returns 0 as value is not member",
+        func: test_set_ismember_devuelve_cero_porque_el_valor_no_es_miembro,
+    },
+    Test {
+        name: "set command: ismember returns 0 as key-value does not exist",
+        func: test_set_ismember_devuelve_cero_porque_la_clave_no_existe,
+    },
+    Test {
         name: "set command: smembers",
         func: test_set_smembers,
+    },
+    Test {
+        name: "set command: smembers cannot perform as key holds no-set value type - error",
+        func: test_set_members_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set,
+    },
+    Test {
+        name: "set command: smembers return nill when key not found",
+        func: test_set_smembers_devuelve_nil_cuando_la_clave_no_existe,
     },
     Test {
         name: "set command: srem",
@@ -952,7 +1280,7 @@ fn _test_flushdb() -> TestResult {
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 
-fn test_keys_del() -> TestResult {
+fn test_keys_del_string_type() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("DEL").arg("key_4").query(&mut con)?;
 
@@ -961,6 +1289,54 @@ fn test_keys_del() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_set_type() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("granaderos_eliminados_tipo_set")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_list_type() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("granaderos_eliminados_tipo_list")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_ignora_la_operacion_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
             got: ret.to_string(),
         }));
     }
@@ -980,6 +1356,58 @@ fn test_keys_exists() -> TestResult {
     }
 }
 
+fn test_keys_exists_arroja_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_exists_arroja_2_porque_2_de_las_4_claves_existen() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("key_1")
+        .arg("granaderos_enajenados")
+        .arg("granaderos_espigados")
+        .arg("granaderos_ausentes")
+        .query(&mut con)?;
+
+    if ret == 2 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_exists_devuelve_2_cuando_se_chequea_doble_por_la_misma_clave() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("key_1")
+        .arg("key_1")
+        .query(&mut con)?;
+
+    if ret == 2 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
 fn test_keys_persist() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("PERSIST").arg("key_1").query(&mut con)?;
@@ -989,6 +1417,38 @@ fn test_keys_persist() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_persist_arroja_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("PERSIST")
+        .arg("granaderos_enajenados")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_persist_arroja_cero_porque_la_clave_no_tiene_asociada_un_timeout() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("PERSIST")
+        .arg("granaderos_espigados")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
             got: ret.to_string(),
         }));
     }
@@ -1008,6 +1468,22 @@ fn test_keys_expire() -> TestResult {
     };
 }
 
+fn test_keys_expire_no_aplica_expiracion_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIRE")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg(15)
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
 fn test_keys_expireat() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("EXPIREAT")
@@ -1024,6 +1500,24 @@ fn test_keys_expireat() -> TestResult {
         }))
     };
 }
+
+fn test_keys_expireat_no_aplica_expiracion_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIREAT")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg(1725487534)
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
 fn test_keys_ttl() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("TTL").arg("key_2").query(&mut con)?;
@@ -1033,6 +1527,54 @@ fn test_keys_ttl() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: String::from("Positive number"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_ttl_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("TTL")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    return if ret == -2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("-2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_ttl_clave_no_tiene_asociado_un_timeout() -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("TTL").arg("edad_maria").query(&mut con)?;
+
+    return if ret == -1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("-1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
             got: ret.to_string(),
         }))
     };
@@ -1051,6 +1593,23 @@ fn test_keys_rename() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("OK"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_rename_clave_no_existe_arroja_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("RENAME")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg("esta_clave_es_aun_muchisimo_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1086,6 +1645,23 @@ fn test_keys_copy_with_replace() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_copy_sin_replace_arroja_error_porque_la_clave_destino_ya_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("COPY")
+        .arg("key_1")
+        .arg("key_999")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1219,7 +1795,7 @@ fn test_sort_by_external_key_value_using_pattern_descending() -> TestResult {
     }
 }
 
-fn test_gets_value_type_list() -> TestResult {
+fn test_type_gets_value_type_list() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("TYPE").arg("edades_amigos").query(&mut con)?;
     if ret == "list" {
@@ -1232,7 +1808,7 @@ fn test_gets_value_type_list() -> TestResult {
     }
 }
 
-fn test_gets_value_type_string() -> TestResult {
+fn test_type_gets_value_type_string() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("TYPE").arg("edad_maria").query(&mut con)?;
     if ret == "string" {
@@ -1245,22 +1821,87 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
-pub fn test_keys_touch() -> TestResult {
+fn test_type_gets_value_type_set() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("TOUCH")
-        .arg("frutas")
-        .arg("persistente")
+    let ret: String = redis::cmd("TYPE")
+        .arg("granaderos_espigados")
+        .query(&mut con)?;
+    if ret == "set" {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("set"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_type_gets_value_type_set_no_devuelve_nadacuando_se_aplica_type_para_clave_inexistente(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("TYPE")
+        .arg("granaderos_amalgamados")
         .query(&mut con)?;
 
-    return if ret == 2 {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("2"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
+
+fn test_keys_gets_keys_that_match_a_pattern() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("KEYS").arg("mollejas*").query(&mut con)?;
+
+    return if ret.contains(&String::from("mollejas_estofadas"))
+        && ret.contains(&String::from("mollejas_gratinadas"))
+        && ret.contains(&String::from("mollejas_fritas"))
+        && ret.contains(&String::from("mollejas_salteadas"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("mollejas_estofadas"),
+                    String::from("mollejas_gratinadas"),
+                    String::from("mollejas_fritas"),
+                    String::from("mollejas_salteadas")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+fn test_keys_gets_keys_that_match_a_pattern_con_signo_de_pregunta() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("KEYS").arg("love_the_???").query(&mut con)?;
+
+    return if ret.contains(&String::from("love_the_dog"))
+        && ret.contains(&String::from("love_the_cat"))
+        && ret.contains(&String::from("love_the_bunny"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("love_the_dog"),
+                    String::from("love_the_cat"),
+                    String::from("love_the_bunny")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------STRING COMMANDS-----------------------------------------------------------
@@ -1286,6 +1927,23 @@ fn test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string() -> TestResult
     }
 }
 
+fn test_string_mget() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("MGET")
+        .arg("mget_1")
+        .arg("mget_2")
+        .query(&mut con)?;
+
+    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("hola chau"),
+            got: format!("{} {}", ret[0], ret[1]),
+        }));
+    }
+}
+
 fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("MSET")
@@ -1293,6 +1951,24 @@ fn test_se_setean_multiples_claves_nunca_falla() -> TestResult {
         .arg("luciano")
         .arg("edad_mariana")
         .arg("34")
+        .query(&mut con)?;
+
+    if ret == "Ok" {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_se_setea_clave_a_una_clave_existente_que_no_aloja_un_valor_de_tipo_string_y_nunca_falla(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("MSET")
+        .arg("banana_mascots")
+        .arg("mister_banana")
         .query(&mut con)?;
 
     if ret == "Ok" {
@@ -1322,6 +1998,41 @@ fn test_string_append() -> TestResult {
     }
 }
 
+fn test_string_append_clave_que_no_existe_por_lo_que_se_crea_y_se_almacena_el_valor() -> TestResult
+{
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("nombre_del_nieto_del_sobrino_del_primo_del_hermano_del_abuelo")
+        .arg("luciano")
+        .query(&mut con)?;
+
+    if ret == 7 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("7"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_append_into_not_string_type_returns_zero() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("APPEND")
+        .arg("banana_passions")
+        .arg(" World")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
 fn test_string_decrby() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("DECRBY")
@@ -1335,6 +2046,56 @@ fn test_string_decrby() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("7"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_decrby_en_clave_que_no_existe_crea_la_clave_y_la_decrementa_en_el_valor_pasado(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("DECRBY")
+        .arg("key_to_decr_that_doesnt_exists")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == -3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("-3"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_decrby_devuelve_error_si_el_tipo_de_dato_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("DECRBY")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_decrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("DECRBY").arg("key_1").arg(3).query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - string cannot be represented as integer"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1356,6 +2117,56 @@ fn test_string_incrby() -> TestResult {
     }
 }
 
+fn test_string_incrby_en_clave_que_no_existe_crea_la_clave_y_la_incrementa_en_el_valor_pasado(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("INCRBY")
+        .arg("key_to_incr_that_doesnt_exists")
+        .arg(3)
+        .query(&mut con)?;
+
+    if ret == 3 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("3"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_incrby_devuelve_error_si_el_tipo_de_dato_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INCRBY")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_incrby_devuelve_error_porque_el_string_no_se_puede_representar_como_integer(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("INCRBY").arg("key_1").arg(3).query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - string cannot be represented as integer"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
 fn test_string_get() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("GET").arg("key_1").query(&mut con)?;
@@ -1368,6 +2179,39 @@ fn test_string_get() -> TestResult {
             got: ret,
         }));
     }
+}
+
+fn test_string_get_devuelve_error_cuando_se_aplica_get_para_valor_que_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("GET")
+        .arg("jinetes_de_tucuman")
+        .arg(3)
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+fn test_string_get_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GET")
+        .arg("ricardito_corazon_de_surubi")
+        .arg(3)
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
 }
 
 fn test_string_strlen() -> TestResult {
@@ -1384,16 +2228,86 @@ fn test_string_strlen() -> TestResult {
     }
 }
 
-fn test_string_getdel() -> TestResult {
+fn test_string_strlen_devuelve_nulo_cuando_se_aplica_get_para_clave_inexistente() -> TestResult {
     let mut con = connect()?;
-    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+    let ret: usize = redis::cmd("STRLEN")
+        .arg("ricardito_corazon_de_surubi")
+        .query(&mut con)?;
 
-    if ret == String::from("Hello") {
+    if ret == 0 {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("Hello"),
-            got: ret,
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_string_get_arroja_error_cuando_se_aplica_get_para_valor_que_no_es_string() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("STRLEN")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not list type"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_getdel() -> TestResult {
+    let mut con = connect()?;
+    let ret_initial: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    let ret: String = redis::cmd("GETDEL").arg("key_getdel").query(&mut con)?;
+    let ret_final: usize = redis::cmd("DBSIZE").query(&mut con)?;
+
+    if ret == String::from("Hello") && ret_initial == (ret_final + 1) {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("'Hello' and db_size_after_getdel == db_size_before_getdel - 1"),
+            got: format!(
+                "value: {:?} , db_size_after_get_del {:?} , db_size_before_get_del {:?} ",
+                ret, ret_final, ret_initial
+            ),
+        }));
+    }
+}
+
+fn test_string_getdel_devuelve_nulo_cuando_se_aplica_getdel_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GETDEL")
+        .arg("alfredito_corazon_de_cachalote")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+fn test_string_getdel_devuelve_error_cuando_se_aplica_getdel_para_valor_que_no_es_string(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("GETDEL")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1405,31 +2319,53 @@ fn test_string_getset() -> TestResult {
         .arg("NewValue")
         .query(&mut con)?;
 
-    if ret == String::from("OldValue") {
+    let ret_stored_new_value: String = redis::cmd("GET").arg("key_getset").query(&mut con)?;
+    if (ret == String::from("OldValue")) && (ret_stored_new_value == String::from("newvalue")) {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("OldValue"),
-            got: ret,
+            expected: format!("old value: OldValue , new value: NewValue"), //String::from("OldValue"),
+            got: format!(
+                "old value: {:?} , new value: {:?}",
+                ret, ret_stored_new_value
+            ),
         }));
     }
 }
 
-fn test_string_mget() -> TestResult {
+fn test_string_getset_devuelve_error_cuando_se_aplica_getset_para_valor_que_no_es_string(
+) -> TestResult {
     let mut con = connect()?;
-    let ret: Vec<String> = redis::cmd("MGET")
-        .arg("mget_1")
-        .arg("mget_2")
-        .query(&mut con)?;
+    let ret: Result<String, RedisError> = redis::cmd("GETSET")
+        .arg("jinetes_de_tucuman")
+        .arg("NewValue")
+        .query(&mut con);
 
-    if &ret[0] == &String::from("hola") && &ret[1] == &String::from("chau") {
+    if ret.is_err() {
         return Ok(());
     } else {
         return Err(Box::new(ReturnError {
-            expected: String::from("hola chau"),
-            got: format!("{} {}", ret[0], ret[1]),
+            expected: String::from("error - not string type"),
+            got: format!("{:?}", ret),
         }));
     }
+}
+
+fn test_string_getset_devuelve_nulo_cuando_se_aplica_getset_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("GETSET")
+        .arg("alfredito_corazon_de_cachalote")
+        .arg("NewValue")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
 }
 
 fn test_string_set() -> TestResult {
@@ -1448,11 +2384,139 @@ fn test_string_set() -> TestResult {
         }));
     }
 }
+
+fn test_string_set_with_ex_argument() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_1")
+        .arg("jugo de frambuesas")
+        .arg("EX")
+        .arg("60")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_keepttl_argument() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_2")
+        .arg("jugo de frambuesas")
+        .arg("KEEPTTL")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_nx_argument_key_does_not_already_exist() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_4")
+        .arg("jugo de limon y lima")
+        .arg("NX")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_nx_argument_key_already_exists_throws_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SET")
+        .arg("botellon_de_jugo_23")
+        .arg("jugo de zapallo")
+        .arg("NX")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key already exists"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_set_with_xx_argument_succesfull_as_key_already_exists() -> TestResult {
+    let mut con = connect()?;
+    let ret: String = redis::cmd("SET")
+        .arg("botellon_de_jugo_10")
+        .arg("jugo de palta")
+        .arg("XX")
+        .query(&mut con)?;
+
+    if ret == String::from("Ok") {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Ok"),
+            got: ret,
+        }));
+    }
+}
+
+fn test_string_set_with_xx_argument_key_does_not_already_exist_then_throws_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SET")
+        .arg("botellon_de_jugo_87")
+        .arg("jugo de mandioca")
+        .arg("XX")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
+        }));
+    }
+}
+
+fn test_string_set_devuelve_nulo_cuando_se_aplica_set_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("SET")
+        .arg("alfredito_corazon_de_cachalote")
+        .arg("valueset")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------LIST COMMANDS-------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
+
 fn test_lpush_se_guardan_valores_en_una_lista_que_no_existe_previamente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("LPUSH")
@@ -1949,7 +3013,7 @@ pub fn test_list_lpop() -> TestResult {
         }))
     };
 }
-//------------------------------------cambiar------------------------------------------------
+
 pub fn test_list_lpop_sin_count_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
     let mut con = connect()?;
     let ret: () = redis::cmd("LPOP")
@@ -2013,7 +3077,6 @@ pub fn test_list_lpop_sin_count_devuelve_nil_cuando_el_tipo_del_valor_no_es_list
         }))
     };
 }
-//------------------------------------------------------------------------------------
 
 pub fn test_list_lpop_con_count_devuelve_menos_elementos_que_los_que_indica_count_porque_count_es_mayor_que_list_len(
 ) -> TestResult {
@@ -2318,6 +3381,81 @@ pub fn test_set_add() -> TestResult {
     };
 }
 
+pub fn test_set_add_valor_ya_es_miembro() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SADD")
+        .arg("granaderos_espigados")
+        .arg("granadero_espigado_1")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_add_clave_no_existe_se_crea_la_clave_con_valor() -> TestResult {
+    let mut con = connect()?;
+    let ret_initial: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    let ret: usize = redis::cmd("SADD")
+        .arg("granaderos_agasajados")
+        .arg("granadero_agasajado_1")
+        .query(&mut con)?;
+
+    let ret_final: usize = redis::cmd("DBSIZE").query(&mut con)?;
+    return if ret == 1 && ret_initial == (ret_final - 1) {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("'0' and db_size_after_getdel == db_size_before_getdel - 1"),
+            got: format!(
+                "added_elements: {:?} , db_size_after_get_del {:?} , db_size_before_get_del {:?} ",
+                ret, ret_final, ret_initial
+            ),
+        }))
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_string_type(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SADD")
+        .arg("edad_maria")
+        .arg("maria parisina")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set_es_list_type(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SADD")
+        .arg("jinetes_de_tucuman")
+        .arg("jinete sin caballo")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
 pub fn test_set_scard() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("SCARD").arg("set_values_1").query(&mut con)?;
@@ -2329,6 +3467,39 @@ pub fn test_set_scard() -> TestResult {
             expected: String::from("2"),
             got: ret.to_string(),
         }))
+    };
+}
+
+pub fn test_set_scard_devuelve_cero_para_clave_inexistente() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SCARD")
+        .arg("granaderos_empetrolados")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_add_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SCARD")
+        .arg("jinetes_de_tucuman")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
     };
 }
 
@@ -2349,6 +3520,58 @@ pub fn test_set_ismember() -> TestResult {
     };
 }
 
+pub fn test_set_ismember_devuelve_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("granaderos_enajenados")
+        .arg("granadero_enajenado_1")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember_devuelve_cero_porque_el_valor_no_es_miembro() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("SISMEMBER")
+        .arg("granaderos_espigados")
+        .arg("granadero_espigado_5")
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_set_ismember_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SISMEMBER")
+        .arg("jinetes_de_tucuman")
+        .arg("jinete_1")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
+    };
+}
+
 pub fn test_set_smembers() -> TestResult {
     let mut con = connect()?;
     let ret: Vec<String> = redis::cmd("SMEMBERS").arg("set_values_1").query(&mut con)?;
@@ -2363,6 +3586,37 @@ pub fn test_set_smembers() -> TestResult {
             ),
             got: format!("{:?}", ret),
         }))
+    };
+}
+
+pub fn test_set_smembers_devuelve_nil_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("SMEMBERS")
+        .arg("granaderos_acobardados")
+        .query(&mut con)?;
+
+    return if ret == () {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(""),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
+pub fn test_set_members_arroja_error_cuando_la_clave_contiene_un_valor_que_no_es_de_tipo_set(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("SISMEMBER").arg("edad_maria").query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("Error - key does not hold set value type"),
+            got: format!("{:?}", ret),
+        }));
     };
 }
 
@@ -2435,7 +3689,7 @@ pub fn test_set_srem_removes_returns_error() -> TestResult {
         }))
     };
 }
-//----------------------------------
+
 fn test_rpush_lista_inexistente() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("RPUSH")

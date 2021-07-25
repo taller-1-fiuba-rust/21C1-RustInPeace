@@ -1,9 +1,7 @@
 //! Servicio que implementa todos los comandos de tipo Set
 
-use crate::domain::entities::key_value_item::{ValueTimeItemBuilder, ValueType};
 use crate::domain::implementations::database::Database;
 use crate::services::utils::resp_type::RespType;
-use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 /// Agrega un elemento al set de la `key` dada
@@ -56,33 +54,20 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database.write().unwrap();
-            if let RespType::RBulkString(value_to_add) = &cmd[2] {
-                return match db.get_mut_live_item(key) {
-                    None => {
-                        // Creo el set
-                        let mut set = HashSet::new();
-                        set.insert(value_to_add.to_string());
-                        let vti = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
-                        db.add(key.to_string(), vti);
-                        RespType::RInteger(1)
-                    }
-                    Some(value_item) => {
-                        if let ValueType::SetType(mut old_value) = value_item.get_copy_of_value() {
-                            let res = old_value.insert(value_to_add.to_string());
-                            value_item.set_value(ValueType::SetType(old_value));
-                            return if res {
-                                RespType::RInteger(1)
-                            } else {
-                                RespType::RInteger(0) // ya existía el valor
-                            };
-                        } else {
-                            RespType::RError(String::from("Value stored should be a set."))
-                        }
-                    }
-                };
+            let mut values_to_add = Vec::new();
+            for n in cmd.iter().skip(2) {
+                if let RespType::RBulkString(value) = n {
+                    values_to_add.push(value);
+                }
             }
-        } else {
-            String::from("Invalid command sadd");
+            match db.add_element_to_set(key, values_to_add) {
+                Some(added) => {
+                    return RespType::RInteger(added);
+                }
+                None => {
+                    return RespType::RError(String::from("Value stored should be a set"));
+                }
+            }
         }
     }
     RespType::RError(String::from("Invalid command sadd"))
