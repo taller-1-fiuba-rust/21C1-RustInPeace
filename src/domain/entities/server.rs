@@ -7,8 +7,6 @@ use crate::services::parser_service;
 use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
-use std::io::Write;
-use std::net::TcpStream;
 use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -172,8 +170,8 @@ impl Server {
                 WorkerMessage::Verb(verbose_txt) => {
                     self.verbose(verbose_txt);
                 }
-                WorkerMessage::Subscribe(channel, addrs, message_sender,) => {// stream) => {
-                    self.subscribe_to_channel(channel, addrs, message_sender);//, stream);
+                WorkerMessage::Subscribe(channel, addrs, message_sender) => {
+                    self.subscribe_to_channel(channel, addrs, message_sender);
                 }
                 WorkerMessage::Unsubscribe(channel, addrs, message_sender) => {
                     self.unsubscribe(channel, addrs, message_sender);
@@ -498,7 +496,6 @@ impl Server {
         channel: String,
         addrs: SocketAddr,
         sender: Sender<usize>,
-        // stream: TcpStream,
     ) {
         let tx = sender.clone();
 
@@ -574,58 +571,40 @@ impl Server {
     }
 
     /// Envia un mensaje a todas los clientes suscritos al canal especificado.
+    ///
+    /// Devuelve la cantidad de clientes a los que les envió el mensaje.
     pub fn send_message_to_channel(&mut self, channel: String, msg: String) -> usize {
-        // let mut sent = 0;
-        let subscribers = self.channels.get(&channel).unwrap();
-        let mut addresses = Vec::new();
-        for addrs in subscribers.keys() {
-            addresses.push(addrs.to_owned());
-            // let wrote = self.write_to_client_with_address(addrs, parser_service::parse_response(RespType::RArray(vec![RespType::RBulkString(String::from("message")),RespType::RBulkString(channel.clone()),RespType::RBulkString(msg.clone())])).as_bytes());
-            // if wrote {
-            //     sent += 1;
-            // }
+        match self.channels.get(&channel) {
+            Some(subscribers) => {
+                let addresses = subscribers.keys().map(|addrs| addrs.to_owned()).collect();
+                self.write_to_client_with_address(
+                    addresses,
+                    parser_service::parse_response(RespType::RArray(vec![
+                        RespType::RBulkString(String::from("message")),
+                        RespType::RBulkString(channel.clone()),
+                        RespType::RBulkString(msg),
+                    ]))
+                    .as_bytes(),
+                )
+            }
+            None => 0,
         }
-
-        self.write_to_client_with_address(addresses, parser_service::parse_response(RespType::RArray(vec![RespType::RBulkString(String::from("message")),RespType::RBulkString(channel.clone()),RespType::RBulkString(msg.clone())])).as_bytes())
-        
-        // for sender in subscribers.values_mut() {
-        //     sender
-        //         .write_all(
-        //             parser_service::parse_response(RespType::RArray(vec![
-        //                 RespType::RBulkString(String::from("message")),
-        //                 RespType::RBulkString(channel.clone()),
-        //                 RespType::RBulkString(msg.clone()),
-        //             ]))
-        //             .as_bytes(),
-        //         )
-        //         .unwrap();
-        //     sender.1.flush().unwrap();
-        //     sent += 1
-        // }
-        // sent
     }
 
-    /// Escribe sobre el stream de un cliente.
+    /// Escribe sobre el stream clientes.
     ///
-    /// Busca un cliente por dirección de socket y escribe un arreglo de bytes sobre su stream.
+    /// Escribe un arreglo de bytes sobre el stream de todos los clientes cuya dirección este incluida en las direcciones pedidas.
+    /// Devuelve la cantidad de clientes a los que les escribió un mensaje.
     pub fn write_to_client_with_address(&mut self, addrs: Vec<String>, msg: &[u8]) -> usize {
         let mut sent = 0;
         self.clients.iter_mut().for_each(|client| {
             if addrs.contains(&&client.get_address().to_string()) {
-                client.write_to_stream(msg.clone());
+                client.write_to_stream(msg);
                 sent += 1;
             }
         });
         sent
     }
-
-    // pub fn get_clients_streams(&mut self) -> Vec<TcpStream> {
-    //     let mut streams = Vec::new();
-    //     self.clients.iter_mut().for_each(|client| {
-    //         streams.push(client.get_stream_mut());
-    //     });
-    //     streams
-    // }
 
     /// Envia al cliente una lista de todos los canales activos.
     fn list_active_channels(&self, sender: Sender<Vec<RespType>>) {

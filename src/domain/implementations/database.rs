@@ -773,7 +773,6 @@ impl Database {
                     item.set_value(new_value);
                     len
                 } else {
-                    println!("entro aca??????????????????????");
                     0
                 }
             }
@@ -1415,10 +1414,10 @@ impl Database {
         element: String,
     ) -> usize {
         let mut cant_elementos_eliminados = 0;
-        let cant_max = cantidad_maxima.parse::<isize>().unwrap();
+        let cant_max = cantidad_maxima.parse::<isize>().unwrap_or(1);
         if self.key_exists(key.to_string()) {
-            let old_value = self.get_mut_live_item(&key.to_string()).unwrap();
-            let item_optional = old_value.get_value();
+            let old_item = self.get_mut_live_item(&key.to_string()).unwrap();
+            let item_optional = old_item.get_value();
             if let ValueType::ListType(mut items) = item_optional.to_owned() {
                 let len_value_list = items.len();
                 match cant_max.cmp(&0) {
@@ -1460,7 +1459,7 @@ impl Database {
                             (len_value_list as isize) - (items.len() as isize);
                     }
                 }
-                old_value.set_value(ValueType::ListType(items));
+                old_item.set_value(ValueType::ListType(items));
             }
         }
         cant_elementos_eliminados as usize

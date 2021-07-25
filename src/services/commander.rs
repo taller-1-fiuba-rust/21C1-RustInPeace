@@ -13,7 +13,6 @@ use crate::{
 };
 #[allow(unused)]
 use std::fs::File;
-use std::net::TcpStream;
 use std::{
     net::SocketAddr,
     sync::{mpsc::Sender, Arc, RwLock},
@@ -87,7 +86,6 @@ pub fn handle_command(
     addrs: SocketAddr,
     database: &Arc<RwLock<Database>>,
     config: &Arc<RwLock<Config>>,
-    // stream: TcpStream,
 ) -> Option<RespType> {
     if let RespType::RArray(array) = operation {
         if let RespType::RBulkString(actual_command) = &array[0] {
@@ -130,7 +128,7 @@ pub fn handle_command(
                 "mget" => return Some(command_string::mget(&array, database)),
                 "mset" => return Some(command_string::mset(&array, database)),
                 "set" => return Some(command_string::set(&array, database)),
-                "subscribe" => return Some(command_pubsub::subscribe(&array, tx, addrs)),//, stream)),
+                "subscribe" => return Some(command_pubsub::subscribe(&array, tx, addrs)),
                 "unsubscribe" => return Some(command_pubsub::unsubscribe(&array, tx, addrs)),
                 "punsubscribe" => {
                     //no se pide implementar esta funcion pero la agrego hardcodeada -por ahora- porque el cliente Redis la llama despues de un subscribe
@@ -150,7 +148,6 @@ pub fn handle_command(
                     ]))
                 }
                 "lpush" => return Some(command_list::push(&array, database, true)),
-                //"lindex" => return Some(command_list::get_index(&array, database)),
                 "lindex" => return Some(command_list::lindex(&array, database)),
                 "llen" => return Some(command_list::llen(&array, database)),
                 "lpop" => return Some(command_list::lpop(&array, database)),

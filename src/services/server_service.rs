@@ -8,11 +8,12 @@ use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use crate::services::database_service::dump_to_file;
-use std::io::{Read, Write};
+use std::io::{Error, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
-use std::thread;
+use std::time::Duration;
+use std::{thread, u64};
 
 /// Inicia la conexion TCP
 ///
@@ -21,13 +22,16 @@ use std::thread;
 /// Establece un channel entre la entidad `Server` y el cliente para que cada cliente pueda recibir y enviar información
 /// al servidor de manera concurrente.
 /// En un tercer hilo de ejecución se hace una bajada periódica de los datos almacenados en Database al archivo `dump.rdb`.
-pub fn init(
-    db: Database,
-    config: Config,
-    dir: String,
-    server_sender: Sender<WorkerMessage>,
-) {
-    let port = config.get_attribute(String::from("port")).expect("Error: Port config not set.");
+/// Si la configuración no tiene especificado un timeout válido, se asigna 300 segundos por defecto.
+pub fn init(db: Database, config: Config, dir: String, server_sender: Sender<WorkerMessage>) {
+    let port = config
+        .get_attribute(String::from("port"))
+        .expect("Error: Port config not set.");
+    let timeout = config
+        .get_attribute("timeout".to_string())
+        .expect("Error: Timeout config not set.")
+        .parse::<u64>()
+        .unwrap_or(300);
     let pool = ThreadPool::new(10);
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
@@ -44,6 +48,10 @@ pub fn init(
                         let tx = server_sender.clone();
                         let conf_lock = conf.clone();
                         let cloned_database = database.clone();
+                        stream
+                            .set_read_timeout(Some(Duration::from_secs(timeout)))
+                            .expect("Could not set a read timeout");
+
                         pool.spawn(|| {
                             handle_connection(stream, tx, cloned_database, conf_lock);
                         });
@@ -74,10 +82,10 @@ pub fn handle_connection(
     tx: Sender<WorkerMessage>,
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
-) {
-    let client_addrs = stream.peer_addr().unwrap();
-    let client = Client::new(client_addrs, stream.try_clone().expect("Couldn't clone stream."));
-    tx.send(WorkerMessage::AddClient(client)).unwrap();
+) -> Result<(), Error> {
+    let client_addrs = stream.peer_addr()?;
+    let client = Client::new(client_addrs, stream.try_clone()?);
+    tx.send(WorkerMessage::AddClient(client));
 
     log(
         format!("Connection to address {} established\r\n", client_addrs),
@@ -88,7 +96,6 @@ pub fn handle_connection(
         &tx,
     );
 
-    // stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
     loop {
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
@@ -124,14 +131,9 @@ pub fn handle_connection(
                         ))
                         .unwrap();
 
-                        if let Some(res) = handle_command(
-                            parsed_request,
-                            &tx,
-                            client_addrs,
-                            &database,
-                            &config,
-                            // stream.try_clone().unwrap(),
-                        ) {
+                        if let Some(res) =
+                            handle_command(parsed_request, &tx, client_addrs, &database, &config)
+                        {
                             let response = parse_response(res);
                             log(
                                 format!(
@@ -151,8 +153,8 @@ pub fn handle_connection(
                                 ),
                                 &tx,
                             );
-                            stream.write_all(response.as_bytes()).unwrap();
-                            stream.flush().unwrap();
+                            stream.write_all(response.as_bytes())?;
+                            stream.flush()?;
                         }
                     }
                     Err(e) => {
@@ -177,6 +179,8 @@ pub fn handle_connection(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
     );
+
+    Ok(())
 }
 
 /// Envia un mensaje al Logger.

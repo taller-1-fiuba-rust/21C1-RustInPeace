@@ -1,7 +1,7 @@
 //! Representación de un cliente del Servidor.
 
 use std::{
-    io::Write,
+    io::{Error, Write},
     net::{SocketAddr, TcpStream},
 };
 
@@ -40,8 +40,8 @@ impl Client {
     }
 
     /// Retorna una referencia mutable al stream del cliente.
-    pub fn get_stream_mut(&mut self) -> TcpStream {
-        self.stream.try_clone().unwrap()
+    pub fn get_stream_mut(&mut self) -> Result<TcpStream, Error> {
+        self.stream.try_clone()
     }
 
     /// Retorna una referencia a la dirección del cliente.
@@ -70,7 +70,8 @@ impl Client {
     }
 
     /// Escribe un mensaje sobre el stream del cliente.
-    pub fn write_to_stream(&mut self, message: &[u8]) {
-        self.stream.write_all(message).unwrap();
+    pub fn write_to_stream(&mut self, message: &[u8]) -> Result<(), Error> {
+        self.stream.write_all(message)?;
+        Ok(())
     }
 }

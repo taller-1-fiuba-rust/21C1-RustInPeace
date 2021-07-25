@@ -307,19 +307,14 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             let mut new_database = database.write().unwrap();
             if let RespType::RBulkString(new_key) = &cmd[2] {
                 if new_database.rename_key(current_key.to_string(), new_key.to_string()) {
-                    RespType::RBulkString("OK".to_string())
+                    return RespType::RBulkString("OK".to_string());
                 } else {
-                    RespType::RError("key not found".to_string())
+                    return RespType::RError("key not found".to_string());
                 }
-            } else {
-                RespType::RBulkString("missing parameters".to_string())
             }
-        } else {
-            RespType::RBulkString("missing parameters".to_string())
         }
-    } else {
-        RespType::RBulkString("missing parameters".to_string())
     }
+    RespType::RBulkString("missing parameters".to_string())
 }
 
 /// Configura un tiempo de expiracion sobre una clave a partir del momento en que se envia el comando.
@@ -368,11 +363,9 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .unwrap();
             let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
             let result = db.expire_key(key, &new_time.to_string());
-            return if result {
-                RespType::RInteger(1)
-            } else {
-                RespType::RInteger(0)
-            };
+            if result {
+                return RespType::RInteger(1);
+            }
         }
     }
     RespType::RInteger(0)
@@ -419,11 +412,9 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
-            return if result {
-                RespType::RInteger(1)
-            } else {
-                RespType::RInteger(0)
-            };
+            if result {
+                return RespType::RInteger(1);
+            }
         }
     }
     RespType::RInteger(0)
@@ -816,7 +807,7 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             };
         }
     }
-    RespType::RInteger(0)
+    RespType::RError(String::from("Invalid request."))
 }
 
 /// Retorna el tipo de dato almacenado en `key`.
@@ -871,31 +862,6 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 #[test]
 fn test_001_se_genera_un_hashmap_a_partir_de_vector_con_asc() {
     let operation = vec![RespType::RBulkString("ASC".to_string())];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
-}
-
-#[test]
-fn test_002_se_genera_un_hashmap_a_partir_de_vector_con_by_algun_valor() {
-    let operation = vec![
-        RespType::RBulkString("BY".to_string()),
-        RespType::RBulkString("algun_valor".to_string()),
-    ];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
-}
-
-#[test]
-fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
-    let operation = vec![
-        RespType::RBulkString("LIMIT".to_string()),
-        RespType::RBulkString("0".to_string()),
-        RespType::RBulkString("10".to_string()),
-    ];
     let hm = generate_hashmap(&operation);
     for (key, value) in hm {
         println!("{:?}: {:?}", key, value)

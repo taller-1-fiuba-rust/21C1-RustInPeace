@@ -29,7 +29,8 @@ impl Config {
     /// # std::fs::remove_file("config.txt").unwrap();
     /// ```
     pub fn new(path: String) -> Self {
-        let config = lines_from_file(&path).unwrap();
+        let config =
+            lines_from_file(&path).expect("Couldn't read lines from config file. Aborting..");
         Config { config, path }
     }
 

@@ -56,7 +56,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             RespType::RInteger(0)
         }
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
@@ -64,6 +64,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Por defecto, elimina el primer elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
 /// los primeros `count` elementos.
+/// Si `count` no puede representarse como un numero entero sin signo, se considera 1 por defecto.
 /// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
 /// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del primer elemento.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
@@ -104,57 +105,27 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
                 let popped_elements =
-                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap_or(1));
                 if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
+                    return RespType::RArray(
+                        popped
+                            .iter()
+                            .map(|element| RespType::RBulkString(element.to_string()))
+                            .collect(),
+                    );
                 } else {
                     return RespType::RNullBulkString();
                 }
             }
         } else {
             let popped_elements = db.pop_elements_from_list(key, 1);
-            if popped_elements == None {
+            if popped_elements.is_none() {
                 return RespType::RBulkString("()".to_string());
             }
             if let Some(popped_element) = popped_elements {
                 if !popped_element.is_empty() {
                     return RespType::RBulkString(popped_element[0].to_owned());
                 }
-            }
-        }
-    }
-    RespType::RError("Invalid request".to_string())
-}
-
-pub fn rpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
-    if let RespType::RBulkString(key) = &cmd[1] {
-        if cmd.len() == 3 {
-            if let RespType::RBulkString(cantidad) = &cmd[2] {
-                let popped_elements =
-                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
-                if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
-                } else {
-                    return RespType::RNullBulkString();
-                }
-            }
-        } else {
-            let popped_elements = db.rpop_elements_from_list(key, 1);
-            if let Some(popped_element) = popped_elements {
-                if !popped_element.is_empty() {
-                    return RespType::RBulkString(popped_element[0].to_owned());
-                }
-            } else {
-                return RespType::RNullBulkString();
             }
         }
     }
@@ -222,7 +193,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
             RespType::RError("error - not list type".to_string())
         }
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
@@ -448,6 +419,7 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// Si `count` es mayor a 0, elimina aquellos elementos leyendo la lista de izquierda a derecha.
 /// Si `count` es menor a 0, elimina aquellos elementos leyendo la lista de derecha a izquierda.
 /// Si `count` es igual a 0, elimina todos los elementos que coincidan con el especificado.
+/// Si `count` no puede representarse como un número entero, se asigna 1.
 /// Si `key` no existe, retorna 0.
 /// Retorna la cantidad de elementos eliminados de la lista.
 ///
@@ -566,6 +538,7 @@ pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
 /// los últimos `count` elementos.
+/// Si `count` no puede representarse como un numero entero sin signo, se considera 1 por defecto.
 /// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
 /// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del último elemento.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
@@ -606,13 +579,14 @@ pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
                 let popped_elements =
-                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap_or(1));
                 if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
+                    return RespType::RArray(
+                        popped
+                            .iter()
+                            .map(|element| RespType::RBulkString(element.to_string()))
+                            .collect(),
+                    );
                 } else {
                     return RespType::RNullBulkString();
                 }

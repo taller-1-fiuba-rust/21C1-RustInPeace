@@ -1,7 +1,7 @@
 //! Servicio que implementa todos los comandos Pub/Sub
 
 use std::{
-    net::{SocketAddr, TcpStream},
+    net::SocketAddr,
     sync::mpsc::{self, Sender},
 };
 
@@ -12,12 +12,7 @@ use crate::{domain::entities::message::WorkerMessage, services::utils::resp_type
 /// Una vez que el cliente se suscribe a un canal, no puede ejecutar ningún otro comando.
 /// `Subscribe` es una función bloqueante, sólo recibe mensajes que hayan sido publicados al canal.
 /// Devuelve el nombre del canal y la cantidad de clientes suscritos al canal.
-pub fn subscribe(
-    cmd: &[RespType],
-    tx: &Sender<WorkerMessage>,
-    addrs: SocketAddr,
-    // stream: TcpStream,
-) -> RespType {
+pub fn subscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();
 
     for channel in &cmd[1..] {
@@ -26,12 +21,10 @@ pub fn subscribe(
                 channel.to_string(),
                 addrs,
                 messages_sender.clone(),
-                // stream.try_clone().unwrap(),
             ))
             .unwrap();
 
             if let Ok(n_channels) = messages_receiver.recv() {
-                //el integer es la cantidad de canales que esta escuchando
                 return RespType::RArray(vec![
                     RespType::RBulkString(String::from("subscribe")),
                     RespType::RBulkString(channel.to_string()),

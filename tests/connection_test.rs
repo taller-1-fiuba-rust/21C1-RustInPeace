@@ -5,7 +5,7 @@ use proyecto_taller_1::{
         entities::{config::Config, key_value_item::ValueType, server::Server},
         implementations::database::Database,
     },
-    services::{server_service, utils::resp_type::RespType, worker_service::ThreadPool},
+    services::{server_service, worker_service::ThreadPool},
 };
 use redis::RedisError;
 
@@ -75,6 +75,10 @@ fn test_main() {
 
     config
         .set_attribute(String::from("port"), String::from("8080"))
+        .unwrap();
+
+    config
+        .set_attribute(String::from("timeout"), String::from("300"))
         .unwrap();
 
     let mut database = Database::new(db_file);
