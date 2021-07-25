@@ -328,7 +328,7 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(lower_bound) = &cmd[2] {
             if let RespType::RBulkString(upper_bound) = &cmd[3] {
                 if let Some(value_vec) =
-                    new_database.get_values_from_list_value_type(key, lower_bound, upper_bound)
+                    new_database.get_values_in_range(key, lower_bound, upper_bound)
                 {
                     let mut value_vec_resptype = vec![];
                     for elemento in value_vec {
@@ -431,22 +431,16 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         let mut db = database.write().unwrap();
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
-                let current_value_in_list_by_index =
-                    db.get_value_from_list_value_type_by_index(key, index);
-                if current_value_in_list_by_index == None {
-                    RespType::RError("value is not list type".to_string())
+                let current_value_in_list_by_index = db.get_value_by_index(key, index);
+                if let Some(value) = current_value_in_list_by_index {
+                    return RespType::RBulkString(value);
                 } else {
-                    RespType::RBulkString(current_value_in_list_by_index.unwrap())
+                    return RespType::RError("value is not list type".to_string());
                 }
-            } else {
-                RespType::RError("Invalid request".to_string())
             }
-        } else {
-            RespType::RError("Invalid request".to_string())
         }
-    } else {
-        RespType::RError("Invalid request".to_string())
     }
+    RespType::RError("Invalid request".to_string())
 }
 
 /// Elimina las primeras `count` ocurrencias del elemento especificado perteneciente a la lista almacenada en `key`.

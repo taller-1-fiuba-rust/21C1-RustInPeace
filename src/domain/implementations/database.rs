@@ -300,31 +300,11 @@ impl Database {
         associated_values
     }
 
-    // pub fn push_new_values_into_existing_key_value_pair(
-    //     &mut self,
-    //     mut new_vec: Vec<String>,
-    //     key: &str,
-    // ) -> usize {
-    //     if self.key_exists(key.to_string()) {
-    //         if let ValueType::ListType(current_value) =
-    //             self.get_live_item(key).unwrap().get_value().to_owned()
-    //         {
-    //             let mut old_vector = current_value;
-    //             new_vec.append(&mut old_vector);
-    //             let vec_len = new_vec.len();
-    //             let vt_item = ValueTimeItemBuilder::new(ValueType::ListType(new_vec)).build();
-    //             self.add(key.to_string(), vt_item);
-    //             return vec_len;
-    //         }
-    //     }
-    //     0
-    // }
-
     /// Agrega nuevos elementos a una lista.
     ///
-    /// Concatena los nuevos elementos a los ya existentes.
+    /// A diferencia de `push_vec_to_list`, esta función agrega los nuevos elementos al comienzo de la lista.
     /// Si `strict` es True, sólo agrega elementos a una clave ya existente, si la clave no existe no hace nada.
-    /// Si es `strict` es False y la clave no existe, la crea.
+    /// Si `strict` es False y la clave no existe, la crea.
     /// Devuelve la cantidad de elementos de la lista luego de haber agregaro los nuevos valores.
     ///
     /// # Ejemplo
@@ -372,10 +352,10 @@ impl Database {
     ///
     /// Si la clave existe y guarda un elemento de tipo lista, inserta los elementos al final de la misma.
     /// Retorna la longitud de la lista luego de haber insertado los nuevos elementos.
-    /// # Example
+    /// # Ejemplo
     /// ```
-    /// use proyecto_taller_1::domain::implementations::database::Database;
-    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
     ///
     /// let mut db = Database::new("dummy_db_rpush.csv".to_string());
     /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile"), String::from("uruguay")];
@@ -385,7 +365,7 @@ impl Database {
     /// let len = db.push_vec_to_list(vec![String::from("bolivia"), String::from("paraguay")], "paises");
     /// assert_eq!(len, 6);
     ///
-    /// let _ = std::fs::remove_file("dummy_db_rpush.csv");
+    /// # std::fs::remove_file("dummy_db_rpush.csv");
     /// ```
     pub fn push_vec_to_list(&mut self, new_elements: Vec<String>, key: &str) -> usize {
         if let Some(item) = self.get_mut_live_item(key) {
@@ -400,7 +380,27 @@ impl Database {
         }
         0
     }
-    //ACA*******************************************************************************************
+
+    /// Reemplaza el elemento en la posición `index` de la lista.
+    ///
+    /// Si el indice es negativo, le suma el valor de la longitud de la lista.
+    /// Devuelve True en caso de éxito, sino False.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_replace.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let replaced = db.replace_element_in_list_type_value("paises", "uruguay", "1");
+    /// assert!(replaced);
+    ///
+    /// # std::fs::remove_file("dummy_db_replace.csv");
+    /// ```
     pub fn replace_element_in_list_type_value(
         &mut self,
         key: &str,
@@ -410,71 +410,103 @@ impl Database {
         if let Some(item) = self.get_mut_live_item(key) {
             if let ValueType::ListType(mut current_value) = item.get_copy_of_value() {
                 let current_value_len = current_value.len() as isize;
-                let mut current_index = index.parse::<isize>().unwrap();
+                let mut current_index = index.parse::<isize>().unwrap_or(current_value_len + 1);
                 if current_index < 0 {
                     current_index += current_value_len;
                 };
                 if current_index < current_value_len {
                     current_value[current_index as usize] = value.to_string();
                     item.set_value(ValueType::ListType(current_value));
-                    true
-                } else {
-                    false
+                    return true;
                 }
-            } else {
-                false
             }
-        } else {
-            false
         }
+        false
     }
 
-    /// Devuelve una porcion de una lista asociada a una key que almacena un ListType
-    pub fn get_values_from_list_value_type(
+    /// Devuelve una porcion de una lista asociada a una key que almacena un valor de tipo List.
+    ///
+    /// Busca los elementos cuya posición se encuentra en el rango [`lower_bound`, `upper_bound`].
+    /// Si alguno de los extremos es negativo, le suma la longitud de la lista original.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_range.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let values = db.get_values_in_range("paises", "1", "2").unwrap();
+    /// assert_eq!(values, vec!["brasil".to_string(), "chile".to_string()]);
+    ///
+    /// # std::fs::remove_file("dummy_db_range.csv");
+    /// ```
+    pub fn get_values_in_range(
         &mut self,
         key: &str,
         lower_bound: &str,
         upper_bound: &str,
     ) -> Option<Vec<String>> {
-        if let ValueType::ListType(current_value) =
-            self.get_live_item(key).unwrap().get_value().to_owned()
-        {
-            let current_value_len = current_value.len() as isize;
-            let mut vec_values_selected_by_index = vec![];
-            let mut lb = lower_bound.parse::<isize>().unwrap();
-            let mut ub = upper_bound.parse::<isize>().unwrap();
-            //mapeo los valores de lower_bound y upper_bound negativos a sus correspondiente positivos
-            if lb < 0 {
-                lb += current_value_len;
-            }
-            if ub < 0 {
-                ub += current_value_len;
-            }
-
-            if ub > lb {
-                if ub <= current_value_len {
-                    for j in lb..(ub + 1) {
-                        vec_values_selected_by_index.push(current_value[j as usize].clone());
-                    }
-                } else {
-                    for j in lb..current_value_len {
-                        vec_values_selected_by_index.push(current_value[j as usize].clone());
-                    }
+        if self.key_exists(key.to_string()) {
+            if let ValueType::ListType(current_value) =
+                self.get_live_item(key).unwrap().get_value().to_owned()
+            {
+                let current_value_len = current_value.len() as isize;
+                let mut vec_values_selected_by_index = vec![];
+                let mut lb = lower_bound.parse::<isize>().unwrap_or(0);
+                let mut ub = upper_bound.parse::<isize>().unwrap_or(current_value_len);
+                if lb < 0 {
+                    lb += current_value_len;
                 }
-                Some(vec_values_selected_by_index)
+                if ub < 0 {
+                    ub += current_value_len;
+                }
+                if ub > lb {
+                    if ub <= current_value_len {
+                        for j in lb..(ub + 1) {
+                            vec_values_selected_by_index.push(current_value[j as usize].to_owned());
+                        }
+                    } else {
+                        for j in lb..current_value_len {
+                            vec_values_selected_by_index.push(current_value[j as usize].to_owned());
+                        }
+                    }
+                    Some(vec_values_selected_by_index)
+                } else {
+                    Some(vec!["".to_string()])
+                }
             } else {
-                Some(vec!["".to_string()])
+                None
             }
         } else {
             None
         }
     }
 
-    pub fn get_value_from_list_value_type_by_index(
-        &mut self,
-        key: &str,
-        index: &str,
-    ) -> Option<String> {
+    /// Devuelve el valor de la lista en la posición `index`.
+    ///
+    /// Devuelve None si el valor almacenado en `key` no es de tipo lista.
+    /// Si el indice es menor a 0, le suma la longitud original de la lista.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_index.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let value = db.get_value_by_index("paises", "1").unwrap();
+    /// assert_eq!(value, "brasil".to_string());
+    ///
+    /// # std::fs::remove_file("dummy_db_index.csv");
+    /// ```
+    pub fn get_value_by_index(&mut self, key: &str, index: &str) -> Option<String> {
         if self.key_exists(key.to_string()) {
             let mut index_aux = index.parse::<isize>().unwrap();
             if let ValueType::ListType(current_value) =
@@ -563,7 +595,6 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_doc_reboot2.csv");
     /// ```
-    ///
     pub fn reboot_time(&mut self, key: String) -> Option<&mut ValueTimeItem> {
         let mut item = self.get_mut_live_item(&key);
         if let Some(item) = &mut item {
@@ -572,9 +603,29 @@ impl Database {
         item
     }
 
-    ///Devuelve el tipo de dato del value
+    /// Devuelve el tipo de dato del value.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_valuetype.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("chile")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let value_type = db.get_type_of_value("paises".to_string());
+    /// assert_eq!(value_type, "list".to_string());
+    ///
+    /// # std::fs::remove_file("dummy_db_valuetype.csv");
+    /// ```
     pub fn get_type_of_value(&self, key: String) -> String {
-        self.items.get(&key).unwrap().get_value_type()
+        if let Some(value) = self.items.get(&key) {
+            value.get_value_type()
+        } else {
+            "none".to_string()
+        }
     }
 
     /// Copia el valor almacenado en una clave origen a una clave destino.
@@ -584,8 +635,8 @@ impl Database {
     /// Si la clave destino no existe, se crea.
     /// # Example
     /// ```
-    /// use proyecto_taller_1::domain::implementations::database::Database;
-    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType, ValueTimeItemBuilder};
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType, ValueTimeItemBuilder};
     ///
     /// let mut db = Database::new("dummy_db_copy.csv".to_string());
     /// db.add("dolly".to_string(),ValueTimeItemBuilder::new(
@@ -598,7 +649,7 @@ impl Database {
     ///    assert_eq!(str, &String::from("sheep"));
     /// }
     ///
-    /// let _ = std::fs::remove_file("dummy_db_copy.csv");
+    /// # std::fs::remove_file("dummy_db_copy.csv");
     /// ```
     pub fn copy(&mut self, source: String, destination: String, replace: bool) -> Option<()> {
         return if let Some(source_item) = self.get_live_item(&source) {
@@ -628,6 +679,25 @@ impl Database {
         };
     }
 
+    /// Persiste una clave.
+    ///
+    /// Si la clave existe, cambia el tipo de clave a Persistente, es decir que no expira y devuelve True.
+    /// Si la clave no existe, devuelve False.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, KeyAccessTime, ValueType, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_persist.csv".to_string());
+    /// db.add("dolly".to_string(), ValueTimeItemBuilder::new(
+    ///     ValueType::StringType("sheep".to_string())).with_timeout(1825601548).build()
+    /// );
+    ///
+    /// assert!(db.persist("dolly".to_string()));
+    ///
+    /// # std::fs::remove_file("dummy_db_persist.csv");
+    /// ```
     pub fn persist(&mut self, key: String) -> bool {
         match self.get_mut_live_item(&key) {
             Some(item) => item.make_persistent(),
@@ -638,9 +708,9 @@ impl Database {
     /// Renombra una clave.
     ///
     /// Si la clave existe, se renombra y sobreescribe con una copia del valor almacenado.
-    /// En ese caso, el método devuelve true, sino false.
+    /// En ese caso, el método devuelve True, sino False.
     ///
-    /// # Example
+    /// # Ejemplo
     /// ```
     /// use proyecto_taller_1::domain::implementations::database::Database;
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
@@ -679,7 +749,7 @@ impl Database {
     /// al final del existente. Si la clave no existe, se crea con el string como valor.
     /// Devuelve la longitud del nuevo string almacenado.
     ///
-    /// # Example
+    /// # Ejemplo
     /// ```
     /// use proyecto_taller_1::domain::implementations::database::Database;
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
@@ -879,7 +949,6 @@ impl Database {
     /// let _ = std::fs::remove_file("dummy_db_strlen.csv");
     /// ```
     pub fn get_strlen_by_key(&mut self, key: &str) -> Option<usize> {
-        //agregar tests
         let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
@@ -915,7 +984,6 @@ impl Database {
     /// let _ = std::fs::remove_file("dummy_db_getdel.csv");
     /// ```
     pub fn getdel_value_by_key(&mut self, key: &str) -> Result<String, DatabaseError> {
-        //agregar tests
         let item = self.get_live_item(&key.to_string());
         if let Some(item) = item {
             let value = item.get_copy_of_value();
@@ -959,7 +1027,6 @@ impl Database {
         key: &str,
         new_value: &str,
     ) -> Result<String, DatabaseError> {
-        //agregar tests
         let item_optional = self.get_mut_live_item(&key.to_string());
         if let Some(item) = item_optional {
             let value = item.get_copy_of_value();
@@ -1230,27 +1297,6 @@ impl Database {
         Some(popped_elements)
     }
 
-    ////////////////////////////////////////////////////////////
-    pub fn pop_elements_from_list2(&mut self, key: &str, count: usize) -> Option<Vec<String>> {
-        if let Some(item) = self.get_mut_live_item(key) {
-            match item.get_copy_of_value() {
-                ValueType::ListType(mut list) => {
-                    let popped_elements;
-                    if count < list.len() {
-                        popped_elements = list.drain(..count).collect();
-                    } else {
-                        popped_elements = list.drain(..list.len()).collect();
-                    }
-                    item.set_value(ValueType::ListType(list));
-                    Some(popped_elements)
-                }
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-
     //faltan tests unitarios
     pub fn add_element_to_set(&mut self, key: &str, values_to_add: Vec<&String>) -> Option<usize> {
         let mut added = 0;
@@ -1299,6 +1345,7 @@ impl Database {
     {
         let path = Path::new(filename.as_ref());
         let file = File::open(&path);
+
         match file {
             Ok(_) => Ok(io::BufReader::new(file.unwrap()).lines()),
             Err(_) => {
@@ -1339,17 +1386,6 @@ impl Database {
             )
             .unwrap();
         }
-    }
-
-    /// devuelve todos los valores almacenados en todas las claves en orden aleatorio
-    pub fn _get_all_values(&self) -> Vec<ValueType> {
-        let mut all_values = Vec::new();
-        let values_vector = &self.items;
-        for value in values_vector.values() {
-            let only_value = value.get_copy_of_value();
-            all_values.push(only_value);
-        }
-        all_values
     }
 
     /// devuelve la cantidad de claves almacenadas en la base de datos
@@ -2572,9 +2608,7 @@ fn test_053_se_obtienen_3_elementos_de_un_value_de_tipo_list_clave_existe() {
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let elements_got = db
-        .get_values_from_list_value_type("phrase", "2", "4")
-        .unwrap();
+    let elements_got = db.get_values_in_range("phrase", "2", "4").unwrap();
     assert_eq!(3, elements_got.len());
     std::fs::remove_file("file053".to_string()).unwrap();
 }
@@ -2598,9 +2632,7 @@ fn test_054_se_obtienen_3_elementos_de_un_value_de_tipo_list_clave_existe_con_lb
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let elements_got = db
-        .get_values_from_list_value_type("phrase", "-4", "-2")
-        .unwrap();
+    let elements_got = db.get_values_in_range("phrase", "-4", "-2").unwrap();
     assert_eq!(3, elements_got.len());
     std::fs::remove_file("file054".to_string()).unwrap();
 }
@@ -2624,9 +2656,7 @@ fn test_055_se_obtiene_un_vector_vacio_de_1_elemento_cuando_lb_es_mayor_que_ub()
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let elements_got = db
-        .get_values_from_list_value_type("phrase", "5", "2")
-        .unwrap();
+    let elements_got = db.get_values_in_range("phrase", "5", "2").unwrap();
     assert_eq!(1, elements_got.len());
     std::fs::remove_file("file055".to_string()).unwrap();
 }
@@ -2650,9 +2680,7 @@ fn test_056_se_obtiene_un_vector_de_longitud_maxima_lenght_cuando_ub_es_mayor_qu
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let elements_got = db
-        .get_values_from_list_value_type("phrase", "0", "200")
-        .unwrap();
+    let elements_got = db.get_values_in_range("phrase", "0", "200").unwrap();
     assert_eq!(8, elements_got.len());
     std::fs::remove_file("file056".to_string()).unwrap();
 }
@@ -2676,7 +2704,7 @@ fn test_057_se_obtiene_trozo_de_lista_de_value_de_tipo_list() {
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "2"); //("phrase", "-3".to_string(), "my".to_string());
+    let trozo_value_list_type = db.get_values_in_range("phrase", "0", "2"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
     std::fs::remove_file("file057".to_string()).unwrap();
 }
@@ -2700,7 +2728,7 @@ fn test_058_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_bound_negativo
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "0", "-5"); //("phrase", "-3".to_string(), "my".to_string());
+    let trozo_value_list_type = db.get_values_in_range("phrase", "0", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(4, trozo_value_list_type.unwrap().len());
     std::fs::remove_file("file058".to_string()).unwrap();
 }
@@ -2724,7 +2752,7 @@ fn test_059_se_obtiene_trozo_de_lista_de_value_de_tipo_list_lower_y_upper_bound_
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("phrase".to_string(), vt_2);
-    let trozo_value_list_type = db.get_values_from_list_value_type("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
+    let trozo_value_list_type = db.get_values_in_range("phrase", "-7", "-5"); //("phrase", "-3".to_string(), "my".to_string());
     assert_eq!(3, trozo_value_list_type.unwrap().len());
     std::fs::remove_file("file059".to_string()).unwrap();
 }
