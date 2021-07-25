@@ -448,6 +448,70 @@ fn test_main() {
     set.insert("granadero_taciturno_2".to_string());
     let added_item_set_50 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
     database.add(String::from("granaderos_taciturnos"), added_item_set_50);
+
+    let mut set = HashSet::new();
+    set.insert("granadero_eliminado_1".to_string());
+    set.insert("granadero_eliminado_2".to_string());
+    let added_item_set_51 = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    database.add(
+        String::from("granaderos_eliminados_tipo_set"),
+        added_item_set_51,
+    );
+
+    let added_item_52 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "granadero_eliminado_1".to_string(),
+        "granadero_eliminado_2".to_string(),
+        "granadero_eliminado_3".to_string(),
+        "granadero_eliminado_4".to_string(),
+    ]))
+    .build();
+    database.add(
+        String::from("granaderos_eliminados_tipo_list"),
+        added_item_52,
+    );
+
+    let added_item_53 =
+        ValueTimeItemBuilder::new(ValueType::StringType(String::from("value_key_999")))
+            .with_timeout(1635597186)
+            .build();
+
+    database.add(String::from("key_999"), added_item_53);
+
+    let added_item_54 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_frita_1".to_string(),
+        "molleja_frita_2".to_string(),
+        "molleja_frita_3".to_string(),
+        "molleja_frita_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_fritas"), added_item_54);
+
+    let added_item_55 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_gratinada_1".to_string(),
+        "molleja_gratinada_2".to_string(),
+        "molleja_gratinada_3".to_string(),
+        "molleja_gratinada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_gratinadas"), added_item_55);
+
+    let added_item_56 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_salteada_1".to_string(),
+        "molleja_salteada_2".to_string(),
+        "molleja_salteada_3".to_string(),
+        "molleja_salteada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_salteadas"), added_item_56);
+
+    let added_item_57 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "molleja_estofada_1".to_string(),
+        "molleja_estofada_2".to_string(),
+        "molleja_estofada_3".to_string(),
+        "molleja_estofada_4".to_string(),
+    ]))
+    .build();
+    database.add(String::from("mollejas_estofadas"), added_item_57);
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------------------------------------------------------
@@ -532,36 +596,88 @@ const TESTS: &[Test] = &[
     //     func: test_flushdb,
     // },
     Test {
-        name: "keys command: del",
-        func: test_keys_del,
+        name: "keys command: del string type",
+        func: test_keys_del_string_type,
+    },
+    Test {
+        name: "keys command: del set type",
+        func: test_keys_del_set_type,
+    },
+    Test {
+        name: "keys command: del list type",
+        func: test_keys_del_list_type,
+    },
+    Test {
+        name: "keys command: del ignore when key does not exist",
+        func: test_keys_del_ignora_la_operacion_cuando_la_clave_no_existe,
     },
     Test {
         name: "keys command: exists",
         func: test_keys_exists,
     },
     Test {
+        name: "keys command: exists returns 2 whe same key double-checked",
+        func: test_keys_exists_devuelve_2_cuando_se_chequea_doble_por_la_misma_clave,
+    },
+    Test {
+        name: "keys command: exists returns 2 as 2 out of 4 keys exist",
+        func: test_keys_exists_arroja_2_porque_2_de_las_4_claves_existen,
+    },
+    Test {
+        name: "keys command: exists returns 0 as key does not exist",
+        func: test_keys_exists_arroja_cero_porque_la_clave_no_existe,
+    },
+    Test {
         name: "keys command: persist",
         func: test_keys_persist,
+    },
+    Test {
+        name: "keys command: persist returns 0 as key has no timeout associated",
+        func: test_keys_persist_arroja_cero_porque_la_clave_no_tiene_asociada_un_timeout,
+    },
+    Test {
+        name: "keys command: persist returns 0 as key does not exist",
+        func: test_keys_persist_arroja_cero_porque_la_clave_no_existe,
     },
     Test {
         name: "keys command: expire",
         func: test_keys_expire,
     },
     Test {
+        name: "keys command: expire not performing as key does not exist",
+        func: test_keys_expire_no_aplica_expiracion_porque_la_clave_no_existe,
+    },
+    Test {
         name: "keys command: expireat",
         func: test_keys_expireat,
+    },
+    Test {
+        name: "keys command: expireat not performing as key does not exist",
+        func: test_keys_expireat_no_aplica_expiracion_porque_la_clave_no_existe,
     },
     Test {
         name: "keys command: ttl",
         func: test_keys_ttl,
     },
     Test {
-        name: "keys command: touch",
+        name: "keys command: ttl returns -1 as key has no timeout associated",
+        func: test_keys_ttl_clave_no_tiene_asociado_un_timeout,
+    },
+    Test {
+        name: "keys command: ttl -2 as key does no exist",
+        func: test_keys_ttl_clave_no_existe,
+    },
+    Test {
+        name: "keys command: touch 2 keys exist and 1 does not exist and it is ignored",
         func: test_keys_touch,
     },
     Test {
         name: "keys command: rename",
         func: test_keys_rename,
+    },
+    Test {
+        name: "keys command: rename - key does not exist throws error",
+        func: test_keys_rename_clave_no_existe_arroja_error,
     },
     Test {
         name: "keys command: copy",
@@ -570,6 +686,10 @@ const TESTS: &[Test] = &[
     Test {
         name: "keys command: copy replace",
         func: test_keys_copy_with_replace,
+    },
+    Test {
+        name: "keys command: copy with no replace cannot replace destination key - error",
+        func: test_keys_copy_sin_replace_arroja_error_porque_la_clave_destino_ya_existe,
     },
     Test {
         name: "keys command: sort ascending",
@@ -597,13 +717,29 @@ const TESTS: &[Test] = &[
     },
     Test {
         name: "keys command: get value type list",
-        func: test_gets_value_type_list,
+        func: test_type_gets_value_type_list,
     },
     Test {
         name: "keys command: get value type list",
-        func: test_gets_value_type_string,
+        func: test_type_gets_value_type_string,
     },
     Test {
+        name: "keys command: get value type set",
+        func: test_type_gets_value_type_set,
+    },
+    Test {
+        name: "keys command: get value returns nothing as key does not exist",
+        func: test_type_gets_value_type_set_no_devuelve_nadacuando_se_aplica_type_para_clave_inexistente,
+    },
+    Test {
+        name: "keys command: keys return keys that match a pattern",
+        func: test_keys_gets_keys_that_match_a_pattern,
+    },
+    Test {
+        name: "keys command: keys return keys that match a pattern with ???",
+        func: test_keys_gets_keys_that_match_a_pattern_con_signo_de_pregunta,
+    },
+     Test {
         name: "string command: get only string value else nil",
         func: test_se_obtienen_solo_las_claves_que_tienen_value_tipo_string,
     },
@@ -1143,7 +1279,7 @@ fn _test_flushdb() -> TestResult {
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 
-fn test_keys_del() -> TestResult {
+fn test_keys_del_string_type() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("DEL").arg("key_4").query(&mut con)?;
 
@@ -1152,6 +1288,54 @@ fn test_keys_del() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_set_type() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("granaderos_eliminados_tipo_set")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_list_type() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("granaderos_eliminados_tipo_list")
+        .query(&mut con)?;
+
+    if ret == 1 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_del_ignora_la_operacion_cuando_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("DEL")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
             got: ret.to_string(),
         }));
     }
@@ -1171,6 +1355,58 @@ fn test_keys_exists() -> TestResult {
     }
 }
 
+fn test_keys_exists_arroja_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_exists_arroja_2_porque_2_de_las_4_claves_existen() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("key_1")
+        .arg("granaderos_enajenados")
+        .arg("granaderos_espigados")
+        .arg("granaderos_ausentes")
+        .query(&mut con)?;
+
+    if ret == 2 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_exists_devuelve_2_cuando_se_chequea_doble_por_la_misma_clave() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXISTS")
+        .arg("key_1")
+        .arg("key_1")
+        .query(&mut con)?;
+
+    if ret == 2 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("2"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
 fn test_keys_persist() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("PERSIST").arg("key_1").query(&mut con)?;
@@ -1180,6 +1416,38 @@ fn test_keys_persist() -> TestResult {
     } else {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_persist_arroja_cero_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("PERSIST")
+        .arg("granaderos_enajenados")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_persist_arroja_cero_porque_la_clave_no_tiene_asociada_un_timeout() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("PERSIST")
+        .arg("granaderos_espigados")
+        .query(&mut con)?;
+
+    if ret == 0 {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("0"),
             got: ret.to_string(),
         }));
     }
@@ -1199,6 +1467,22 @@ fn test_keys_expire() -> TestResult {
     };
 }
 
+fn test_keys_expire_no_aplica_expiracion_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIRE")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg(15)
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
 fn test_keys_expireat() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("EXPIREAT")
@@ -1215,6 +1499,24 @@ fn test_keys_expireat() -> TestResult {
         }))
     };
 }
+
+fn test_keys_expireat_no_aplica_expiracion_porque_la_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("EXPIREAT")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg(1725487534)
+        .query(&mut con)?;
+
+    return if ret == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("0"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
 fn test_keys_ttl() -> TestResult {
     let mut con = connect()?;
     let ret: usize = redis::cmd("TTL").arg("key_2").query(&mut con)?;
@@ -1224,6 +1526,54 @@ fn test_keys_ttl() -> TestResult {
     } else {
         Err(Box::new(ReturnError {
             expected: String::from("Positive number"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_ttl_clave_no_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("TTL")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    return if ret == -2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("-2"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+fn test_keys_ttl_clave_no_tiene_asociado_un_timeout() -> TestResult {
+    let mut con = connect()?;
+    let ret: i64 = redis::cmd("TTL").arg("edad_maria").query(&mut con)?;
+
+    return if ret == -1 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("-1"),
+            got: ret.to_string(),
+        }))
+    };
+}
+
+pub fn test_keys_touch() -> TestResult {
+    let mut con = connect()?;
+    let ret: usize = redis::cmd("TOUCH")
+        .arg("frutas")
+        .arg("persistente")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con)?;
+
+    return if ret == 2 {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: String::from("2"),
             got: ret.to_string(),
         }))
     };
@@ -1242,6 +1592,23 @@ fn test_keys_rename() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("OK"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_rename_clave_no_existe_arroja_error() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("RENAME")
+        .arg("esta_clave_es_demasiado_larga_para_ser_una_clave_real")
+        .arg("esta_clave_es_aun_muchisimo_demasiado_larga_para_ser_una_clave_real")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1277,6 +1644,23 @@ fn test_keys_copy_with_replace() -> TestResult {
         return Err(Box::new(ReturnError {
             expected: String::from("1"),
             got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_keys_copy_sin_replace_arroja_error_porque_la_clave_destino_ya_existe() -> TestResult {
+    let mut con = connect()?;
+    let ret: Result<String, RedisError> = redis::cmd("COPY")
+        .arg("key_1")
+        .arg("key_999")
+        .query(&mut con);
+
+    if ret.is_err() {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("error - key does not exist"),
+            got: format!("{:?}", ret),
         }));
     }
 }
@@ -1410,7 +1794,7 @@ fn test_sort_by_external_key_value_using_pattern_descending() -> TestResult {
     }
 }
 
-fn test_gets_value_type_list() -> TestResult {
+fn test_type_gets_value_type_list() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("TYPE").arg("edades_amigos").query(&mut con)?;
     if ret == "list" {
@@ -1423,7 +1807,7 @@ fn test_gets_value_type_list() -> TestResult {
     }
 }
 
-fn test_gets_value_type_string() -> TestResult {
+fn test_type_gets_value_type_string() -> TestResult {
     let mut con = connect()?;
     let ret: String = redis::cmd("TYPE").arg("edad_maria").query(&mut con)?;
     if ret == "string" {
@@ -1436,22 +1820,87 @@ fn test_gets_value_type_string() -> TestResult {
     }
 }
 
-pub fn test_keys_touch() -> TestResult {
+fn test_type_gets_value_type_set() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("TOUCH")
-        .arg("frutas")
-        .arg("persistente")
+    let ret: String = redis::cmd("TYPE")
+        .arg("granaderos_espigados")
+        .query(&mut con)?;
+    if ret == "set" {
+        return Ok(());
+    } else {
+        return Err(Box::new(ReturnError {
+            expected: String::from("set"),
+            got: ret.to_string(),
+        }));
+    }
+}
+
+fn test_type_gets_value_type_set_no_devuelve_nadacuando_se_aplica_type_para_clave_inexistente(
+) -> TestResult {
+    let mut con = connect()?;
+    let ret: () = redis::cmd("TYPE")
+        .arg("granaderos_amalgamados")
         .query(&mut con)?;
 
-    return if ret == 2 {
+    return if ret == () {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: String::from("2"),
-            got: ret.to_string(),
+            expected: format!(""),
+            got: format!("{:?}", ret),
         }))
     };
 }
+
+fn test_keys_gets_keys_that_match_a_pattern() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("KEYS").arg("mollejas*").query(&mut con)?;
+
+    return if ret.contains(&String::from("mollejas_estofadas"))
+        && ret.contains(&String::from("mollejas_gratinadas"))
+        && ret.contains(&String::from("mollejas_fritas"))
+        && ret.contains(&String::from("mollejas_salteadas"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("mollejas_estofadas"),
+                    String::from("mollejas_gratinadas"),
+                    String::from("mollejas_fritas"),
+                    String::from("mollejas_salteadas")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+fn test_keys_gets_keys_that_match_a_pattern_con_signo_de_pregunta() -> TestResult {
+    let mut con = connect()?;
+    let ret: Vec<String> = redis::cmd("KEYS").arg("love_the_???").query(&mut con)?;
+
+    return if ret.contains(&String::from("love_the_dog"))
+        && ret.contains(&String::from("love_the_cat"))
+        && ret.contains(&String::from("love_the_bunny"))
+    {
+        Ok(())
+    } else {
+        Err(Box::new(ReturnError {
+            expected: format!(
+                "{:?}",
+                vec![
+                    String::from("love_the_dog"),
+                    String::from("love_the_cat"),
+                    String::from("love_the_bunny")
+                ]
+            ),
+            got: format!("{:?}", ret),
+        }))
+    };
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------------
 //-----------------------------------------------------STRING COMMANDS-----------------------------------------------------------

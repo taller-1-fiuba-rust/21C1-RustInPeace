@@ -290,11 +290,20 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(current_key) = &cmd[1] {
             let mut new_database = database.write().unwrap();
             if let RespType::RBulkString(new_key) = &cmd[2] {
-                new_database.rename_key(current_key.to_string(), new_key.to_string());
+                if new_database.rename_key(current_key.to_string(), new_key.to_string()) {
+                    RespType::RBulkString("OK".to_string())
+                } else {
+                    RespType::RError("key not found".to_string())
+                }
+            } else {
+                RespType::RBulkString("missing parameters".to_string())
             }
+        } else {
+            RespType::RBulkString("missing parameters".to_string())
         }
+    } else {
+        RespType::RBulkString("missing parameters".to_string())
     }
-    RespType::RBulkString("OK".to_string())
 }
 
 /// Configura un tiempo de expiracion sobre una clave a partir del momento en que se envia el comando.
@@ -697,7 +706,7 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 None => RespType::RSignedNumber(-2),
                 Some(item) => match item.get_timeout() {
                     KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                    KeyAccessTime::Persistent => RespType::RInteger(0),
+                    KeyAccessTime::Persistent => RespType::RSignedNumber(-1),
                 },
             };
         }
