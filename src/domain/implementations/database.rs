@@ -80,8 +80,8 @@ impl Database {
     /// # let _ = std::fs::remove_file("dummy_db_items.csv");
     /// ```
     pub fn get_live_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
-        let items = self.check_timeout_item(key);
-        if items.is_none() {
+        let (items, expired) = self.check_timeout_item(key);
+        if items.is_some() && expired {
             self.items.remove(key).take();
         }
         self.items.get(key)
@@ -106,8 +106,8 @@ impl Database {
     /// # let _ = std::fs::remove_file("dummy_db_items.csv");
     /// ```
     pub fn get_mut_live_item(&mut self, key: &str) -> Option<&mut ValueTimeItem> {
-        let items = self.check_timeout_item(key);
-        if items.is_none() {
+        let (items, expired) = self.check_timeout_item(key);
+        if items.is_some() && expired {
             self.items.remove(key);
         }
         self.items.get_mut(key)
@@ -115,7 +115,8 @@ impl Database {
 
     /// Chequea si la clave expiró.
     ///
-    /// Si está expirada devuelve None, sino devuelve el valor almacenado en dicha clave.
+    /// Devuelve una tupla con el item como Optional y un booleano indicando si está expirada
+    /// Si está expirada: (Some,true) sino devuelve el valor almacenado en dicha clave como (Some,false)
     /// # Ejemplo
     /// ```
     /// # use proyecto_taller_1::domain::implementations::database::Database;
@@ -125,17 +126,17 @@ impl Database {
     /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).build();
     /// db.add("tipo_mascota".to_string(), vt);
     ///
-    /// assert!(db.check_timeout_item("tipo_mascota").is_some());
+    /// assert!(db.check_timeout_item("tipo_mascota").0.is_some());
+    /// assert_eq!(db.check_timeout_item("tipo_mascota").1,false);
     /// # let _ = std::fs::remove_file("dummy_db_check_timeout.csv");
     /// ```
-    pub fn check_timeout_item(&mut self, key: &str) -> Option<&ValueTimeItem> {
+    pub fn check_timeout_item(&self, key: &str) -> (Option<&ValueTimeItem>, bool) {
         let option_item = self.items.get(key);
         if let Some(item) = option_item {
-            if !item.is_expired() {
-                return Some(item);
-            }
+            let expired = item.is_expired();
+            return (Some(item), expired);
         }
-        None
+        (None, false)
     }
 
     /// Elimina todos las claves (y sus valores asociados) de la base de datos.
@@ -217,6 +218,50 @@ impl Database {
         return self.get_live_item(&key).is_some();
     }
 
+    /// Devuelve si la clave existe en la base de datos y si está expirada.
+    ///
+    /// Retorna una tupla con true/false dependiendo si la clave existe, y en caso de que exista el estado de la misma.
+    /// Expired también en formato booleano.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_exists_expired.csv".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).with_timeout(123).build();
+    /// db.add("tipo_mascota".to_string(), vt);
+    ///
+    /// assert_eq!(db.key_exists_expired("tipo_mascota".to_string()).1,true);
+    /// assert!(!db.key_exists_expired("nombre_mascota".to_string()).0);
+    /// # let _ = std::fs::remove_file("dummy_db_exists_expired.csv");
+    /// ```
+    pub fn key_exists_expired(&self, key: String) -> (bool, bool) {
+        let (items, expired) = self.check_timeout_item(&key);
+        (items.is_some(), expired)
+    }
+
+    /// Elimina una clave de la base de datos
+    ///
+    /// Permite que el usuario elimine una clave expirada. No devuelve nada.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_key_expired.csv".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).with_timeout(123).build();
+    /// db.add("tipo_mascota".to_string(), vt);
+    ///
+    /// db.remove_expired_key("tipo_mascota");
+    /// assert!(!db.key_exists_expired("tipo_mascota".to_string()).0);
+    /// # let _ = std::fs::remove_file("dummy_db_key_expired.csv");
+    /// ```
+    pub fn remove_expired_key(&mut self, key: &str) {
+        self.items.remove(key);
+    }
+
     /// Agrega a la base de datos una `key` con un `value` asociado.
     ///
     /// Si la clave ya existe, actualiza su valor.
@@ -265,7 +310,7 @@ impl Database {
     /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("22".to_string())).build();
     /// db.add("edad_pepe".to_string(), vt);
     ///
-    /// let values = db.get_values_of_keys_matching_pattern("edad_*".to_string(), "amigos".to_string());
+    /// let (values,expired) = db.get_values_of_keys_matching_pattern("edad_*".to_string(), "amigos".to_string());
     /// assert!(values.contains(&("pedro".to_string(), "25".to_string())));
     /// assert!(values.contains(&("luis".to_string(), "23".to_string())));
     /// assert!(values.contains(&("juan".to_string(), "35".to_string())));
@@ -274,12 +319,16 @@ impl Database {
     /// # let _ = std::fs::remove_file("dummy_db_external_keys.csv");
     /// ```
     pub fn get_values_of_keys_matching_pattern(
-        &mut self,
+        &self,
         pat: String,
         key: String,
-    ) -> Vec<(String, String)> {
+    ) -> (Vec<(String, String)>, Vec<String>) {
         let mut associated_values = Vec::new();
-        if let Some(item) = self.get_live_item(&key) {
+        let mut expired_items = Vec::new();
+        if let (Some(item), expired) = self.check_timeout_item(&key) {
+            if expired {
+                expired_items.push(key);
+            }
             let elements: Vec<String> = item
                 .get_value_as_vec()
                 .iter()
@@ -296,7 +345,7 @@ impl Database {
                 }
             });
         }
-        associated_values
+        (associated_values, expired_items)
     }
 
     /// Agrega nuevos elementos a una lista.
@@ -444,15 +493,13 @@ impl Database {
     /// # std::fs::remove_file("dummy_db_range.csv");
     /// ```
     pub fn get_values_in_range(
-        &mut self,
+        &self,
         key: &str,
         lower_bound: &str,
         upper_bound: &str,
     ) -> Option<Vec<String>> {
-        if self.key_exists(key.to_string()) {
-            if let ValueType::ListType(current_value) =
-                self.get_live_item(key).unwrap().get_value().to_owned()
-            {
+        if let (Some(item), false) = self.check_timeout_item(key) {
+            if let ValueType::ListType(current_value) = item.get_value().to_owned() {
                 let current_value_len = current_value.len() as isize;
                 let mut vec_values_selected_by_index = vec![];
                 let mut lb = lower_bound.parse::<isize>().unwrap_or(0);
@@ -505,12 +552,10 @@ impl Database {
     ///
     /// # std::fs::remove_file("dummy_db_index.csv");
     /// ```
-    pub fn get_value_by_index(&mut self, key: &str, index: &str) -> Option<String> {
-        if self.key_exists(key.to_string()) {
+    pub fn get_value_by_index(&self, key: &str, index: &str) -> Option<String> {
+        if let (Some(item), false) = self.check_timeout_item(key) {
             let mut index_aux = index.parse::<isize>().unwrap();
-            if let ValueType::ListType(current_value) =
-                self.get_live_item(key).unwrap().get_value().to_owned()
-            {
+            if let ValueType::ListType(current_value) = item.get_value().to_owned() {
                 let current_value_len = current_value.len() as isize;
                 if index_aux < 0 {
                     index_aux += current_value_len;
@@ -916,9 +961,8 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_get_string");
     /// ```
-    pub fn get_string_value_by_key(&mut self, key: &str) -> Option<String> {
-        let item = self.get_live_item(&key.to_string());
-        if let Some(item) = item {
+    pub fn get_string_value_by_key(&self, key: &str) -> Option<String> {
+        if let (Some(item), false) = self.check_timeout_item(&key.to_string()) {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 return Some(str);
@@ -947,9 +991,8 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_strlen.csv");
     /// ```
-    pub fn get_strlen_by_key(&mut self, key: &str) -> Option<usize> {
-        let item = self.get_live_item(&key.to_string());
-        if let Some(item) = item {
+    pub fn get_strlen_by_key(&self, key: &str) -> Option<usize> {
+        if let (Some(item), false) = self.check_timeout_item(key) {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
                 Some(str.len())
@@ -1065,8 +1108,11 @@ impl Database {
     ///
     /// let _ = std::fs::remove_file("dummy_db_setlen.csv");
     /// ```
-    pub fn get_len_of_set(&mut self, key: &str) -> usize {
-        let item = self.get_live_item(key);
+    pub fn get_len_of_set(&self, key: &str) -> usize {
+        let (item, expire) = self.check_timeout_item(key);
+        if expire {
+            return 0;
+        }
         match item {
             Some(item) => {
                 if let ValueType::SetType(item) = item.get_value() {
@@ -1079,9 +1125,8 @@ impl Database {
         }
     }
 
-    pub fn is_member_of_set(&mut self, key: &str, member: &str) -> usize {
-        let item = self.get_live_item(key);
-        if let Some(item) = item {
+    pub fn is_member_of_set(&self, key: &str, member: &str) -> usize {
+        if let (Some(item), false) = self.check_timeout_item(key) {
             if let ValueType::SetType(item) = item.get_value() {
                 if item.get(member).is_some() {
                     return 1;
@@ -1091,13 +1136,15 @@ impl Database {
         0
     }
 
-    pub fn get_members_of_set(&mut self, key: &str) -> Vec<&String> {
-        let item = self.get_live_item(key);
+    pub fn get_members_of_set(&self, key: &str) -> Vec<&String> {
+        let (item, expired) = self.check_timeout_item(key);
         let mut members = Vec::new();
         if let Some(item) = item {
             if let ValueType::SetType(item) = item.get_value() {
                 item.iter().for_each(|member| {
-                    members.push(member);
+                    if !expired {
+                        members.push(member);
+                    }
                 });
             }
         }
@@ -1826,7 +1873,7 @@ fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_l
     db.items.insert("weight_kiwi".to_string(), vt_3);
     db.items.insert("weight_pear".to_string(), vt_4);
 
-    let tuplas =
+    let (tuplas, _) =
         db.get_values_of_keys_matching_pattern("weight_*".to_string(), "frutas".to_string());
 
     assert!(tuplas.contains(&("pear".to_string(), "5".to_string())));
@@ -2225,7 +2272,7 @@ fn test_032_scard_de_set_existente_devuelve_cantidad_de_elementos() {
 
 #[test]
 fn test_033_scard_de_set_devuelve_cero_si_no_existe() {
-    let mut db = Database::new("file033".to_string());
+    let db = Database::new("file033".to_string());
 
     let len = db.get_len_of_set("valores");
     assert_eq!(len, 0);
@@ -2261,7 +2308,7 @@ fn test_035_ismember_de_set_devuelve_cero_si_no_es_tipo_set() {
 
 #[test]
 fn test_036_ismember_de_set_devuelve_cero_si_no_existe_clave() {
-    let mut db = Database::new("file036".to_string());
+    let db = Database::new("file036".to_string());
 
     let len = db.is_member_of_set("valores", "hola");
     assert_eq!(len, 0);

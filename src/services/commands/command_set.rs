@@ -107,9 +107,11 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database
-                .write()
-                .expect("Could not get database lock on scard");
+            let db = database.read().expect("Could not get database read lock on scard");
+            let (item, expired) = db.check_timeout_item(key);
+            if item.is_some() && expired {
+                database.write().expect("Could not get database write lock on scard").remove_expired_key(key)
+            }
             return RespType::RInteger(db.get_len_of_set(key));
         }
     }
@@ -152,9 +154,11 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database
-                .write()
-                .expect("Could not get database lock on sismember");
+            let db = database.read().expect("Could not get database read lock on smembers");
+            let (item, expired) = db.check_timeout_item(key);
+            if item.is_some() && expired {
+                database.write().expect("Could not get database write lock on smembers").remove_expired_key(key)
+            }
             if let RespType::RBulkString(member) = &cmd[2] {
                 return RespType::RInteger(db.is_member_of_set(key, member));
             }
@@ -205,9 +209,11 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database
-                .write()
-                .expect("Could not get database lock on smembers");
+            let db = database.read().expect("Could not get database read lock on smembers");
+            let (item, expired) = db.check_timeout_item(key);
+            if item.is_some() && expired {
+                database.write().expect("Could not get database write lock on smembers").remove_expired_key(key)
+            }
             let members = db.get_members_of_set(key);
             return RespType::RArray(
                 members
