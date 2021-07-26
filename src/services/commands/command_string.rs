@@ -104,7 +104,11 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 return match number {
                     Ok(decr) => match db.decrement_key_by(key, decr) {
                         Ok(res) => RespType::RSignedNumber(res.try_into().unwrap()),
-                        Err(e) => RespType::RError(e.to_string()),
+                        Err(e) => match e {
+                            DatabaseError::InvalidParameter(err) => RespType::RError(err),
+                            DatabaseError::InvalidValueType(err) => RespType::RError(err),
+                            DatabaseError::MissingKey() => RespType::RError(e.to_string()),
+                        },
                     },
                     Err(e) => RespType::RError(e.to_string()),
                 };
@@ -160,12 +164,10 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 return match number {
                     Ok(incr) => match db.increment_key_by(key, incr) {
                         Ok(res) => RespType::RInteger(res.try_into().unwrap()),
-                        Err(err) => match err {
-                            DatabaseError::InvalidParameter(e) => RespType::RError(e),
-                            DatabaseError::InvalidValueType(e) => RespType::RError(e),
-                            DatabaseError::MissingKey() => {
-                                RespType::RError("Missing key".to_string())
-                            }
+                        Err(e) => match e {
+                            DatabaseError::InvalidParameter(err) => RespType::RError(err),
+                            DatabaseError::InvalidValueType(err) => RespType::RError(err),
+                            DatabaseError::MissingKey() => RespType::RError(e.to_string()),
                         },
                     },
                     Err(e) => RespType::RError(e.to_string()),
@@ -227,8 +229,12 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 .read()
                 .expect("Could not get database read lock on get");
             return match db.get_string_value_by_key(key) {
-                Some(str) => RespType::RBulkString(str),
-                None => RespType::RNullBulkString(),
+                Ok(str) => RespType::RBulkString(str),
+                Err(e) => match e {
+                    DatabaseError::InvalidParameter(err) => RespType::RError(err),
+                    DatabaseError::InvalidValueType(err) => RespType::RError(err),
+                    DatabaseError::MissingKey() => RespType::RNullBulkString(),
+                },
             };
         }
     }
@@ -290,8 +296,10 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                 let db = database
                     .read()
                     .expect("Could not get database read lock on mget");
-                if let Some(actual_value) = db.get_string_value_by_key(current_key) {
+                if let Ok(actual_value) = db.get_string_value_by_key(current_key) {
                     vec_keys_with_string_values.push(RespType::RBulkString(actual_value));
+                } else {
+                    vec_keys_with_string_values.push(RespType::RNullBulkString());
                 }
             }
         }
@@ -347,7 +355,7 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     if let DatabaseError::MissingKey() = e {
                         return RespType::RNullBulkString();
                     }
-                    RespType::RError(e.to_string())
+                    RespType::RError("Expected: string. Got another value type".to_string())
                 }
             };
         }
@@ -390,7 +398,7 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # std::fs::remove_file("dummy_db_getset.csv");
 /// ```
 pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    if cmd.len() > 1 {
+    if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
             let mut db = database
                 .write()
@@ -398,12 +406,11 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             if let RespType::RBulkString(new_value) = &cmd[2] {
                 return match db.getset_value_by_key(key, new_value) {
                     Ok(str) => RespType::RBulkString(str),
-                    Err(e) => {
-                        if let DatabaseError::MissingKey() = e {
-                            return RespType::RNullBulkString();
-                        }
-                        RespType::RError(e.to_string())
-                    }
+                    Err(e) => match e {
+                        DatabaseError::InvalidParameter(err) => RespType::RError(err),
+                        DatabaseError::InvalidValueType(err) => RespType::RError(err),
+                        DatabaseError::MissingKey() => RespType::RNullBulkString(),
+                    },
                 };
             }
         }
