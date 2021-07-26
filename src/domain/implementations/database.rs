@@ -218,11 +218,46 @@ impl Database {
         return self.get_live_item(&key).is_some();
     }
 
+    /// Devuelve si la clave existe en la base de datos y si está expirada.
+    ///
+    /// Retorna una tupla con true/false dependiendo si la clave existe, y en caso de que exista el estado de la misma.
+    /// Expired también en formato booleano.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_exists_expired.csv".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).with_timeout(123).build();
+    /// db.add("tipo_mascota".to_string(), vt);
+    ///
+    /// assert_eq!(db.key_exists_expired("tipo_mascota".to_string()).1,true);
+    /// assert!(!db.key_exists_expired("nombre_mascota".to_string()).0);
+    /// # let _ = std::fs::remove_file("dummy_db_exists_expired.csv");
+    /// ```
     pub fn key_exists_expired(&self, key: String) -> (bool, bool) {
         let (items, expired) = self.check_timeout_item(&key);
         (items.is_some(), expired)
     }
 
+    /// Elimina una clave de la base de datos
+    ///
+    /// Permite que el usuario elimine una clave expirada. No devuelve nada.
+    ///
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// # let mut db = Database::new("dummy_db_key_expired.csv".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).with_timeout(123).build();
+    /// db.add("tipo_mascota".to_string(), vt);
+    ///
+    /// db.remove_expired_key("tipo_mascota");
+    /// assert!(!db.key_exists_expired("tipo_mascota".to_string()).0);
+    /// # let _ = std::fs::remove_file("dummy_db_key_expired.csv");
+    /// ```
     pub fn remove_expired_key(&mut self, key: &str) {
         self.items.remove(key);
     }
