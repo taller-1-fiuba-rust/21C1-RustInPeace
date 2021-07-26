@@ -166,10 +166,10 @@ impl ValueTimeItemBuilder {
     /// de la clave con now y considera que la clave es de tipo `Persistent`
     ///
     /// # Ejemplo
+    /// ```
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
     ///
-    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).build();
-    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Persistent);
+    /// let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec!["elemento".to_string()])).build();
     /// ```
     pub fn new(value: ValueType) -> ValueTimeItemBuilder {
         ValueTimeItemBuilder {
@@ -188,10 +188,10 @@ impl ValueTimeItemBuilder {
     /// Crea la clave en tipo volátil y le setea el timeout indicado.
     ///
     /// # Ejemplo
+    /// ```
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
     ///
-    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).with_timeout(123).build();
-    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Volatile(123));
+    /// ValueTimeItemBuilder::new(ValueType::ListType(vec!["element1".to_string()])).with_timeout(1623433677).build();
     /// ```
     pub fn with_timeout(mut self, timeout: u64) -> ValueTimeItemBuilder {
         self.timeout = KeyAccessTime::Volatile(timeout);
@@ -203,10 +203,10 @@ impl ValueTimeItemBuilder {
     /// Le agrega al builder un tiempo de último acceso particular.
     ///
     /// # Ejemplo
+    /// ```
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
     ///
-    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).with_last_access_time(123).build();
-    ///  assert_eq!(kv_item.get_last_access_time(), 123);
+    /// ValueTimeItemBuilder::new(ValueType::ListType(vec!["element".to_string()])).with_last_access_time(1623433677).build();
     /// ```
     pub fn with_last_access_time(mut self, lat: u64) -> ValueTimeItemBuilder {
         self.last_access_time = lat;
@@ -217,12 +217,12 @@ impl ValueTimeItemBuilder {
     /// Le agrega al builder un tipo de clave en particular.
     ///
     /// # Ejemplo
+    /// ```
     /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
     ///
-    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list))
-    /// .with_key_access_time(KeyAccessTime::Volatile(123))
-    /// .build();
-    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Volatile(123));
+    /// let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(vec!["elemento".to_string()]))
+    ///     .with_key_access_time(KeyAccessTime::Volatile(1623433677))
+    ///     .build();
     /// ```
     pub fn with_key_access_time(mut self, kat: KeyAccessTime) -> ValueTimeItemBuilder {
         self.timeout = kat;
@@ -241,10 +241,16 @@ impl ValueTimeItemBuilder {
     }
 }
 
+/// Representa un valor que puede ser almacenado.
+/// Se compone por un tipo de valor que puede ser String, Set o List, por un timeout y un last access time.
 impl ValueTimeItem {
     pub fn _from_file(kvis: KeyValueItemSerialized) -> (String, ValueTimeItem) {
         kvis.transform_to_item()
     }
+
+    /// Establece un tiempo de timeout.
+    /// Si el tiempo es de tipo Persistente, entonces el valor no expira nunca.
+    /// Si el tiempo es de tipo Volatile, el valor expirará después de `timeout` tiempo.
     pub fn set_timeout(&mut self, timeout: KeyAccessTime) -> bool {
         match timeout {
             KeyAccessTime::Persistent => false,
@@ -255,14 +261,17 @@ impl ValueTimeItem {
         }
     }
 
+    /// Devuelve el timeout asociado.
     pub fn get_timeout(&self) -> &KeyAccessTime {
         &self.timeout
     }
 
+    /// Devuelve el tiempo en que se realizó el último acceso al valor.
     pub fn get_last_access_time(&self) -> &u64 {
         &self.last_access_time
     }
 
+    /// Reinicia el valor del último tiempo de acceso.
     pub fn reboot_last_access_time(&mut self) {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -271,6 +280,10 @@ impl ValueTimeItem {
         self.last_access_time = now;
     }
 
+    /// Transforma el valor a tipo Persistente.
+    ///
+    /// Si el valor ya era persistente, devuelve False.
+    /// Si el valor tenía un timeout asociado, lo elimina y lo hace persistente.
     pub fn make_persistent(&mut self) -> bool {
         match self.timeout {
             KeyAccessTime::Persistent => false,
@@ -281,19 +294,27 @@ impl ValueTimeItem {
         }
     }
 
+    /// Devuelve el valor almacenado.
     pub fn get_value(&self) -> &ValueType {
         &self.value
     }
 
+    /// Devuelve una copia del valor almacenado.
     pub fn get_copy_of_value(&self) -> ValueType {
         self.value.clone()
     }
+
+    /// Devuelve el tiempo de acceso asociado, ya sea volatil o no.
     pub fn get_copy_of_timeout(&self) -> KeyAccessTime {
         match self.timeout {
             KeyAccessTime::Persistent => KeyAccessTime::Persistent,
             KeyAccessTime::Volatile(timeout) => KeyAccessTime::Volatile(timeout),
         }
     }
+
+    /// Devuelve si expiró.
+    ///
+    /// Compara el tiempo de timeout con el tiempo actual para verificar si expiró.
     pub fn is_expired(&self) -> bool {
         let kat = self.get_timeout();
         if let KeyAccessTime::Volatile(timeout) = kat {
@@ -306,10 +327,15 @@ impl ValueTimeItem {
         false
     }
 
+    /// Actualiza el valor.
     pub fn set_value(&mut self, new_value: ValueType) {
         self.value = new_value;
     }
 
+    /// Devuelve una lista ordenada en forma descendente del valor.
+    ///
+    /// Si el valor es de tipo string, devuelve el valor original.
+    /// Si es de tipo Set o List, lo devuelve ordenado en forma descendente.
     pub fn sort_descending(&self) -> Vec<String> {
         let current_value = self.value.clone();
         match current_value {
@@ -328,6 +354,10 @@ impl ValueTimeItem {
         }
     }
 
+    /// Devuelve una lista ordenada en forma ascendente del valor.
+    ///
+    /// Si el valor es de tipo string, devuelve el valor original.
+    /// Si es de tipo Set o List, lo devuelve ordenado en forma ascendente.
     pub fn sort(&self) -> Vec<String> {
         let current_value_item = self.value.clone();
         match current_value_item {
@@ -344,6 +374,7 @@ impl ValueTimeItem {
         }
     }
 
+    /// Devuelve el valor en forma de vector.
     pub fn get_value_as_vec(&self) -> Vec<&String> {
         let current_value_item = &self.value;
         match current_value_item {
@@ -353,6 +384,7 @@ impl ValueTimeItem {
         }
     }
 
+    /// Devuelve el tipo de valor en forma de string.
     pub fn get_value_type(&self) -> String {
         let value_type;
         let current_value = &self.value;

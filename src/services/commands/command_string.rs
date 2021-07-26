@@ -580,8 +580,7 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     .write()
                     .expect("Could not get database lock on set");
                 let timeout = (&options[0].0.to_owned(), options[0].1);
-                print!("{:?}", &timeout);
-                if db.set_string(key, value, timeout, options[1].1, options[2].1) {
+                if db.set_string(key, value, timeout, options[1].1) {
                     return RespType::RBulkString(String::from("Ok"));
                 } else {
                     return RespType::RNullBulkString();
@@ -597,7 +596,6 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// Los parámetros se dividen en tres grupos:
 /// * EX | PX | EXAT | PXAT
 /// * NX | XX
-/// * GET
 ///
 /// Esta función devuelve un vector de tres elementos, cada elemento representa un parámetro y su valor.
 /// Por defecto, el valor de un parámetro es None.
@@ -613,16 +611,14 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///     RespType::RBulkString("alfredo".to_string()),
 ///     RespType::RBulkString("px".to_string()),
 ///     RespType::RBulkString("10".to_string()),
-///     RespType::RBulkString("xx".to_string()),
-///     RespType::RBulkString("get".to_string())];
+///     RespType::RBulkString("xx".to_string())];
 /// let res = command_string::generate_options(&cmd);
-/// assert_eq!(res, vec![(String::from("px"), Some(&String::from("10"))), (String::from("set_if_exists"), Some(&String::from("xx"))), (String::from("get_old_value"), Some(&String::from("get")))]);
+/// assert_eq!(res, vec![(String::from("px"), Some(&String::from("10"))), (String::from("set_if_exists"), Some(&String::from("xx")))]);
 /// ```
 pub fn generate_options(cmd: &[RespType]) -> Vec<(String, Option<&String>)> {
     let mut options = vec![
         (String::from("expire_at"), None),
         (String::from("set_if_exists"), None),
-        (String::from("get_old_value"), None),
     ];
     for (pos, argumento) in cmd.iter().skip(3).enumerate() {
         if let RespType::RBulkString(arg) = argumento {
@@ -633,8 +629,6 @@ pub fn generate_options(cmd: &[RespType]) -> Vec<(String, Option<&String>)> {
                 }
             } else if arg == "xx" || arg == "nx" {
                 options[1].1 = Some(arg);
-            } else if arg == "get" {
-                options[2].1 = Some(arg);
             }
         }
     }

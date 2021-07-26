@@ -441,10 +441,6 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         }
                     },
                 }
-                //return if let Ok(value) = current_value_in_list_by_index {
-                //    RespType::RBulkString(value)
-                //} else {
-                //};
             }
         }
     }
