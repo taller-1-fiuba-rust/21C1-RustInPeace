@@ -209,12 +209,16 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
-                if database
-                    .write()
+                let (exist, expired) = database
+                    .read()
                     .unwrap()
-                    .key_exists(current_key.to_string())
-                {
-                    key_found += 1;
+                    .key_exists_expired(current_key.to_string());
+                if exist {
+                    if !expired {
+                        key_found += 1;
+                    } else {
+                        database.write().unwrap().remove_expired_key(current_key)
+                    }
                 }
             }
         }
@@ -474,20 +478,26 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let parameters = generate_hashmap(cmd);
     if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let db = database.read().unwrap();
         let mut sorted: Vec<String> = Vec::new();
         if parameters.contains_key("by") {
             if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
-                let mut elements_to_sort =
+                let (mut elements_to_sort, expired) =
                     db.get_values_of_keys_matching_pattern(pattern.to_string(), key.to_string());
+                for v in &expired {
+                    database.write().unwrap().remove_expired_key(v)
+                }
+
                 elements_to_sort.sort_by_key(|k| k.1.to_owned());
                 sorted = elements_to_sort.iter().map(|e| e.0.to_owned()).collect();
                 if parameters.contains_key("desc") {
                     sorted.reverse()
                 }
             }
-        } else if let Some(item) = db.get_live_item(key) {
-            if parameters.contains_key("desc") {
+        } else if let (Some(item), expired) = db.check_timeout_item(key) {
+            if expired {
+                database.write().unwrap().remove_expired_key(key)
+            } else if parameters.contains_key("desc") {
                 sorted = item.sort_descending();
             } else {
                 sorted = item.sort();
@@ -806,13 +816,19 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
-            return match db.get_live_item(key) {
-                None => RespType::RSignedNumber(-2),
-                Some(item) => match item.get_timeout() {
-                    KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
-                    KeyAccessTime::Persistent => RespType::RSignedNumber(-1),
-                },
+            let db = database.read().unwrap();
+            return if let (Some(item), expire) = db.check_timeout_item(key) {
+                if expire {
+                    database.write().unwrap().remove_expired_key(key);
+                    RespType::RSignedNumber(-2)
+                } else {
+                    match item.get_timeout() {
+                        KeyAccessTime::Volatile(timeout) => RespType::RInteger(*timeout as usize),
+                        KeyAccessTime::Persistent => RespType::RSignedNumber(-1),
+                    }
+                }
+            } else {
+                RespType::RSignedNumber(-2)
             };
         }
     }
@@ -854,15 +870,19 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut tipo = String::from("");
     if let RespType::RBulkString(current_key) = &cmd[1] {
-        if database
-            .write()
+        let (exist, expired) = database
+            .read()
             .unwrap()
-            .key_exists(current_key.to_string())
-        {
-            tipo = database
-                .read()
-                .unwrap()
-                .get_type_of_value(current_key.to_string());
+            .key_exists_expired(current_key.to_string());
+        if exist {
+            if expired {
+                database.write().unwrap().remove_expired_key(current_key)
+            } else {
+                tipo = database
+                    .read()
+                    .unwrap()
+                    .get_type_of_value(current_key.to_string());
+            }
         }
     }
     RespType::RBulkString(tipo)
