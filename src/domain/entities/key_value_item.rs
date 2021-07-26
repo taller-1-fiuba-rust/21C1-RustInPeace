@@ -147,7 +147,13 @@ pub struct ValueTimeItem {
     timeout: KeyAccessTime,
     last_access_time: u64,
 }
-
+/// Builder para ValueTimeItem
+///
+/// Permite construir el valueTimeItem por partes
+/// Contiene 3 elementos:
+/// value: Tipo de dato ValueType
+/// timeout: Tipo de dato KeyAccessTime
+/// last_access_time: Tipo de dato u64. Es el timestamp del último acceso a la key
 pub struct ValueTimeItemBuilder {
     value: ValueType,
     timeout: KeyAccessTime,
@@ -155,6 +161,16 @@ pub struct ValueTimeItemBuilder {
 }
 
 impl ValueTimeItemBuilder {
+    /// Constructor defaulta para ValueTimeItemBuilder
+    /// Este constructor guarda automáticamente el tiempo de último acceso de
+    /// de la clave con now y considera que la clave es de tipo `Persistent`
+    ///
+    /// # Ejemplo
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).build();
+    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Persistent);
+    /// ```
     pub fn new(value: ValueType) -> ValueTimeItemBuilder {
         ValueTimeItemBuilder {
             value,
@@ -167,22 +183,55 @@ impl ValueTimeItemBuilder {
             },
         }
     }
-
+    /// Permite agregar un timeout a la clave.
+    ///
+    /// Crea la clave en tipo volátil y le setea el timeout indicado.
+    ///
+    /// # Ejemplo
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).with_timeout(123).build();
+    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Volatile(123));
+    /// ```
     pub fn with_timeout(mut self, timeout: u64) -> ValueTimeItemBuilder {
         self.timeout = KeyAccessTime::Volatile(timeout);
         self
     }
 
+    /// Permite agregar un tiempo de último acceso a la clave.
+    ///
+    /// Le agrega al builder un tiempo de último acceso particular.
+    ///
+    /// # Ejemplo
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list)).with_last_access_time(123).build();
+    ///  assert_eq!(kv_item.get_last_access_time(), 123);
+    /// ```
     pub fn with_last_access_time(mut self, lat: u64) -> ValueTimeItemBuilder {
         self.last_access_time = lat;
         self
     }
-
+    /// Permite agregar un tipo de clave específico: Persistente o Volátil.
+    ///
+    /// Le agrega al builder un tipo de clave en particular.
+    ///
+    /// # Ejemplo
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    ///  let kv_item = ValueTimeItemBuilder::new(ValueType::ListType(un_list))
+    /// .with_key_access_time(KeyAccessTime::Volatile(123))
+    /// .build();
+    ///  assert_eq!(kv_item.get_timeout(), KeyAccessTime::Volatile(123));
+    /// ```
     pub fn with_key_access_time(mut self, kat: KeyAccessTime) -> ValueTimeItemBuilder {
         self.timeout = kat;
         self
     }
-
+    /// Transforma un ValueTimeItemBuilder en ValueTimeItem
+    ///
+    /// A partir de las configuraciones del builder, crea una instancia con
+    /// toda la data.
     pub fn build(self) -> ValueTimeItem {
         ValueTimeItem {
             timeout: self.timeout,
