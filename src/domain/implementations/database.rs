@@ -1341,7 +1341,7 @@ impl Database {
                 if let Some(ex) = timeout.1 {
                     let now = SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap();
+                        .expect("SystemTime clock failure");
                     expire_at = ex.parse::<u64>().unwrap_or(0) + now.as_secs();
                 }
             }
@@ -1349,7 +1349,7 @@ impl Database {
                 if let Some(px) = timeout.1 {
                     let now = SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap();
+                        .expect("SystemTime clock failure");
                     expire_at = px.parse::<u64>().unwrap_or(0) / 1000 + now.as_millis() as u64;
                 }
             }
