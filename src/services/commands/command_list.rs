@@ -192,7 +192,6 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
                 }
             }
         }
-
         if let Some(resultado) = new_database.add_to_list_type(vec_aux, key, false) {
             RespType::RInteger(resultado)
         } else {
@@ -319,7 +318,8 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                         return RespType::RArray(value_vec_resptype);
                     }
                     return RespType::RBulkString(
-                        "error - Expected list. Got another value type".to_string(),
+                        "error - Expected list. Got another value type or key does not exist"
+                            .to_string(),
                     );
                 }
             }
@@ -566,7 +566,7 @@ pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     if succeful_replace {
                         return RespType::RBulkString("Ok".to_string());
                     } else {
-                        return RespType::RError("out of bounds".to_string());
+                        return RespType::RError("error".to_string());
                     }
                 }
             }

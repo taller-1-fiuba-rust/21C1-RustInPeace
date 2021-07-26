@@ -1166,11 +1166,15 @@ impl Database {
         //si la clave no existe, devuelvo 0 (false)
         //empty set -> devuelve 0 (false)
         //si no es tipo Set -> devuelve error (None)
-        let item = self.get_live_item(key);
+        let item = self.get_mut_live_item(key);
         match item {
             Some(item) => {
-                if let ValueType::SetType(mut item) = item.get_copy_of_value() {
-                    return Some(item.remove(member));
+                if let ValueType::SetType(mut value) = item.get_copy_of_value() {
+                    let removed = value.remove(member);
+                    if removed {
+                        item.set_value(ValueType::SetType(value));
+                        return Some(true);
+                    }
                 }
             }
             None => {

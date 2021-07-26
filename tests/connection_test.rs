@@ -3657,17 +3657,17 @@ pub fn test_set_srem_removes_multiple_values() -> TestResult {
 
 pub fn test_set_srem_removes_zero_values() -> TestResult {
     let mut con = connect()?;
-    let ret: usize = redis::cmd("SREM")
+    let ret = redis::cmd("SREM")
         .arg("set_remove_3")
-        .arg("value_1")
-        .query(&mut con)?;
+        .arg("wawa")
+        .query(&mut con);
 
-    return if ret == 0 {
+    return if ret.is_err() {
         Ok(())
     } else {
         Err(Box::new(ReturnError {
-            expected: 1.to_string(),
-            got: ret.to_string(),
+            expected: format!("Value stored is not a set"),
+            got: ret.unwrap(),
         }))
     };
 }
