@@ -5,7 +5,7 @@ use proyecto_taller_1::{
         entities::{config::Config, key_value_item::ValueType, server::Server},
         implementations::database::Database,
     },
-    services::{server_service, utils::resp_type::RespType, worker_service::ThreadPool},
+    services::{server_service, worker_service::ThreadPool},
 };
 use redis::RedisError;
 
@@ -526,7 +526,7 @@ fn test_main() {
     let port_2 = port.clone();
     let dir = String::from("127.0.0.1");
 
-    let handle: thread::JoinHandle<()> = thread::spawn(|| {
+    let _handle: thread::JoinHandle<()> = thread::spawn(|| {
         let h = thread::spawn(|| {
             let mut server =
                 Server::new(port_2, log_file, verbose, server_receiver, config_path).unwrap();
@@ -1157,7 +1157,7 @@ fn connect() -> Result<redis::Connection, Box<dyn Error>> {
     Ok(con)
 }
 
-fn shutdown() {
+fn _shutdown() {
     let mut con = connect().unwrap();
     let _: redis::RedisResult<()> = redis::cmd("SHUTDOWN").query(&mut con);
 }
@@ -3727,7 +3727,7 @@ fn test_pubsub() -> TestResult {
     let close_barrier = Arc::new(Barrier::new(4));
     let pubsub_barrier = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let thread = thread::spawn(move || {
+    let _thread = thread::spawn(move || {
         let mut pubsub = pubsub_con.as_pubsub();
         pubsub.subscribe("foo").unwrap();
 
@@ -3741,7 +3741,7 @@ fn test_pubsub() -> TestResult {
     let mut pubsub_con_2 = connect().unwrap();
     let pubsub_barrier_2 = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let thread_2 = thread::spawn(move || {
+    let _thread_2 = thread::spawn(move || {
         let mut pubsub_2 = pubsub_con_2.as_pubsub();
         pubsub_2.subscribe("foo").unwrap();
 
@@ -3752,7 +3752,7 @@ fn test_pubsub() -> TestResult {
     let mut pubsub_con_3 = connect().unwrap();
     let pubsub_barrier_3 = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let thread_3 = thread::spawn(move || {
+    let _thread_3 = thread::spawn(move || {
         let mut pubsub_3 = pubsub_con_3.as_pubsub();
         pubsub_3.subscribe("helloworld").unwrap();
 
