@@ -38,7 +38,9 @@ use std::usize;
 /// # let _ = std::fs::remove_file("dummy_db_llen.csv");
 /// ```
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on llen");
     if let RespType::RBulkString(key) = &cmd[1] {
         if new_database.key_exists(key.to_string()) {
             if let ValueType::ListType(current_value) = new_database
@@ -100,7 +102,9 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_lpop.csv");
 /// ```
 pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on lpop");
     if let RespType::RBulkString(key) = &cmd[1] {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
@@ -170,7 +174,9 @@ pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_push.csv");
 /// ```
 pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on push");
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         if is_reverse {
@@ -236,7 +242,9 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
 /// # let _ = std::fs::remove_file("dummy_db_lpushx.csv");
 /// ```
 pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on lpushx");
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         for n in cmd.iter().skip(2).rev() {
@@ -294,7 +302,9 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_lrange.csv");
 /// ```
 pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on lrange");
     if let RespType::RBulkString(key) = &cmd[1] {
         if let RespType::RBulkString(lower_bound) = &cmd[2] {
             if let RespType::RBulkString(upper_bound) = &cmd[3] {
@@ -399,7 +409,9 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 3 {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database lock on lindex");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
                 let current_value_in_list_by_index = db.get_value_by_index(key, index);
@@ -456,7 +468,9 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 4 {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database lock on lrem");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(count) = &cmd[2] {
                 if let RespType::RBulkString(element) = &cmd[3] {
@@ -517,7 +531,9 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 4 {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database lock on lset");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
                 if let RespType::RBulkString(value) = &cmd[3] {
@@ -574,7 +590,9 @@ pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_rpop_command.csv");
 /// ```
 pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on rpop");
     if let RespType::RBulkString(key) = &cmd[1] {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
@@ -643,7 +661,9 @@ pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_rpushx_command.csv");
 /// ```
 pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on rpushx");
     let mut new_elements = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         for n in cmd.iter().skip(2) {

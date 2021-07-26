@@ -3,9 +3,7 @@
 use crate::domain::entities::key_value_item::ValueTimeItemBuilder;
 use crate::domain::entities::key_value_item::ValueType;
 use crate::errors::database_error::DatabaseError;
-use crate::{
-    domain::implementations::database::Database, services::utils::resp_type::RespType,
-};
+use crate::{domain::implementations::database::Database, services::utils::resp_type::RespType};
 use std::vec;
 use std::{
     convert::TryInto,
@@ -49,7 +47,9 @@ use std::{
 pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on append");
             if let RespType::RBulkString(str_to_append) = &cmd[2] {
                 return RespType::RInteger(db.append_string(key, str_to_append));
             }
@@ -96,7 +96,9 @@ pub fn append(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on decrby");
             if let RespType::RBulkString(decr) = &cmd[2] {
                 let number = decr.parse::<i64>();
                 return match number {
@@ -150,7 +152,9 @@ pub fn decrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on incrby");
             if let RespType::RBulkString(incr) = &cmd[2] {
                 let number = incr.parse::<i64>();
                 return match number {
@@ -202,7 +206,9 @@ pub fn incrby(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on get");
             return match db.get_string_value_by_key(key) {
                 Some(str) => RespType::RBulkString(str),
                 None => RespType::RNullBulkString(),
@@ -249,7 +255,9 @@ pub fn get(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # std::fs::remove_file("dummy_db_mget.csv");
 /// ```
 pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on mget");
     let mut vec_keys_with_string_values = vec![];
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
@@ -304,7 +312,9 @@ pub fn mget(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on getdel");
             match db.getdel_value_by_key(key) {
                 Ok(str) => {
                     return RespType::RBulkString(str);
@@ -358,7 +368,9 @@ pub fn getdel(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on getset");
             if let RespType::RBulkString(new_value) = &cmd[2] {
                 match db.getset_value_by_key(key, new_value) {
                     Ok(str) => {
@@ -413,7 +425,9 @@ pub fn getset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on strlen");
             return match db.get_strlen_by_key(key) {
                 Some(len) => RespType::RInteger(len),
                 None => RespType::RError(String::from("key must hold a value of type string")),
@@ -456,7 +470,9 @@ pub fn strlen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # std::fs::remove_file("dummy_db_mset.csv");
 /// ```
 pub fn mset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on mset");
     if cmd.len() % 2 == 1 {
         let mut vec_aux = vec![];
         for elemento in cmd.iter().skip(1) {
@@ -520,7 +536,9 @@ pub fn set(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(value) = &cmd[2] {
                 let options = generate_options(cmd);
-                let mut db = database.write().unwrap();
+                let mut db = database
+                    .write()
+                    .expect("Could not get database lock on set");
                 let timeout = (&options[0].0.to_owned(), options[0].1);
                 if db.set_string(key, value, timeout, options[1].1, options[2].1) {
                     return RespType::RBulkString(String::from("Ok"));

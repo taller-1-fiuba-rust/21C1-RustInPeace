@@ -8,9 +8,10 @@ use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use crate::services::database_service::dump_to_file;
-use std::io::{Error, Read, Write};
+use std::error::Error;
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use std::{thread, u64};
@@ -53,7 +54,7 @@ pub fn init(db: Database, config: Config, dir: String, server_sender: Sender<Wor
                             .expect("Could not set a read timeout");
 
                         pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock);
+                            handle_connection(stream, tx, cloned_database, conf_lock).unwrap_or(());
                         });
                     }
                     Err(_) => {
@@ -82,10 +83,11 @@ pub fn handle_connection(
     tx: Sender<WorkerMessage>,
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
-) -> Result<(), Error> {
+) -> Result<(), Box<dyn Error>> {
     let client_addrs = stream.peer_addr()?;
     let client = Client::new(client_addrs, stream.try_clone()?);
-    tx.send(WorkerMessage::AddClient(client));
+    tx.send(WorkerMessage::AddClient(client))
+        .expect("Could not send client to server");
 
     log(
         format!("Connection to address {} established\r\n", client_addrs),
@@ -124,38 +126,48 @@ pub fn handle_connection(
                     Ok(parsed_request) => {
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
                         verbose(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
-
+                        let mut subscribed = false;
+                        let (ps_sender, ps_recv) = mpsc::channel();
                         tx.send(WorkerMessage::NewOperation(
                             parsed_request.clone(),
                             client_addrs,
+                            ps_sender,
                         ))
                         .unwrap();
 
-                        if let Some(res) =
-                            handle_command(parsed_request, &tx, client_addrs, &database, &config)
-                        {
-                            let response = parse_response(res);
-                            log(
-                                format!(
-                                    "Response for {}. Message: {:?}. Response: {}\r\n",
-                                    client_addrs,
-                                    String::from_utf8_lossy(&buf[..size]),
-                                    response
-                                ),
-                                &tx,
-                            );
-                            verbose(
-                                format!(
-                                    "Response for {}. Message: {:?}. Response: {}\r\n",
-                                    client_addrs,
-                                    String::from_utf8_lossy(&buf[..size]),
-                                    response
-                                ),
-                                &tx,
-                            );
-                            stream.write_all(response.as_bytes())?;
-                            stream.flush()?;
+                        if let Ok(pubsub_state) = ps_recv.recv() {
+                            subscribed = pubsub_state;
                         }
+
+                        let res = handle_command(
+                            parsed_request,
+                            &tx,
+                            client_addrs,
+                            &database,
+                            &config,
+                            subscribed,
+                        )?;
+                        let response = parse_response(res);
+                        log(
+                            format!(
+                                "Response for {}. Message: {:?}. Response: {}\r\n",
+                                client_addrs,
+                                String::from_utf8_lossy(&buf[..size]),
+                                response
+                            ),
+                            &tx,
+                        );
+                        verbose(
+                            format!(
+                                "Response for {}. Message: {:?}. Response: {}\r\n",
+                                client_addrs,
+                                String::from_utf8_lossy(&buf[..size]),
+                                response
+                            ),
+                            &tx,
+                        );
+                        stream.write_all(response.as_bytes())?;
+                        stream.flush()?;
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);
@@ -170,7 +182,8 @@ pub fn handle_connection(
         }
     }
 
-    tx.send(WorkerMessage::CloseClient(client_addrs)).unwrap();
+    tx.send(WorkerMessage::CloseClient(client_addrs))
+        .expect("Could not close client");
     log(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
@@ -179,7 +192,6 @@ pub fn handle_connection(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
     );
-
     Ok(())
 }
 
@@ -187,12 +199,14 @@ pub fn handle_connection(
 ///
 /// El sender envia el mensaje al servidor para que lo escriba en el archivo de logs.
 fn log(msg: String, tx: &Sender<WorkerMessage>) {
-    tx.send(WorkerMessage::Log(msg)).unwrap();
+    tx.send(WorkerMessage::Log(msg))
+        .expect("Could not send log.");
 }
 
 /// Imprime un mensaje por consola.
 ///
 /// El sender envia el mensaje al servidor para que lo imprima.
 fn verbose(msg: String, tx: &Sender<WorkerMessage>) {
-    tx.send(WorkerMessage::Verb(msg)).unwrap();
+    tx.send(WorkerMessage::Verb(msg))
+        .expect("Could not send verbose");
 }

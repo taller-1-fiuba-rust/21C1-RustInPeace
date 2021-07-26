@@ -52,7 +52,9 @@ pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut n_key_deleted = 0;
     for n in cmd.iter().skip(1) {
         if let RespType::RBulkString(current_key) = n {
-            let mut new_database = database.write().unwrap();
+            let mut new_database = database
+                .write()
+                .expect("Could not get database lock on del");
             if new_database.delete_key(current_key.to_string()) {
                 n_key_deleted += 1;
             }
@@ -120,16 +122,16 @@ pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(source) = &cmd[1] {
             if let RespType::RBulkString(destination) = &cmd[2] {
-                if let Ok(write_guard) = database.write() {
-                    let mut db = write_guard;
-                    let replace = copy_should_replace(cmd);
-                    match db.copy(source.to_string(), destination.to_string(), replace) {
-                        Some(_) => {
-                            return RespType::RInteger(1);
-                        }
-                        None => {
-                            return RespType::RInteger(0);
-                        }
+                let mut db = database
+                    .write()
+                    .expect("Could not get database lock on copy");
+                let replace = copy_should_replace(cmd);
+                match db.copy(source.to_string(), destination.to_string(), replace) {
+                    Some(_) => {
+                        return RespType::RInteger(1);
+                    }
+                    None => {
+                        return RespType::RInteger(0);
                     }
                 }
             }
@@ -211,7 +213,7 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             if let RespType::RBulkString(current_key) = n {
                 if database
                     .write()
-                    .unwrap()
+                    .expect("Could not get database write lock on exists")
                     .key_exists(current_key.to_string())
                 {
                     key_found += 1;
@@ -257,7 +259,11 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
-        if database.write().unwrap().persist(key.to_string()) {
+        if database
+            .write()
+            .expect("Could not get database write lock on persist")
+            .persist(key.to_string())
+        {
             return RespType::RInteger(1);
         } else {
             return RespType::RInteger(0);
@@ -304,7 +310,9 @@ pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(current_key) = &cmd[1] {
-            let mut new_database = database.write().unwrap();
+            let mut new_database = database
+                .write()
+                .expect("Could not get database write lock on rename");
             if let RespType::RBulkString(new_key) = &cmd[2] {
                 if new_database.rename_key(current_key.to_string(), new_key.to_string()) {
                     return RespType::RBulkString("OK".to_string());
@@ -356,7 +364,9 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database write lock on expire");
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let now = SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
@@ -409,7 +419,9 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database write lock on expireat");
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
             if result {
@@ -465,7 +477,9 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let parameters = generate_hashmap(cmd);
     if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database write lock on sort");
         let mut sorted: Vec<String> = Vec::new();
         if parameters.contains_key("by") {
             if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
@@ -647,7 +661,9 @@ pub fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
 /// ```
 pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(pattern) = &cmd[1] {
-        let db = database.read().unwrap();
+        let db = database
+            .read()
+            .expect("Could not get database lock on keys");
         let matching_keys = db.get_keys_that_match_pattern(pattern);
         let vec = matching_keys
             .iter()
@@ -751,7 +767,9 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on touch");
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
@@ -797,7 +815,9 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on ttl");
             return match db.get_live_item(key) {
                 None => RespType::RSignedNumber(-2),
                 Some(item) => match item.get_timeout() {
@@ -857,13 +877,4 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         }
     }
     RespType::RBulkString(tipo)
-}
-
-#[test]
-fn test_001_se_genera_un_hashmap_a_partir_de_vector_con_asc() {
-    let operation = vec![RespType::RBulkString("ASC".to_string())];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
 }

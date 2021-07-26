@@ -22,7 +22,7 @@ pub fn subscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr
                 addrs,
                 messages_sender.clone(),
             ))
-            .unwrap();
+            .expect("Could not send Subscribe message");
 
             if let Ok(n_channels) = messages_receiver.recv() {
                 return RespType::RArray(vec![
@@ -50,7 +50,7 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
                     addrs,
                     messages_sender.clone(),
                 ))
-                .unwrap();
+                .expect("Could not send Unsubscribe message");
 
                 if let Ok(n_channels) = messages_receiver.recv() {
                     return RespType::RArray(vec![
@@ -63,11 +63,11 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
         }
     } else {
         tx.send(WorkerMessage::UnsubscribeAll(addrs, messages_sender))
-            .unwrap();
+            .expect("Could not send UnsubscribeAll message");
         if let Ok(n_channels) = messages_receiver.recv() {
             return RespType::RArray(vec![
                 RespType::RBulkString(String::from("unsubscribe")),
-                RespType::RBulkString("all".to_string()),
+                RespType::RBulkString("bar".to_string()),
                 RespType::RInteger(n_channels),
             ]);
         }
@@ -88,7 +88,7 @@ pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
                 response_sender,
                 message.to_string(),
             ))
-            .unwrap();
+            .expect("Could not send publish message");
 
             if let Ok(res) = response_receiver.recv() {
                 return RespType::RInteger(res);
@@ -130,7 +130,7 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
                 response_sender,
                 Some(pattern.to_string()),
             ))
-            .unwrap();
+            .expect("Could not send Channels message");
 
             if let Ok(res) = response_receiver.recv() {
                 return RespType::RArray(res);
@@ -138,7 +138,7 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
         }
     } else {
         tx.send(WorkerMessage::Channels(response_sender, None))
-            .unwrap();
+            .expect("Could not send Channels message");
 
         if let Ok(res) = response_receiver.recv() {
             return RespType::RArray(res);
@@ -160,7 +160,7 @@ fn pubsub_numsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
         }
     }
     tx.send(WorkerMessage::Numsub(channels, messages_sender))
-        .unwrap();
+        .expect("Could not send Numsub message");
 
     if let Ok(res) = messages_receiver.recv() {
         return RespType::RArray(res);
