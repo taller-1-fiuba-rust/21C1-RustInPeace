@@ -552,20 +552,25 @@ impl Database {
     ///
     /// # std::fs::remove_file("dummy_db_index.csv");
     /// ```
-    pub fn get_value_by_index(&self, key: &str, index: &str) -> Option<String> {
+    pub fn get_value_by_index(&self, key: &str, index: &str) -> Result<String, DatabaseError> {
         if let (Some(item), false) = self.check_timeout_item(key) {
             let mut index_aux = index.parse::<isize>().unwrap();
             if let ValueType::ListType(current_value) = item.get_value().to_owned() {
                 let current_value_len = current_value.len() as isize;
+                if index_aux >= current_value_len {
+                    return Err(DatabaseError::InvalidValueType(
+                        "index out of bounds".to_string(),
+                    ));
+                }
                 if index_aux < 0 {
                     index_aux += current_value_len;
                 };
-                Some(current_value[index_aux as usize].to_owned())
+                Ok(current_value[index_aux as usize].to_owned())
             } else {
-                None
+                Err(DatabaseError::InvalidValueType("Not list type".to_string()))
             }
         } else {
-            Some("".to_string())
+            Ok("".to_string())
         }
     }
 
@@ -775,6 +780,7 @@ impl Database {
         if let Some(item) = item {
             let item_value = item.get_copy_of_value();
             let item_time = item.get_copy_of_timeout();
+            self.delete_key(current_key);
             self.add(
                 new_key,
                 ValueTimeItemBuilder::new(item_value)
@@ -818,7 +824,6 @@ impl Database {
                     item.set_value(new_value);
                     len
                 } else {
-                    println!("entro aca??????????????????????");
                     0
                 }
             }
@@ -865,12 +870,12 @@ impl Database {
                         Ok(str_as_number - decr)
                     } else {
                         Err(DatabaseError::InvalidParameter(String::from(
-                            "Decrement value can't be represented as integer",
+                            "Value at key can't be represented as integer",
                         )))
                     }
                 } else {
                     Err(DatabaseError::InvalidValueType(format!(
-                        "Invalid value type. Expected: String. Got: {}",
+                        "Invalid value type. Expected: string. Got: {}",
                         item.get_value_type()
                     )))
                 }
@@ -918,12 +923,12 @@ impl Database {
                     Ok(str_as_number + incr)
                 } else {
                     Err(DatabaseError::InvalidParameter(String::from(
-                        "Increment value can't be represented as integer",
+                        "Value at key can't be represented as integer",
                     )))
                 }
             } else {
                 return Err(DatabaseError::InvalidValueType(format!(
-                    "Invalid value type. Expected: String. Got: {}",
+                    "Invalid value type. Expected: string. Got: {}",
                     item.get_value_type()
                 )));
             }
@@ -939,7 +944,7 @@ impl Database {
 
     /// Devuelve el valor almacenado en `key` si dicho valor es de tipo String.
     ///
-    /// Retorna `None` si la clave no existe o si el valor almacenado no es de tipo String.
+    /// Retorna Error si la clave no existe o si el valor almacenado no es de tipo String.
     ///
     /// # Example
     /// ```
@@ -958,18 +963,22 @@ impl Database {
     /// let aux = db.get_string_value_by_key("saludo").unwrap();
     /// assert_eq!(aux, String::from("hola"));
     /// let aux = db.get_string_value_by_key("saludo_despido");
-    /// assert!(aux.is_none());
+    /// assert!(aux.is_err());
     ///
     /// let _ = std::fs::remove_file("dummy_db_get_string");
     /// ```
-    pub fn get_string_value_by_key(&self, key: &str) -> Option<String> {
+    pub fn get_string_value_by_key(&self, key: &str) -> Result<String, DatabaseError> {
         if let (Some(item), false) = self.check_timeout_item(&key.to_string()) {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                return Some(str);
+                return Ok(str);
+            } else {
+                return Err(DatabaseError::InvalidValueType(
+                    "Expected string, got another value type.".to_string(),
+                ));
             }
         }
-        None
+        Err(DatabaseError::MissingKey())
     }
 
     /// Retorna la longitud del string almacenado en `key`.
@@ -1126,6 +1135,28 @@ impl Database {
         }
     }
 
+    /// Retorna si el elemento pertenece al set almacenado en `key`.
+    ///
+    /// Si la clave no existe o el valor no es de tipo Set, devuelve 0.
+    /// Si el elemento pertenece al set, devuelve 1.
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_ismember.csv".to_string());
+    /// let mut set = HashSet::new();
+    /// set.insert("25".to_string());
+    /// set.insert("40".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    /// db.add("edades".to_string(), vt);
+    ///
+    /// assert_eq!(1, db.is_member_of_set("edades", "40"));
+    /// assert_eq!(0, db.is_member_of_set("edades", "45"));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_ismember.csv");
+    /// ```
     pub fn is_member_of_set(&self, key: &str, member: &str) -> usize {
         if let (Some(item), false) = self.check_timeout_item(key) {
             if let ValueType::SetType(item) = item.get_value() {
@@ -1137,6 +1168,29 @@ impl Database {
         0
     }
 
+    /// Retorna los elementos que pertenecen al set almacenado en `key`.
+    ///
+    /// Valida que el valor almacenado en `key` sea de tipo Set, sino devuelve un vector vacío.
+    /// Devuelve un vector con todos los elementos del set.
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_getmembers.csv".to_string());
+    /// let mut set = HashSet::new();
+    /// set.insert("25".to_string());
+    /// set.insert("40".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    /// db.add("edades".to_string(), vt);
+    ///
+    /// let res = db.get_members_of_set("edades");
+    /// assert!(res.contains(&&"40".to_string()));
+    /// assert!(res.contains(&&"25".to_string()));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_getmembers.csv");
+    /// ```
     pub fn get_members_of_set(&self, key: &str) -> Vec<&String> {
         let (item, expired) = self.check_timeout_item(key);
         let mut members = Vec::new();
@@ -1152,11 +1206,30 @@ impl Database {
         members
     }
 
+    /// Elimina un elemento del set almacenado en `key`.
+    ///
+    /// Si la clave no existe o el set está vacío, devuelve false.
+    /// Si el valor almacenado en `key` no es de tipo Set o el elemento no pertecene al set, devuelve None.
+    /// Si se eliminan todos los elementos pedidos, devuelve True.
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_rmember.csv".to_string());
+    /// let mut set = HashSet::new();
+    /// set.insert("25".to_string());
+    /// set.insert("40".to_string());
+    /// set.insert("45".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    /// db.add("edades".to_string(), vt);
+    ///
+    /// assert_eq!(true, db.remove_member_from_set("edades", "40").unwrap());
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_rmember.csv");
+    /// ```
     pub fn remove_member_from_set(&mut self, key: &str, member: &str) -> Option<bool> {
-        //si el miembro no pertenece al set, lo ignoro
-        //si la clave no existe, devuelvo 0 (false)
-        //empty set -> devuelve 0 (false)
-        //si no es tipo Set -> devuelve error (None)
         let item = self.get_live_item(key);
         match item {
             Some(item) => {
@@ -1171,15 +1244,35 @@ impl Database {
         None
     }
 
-    // falta opcion get
-    // agregar tests unitarios (set new key, set existing key, set key timeout x2, set key set_if x2, set key timeout set_if x2, set key !set_if x2, set key timeout !set_if x2)
+    /// Actualiza el valor de tipo string almacenado en `key`.
+    ///
+    /// Si la clave ya contenía un valor, lo reemplaza sin importar el tipo de dato.
+    ///
+    /// Admite los siguientes parámetros:
+    /// timeout: Actualiza el tiempo de expiración.
+    /// set_if_exists: Determina si se debe actualizar la clave solo si ya existía previamente o solo si no existía previamente.
+    ///
+    /// Devuelve True si actualiza la clave, False si no.
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_setstr.csv".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).build();
+    /// db.add("mascota".to_string(), vt);
+    ///
+    /// assert_eq!(true, db.set_string("mascota", "gato", (&"ex".to_string(), None), Some(&"xx".to_string())));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_setstr.csv");
+    /// ```
     pub fn set_string(
         &mut self,
         key: &str,
         value: &str,
         timeout: (&String, Option<&String>),
         set_if_exists: Option<&String>,
-        _get: Option<&String>,
     ) -> bool {
         let mut set_if_non_existing = false;
         let mut set_if_existing = false;
@@ -1198,6 +1291,7 @@ impl Database {
             Some(item) => {
                 if set_if_existing || !set_if_non_existing {
                     item.set_value(ValueType::StringType(value.to_string()));
+
                     if expire_at != 0 {
                         item.set_timeout(KeyAccessTime::Volatile(expire_at));
                     }
@@ -1222,33 +1316,57 @@ impl Database {
         false
     }
 
-    fn get_expire_at(&mut self, timeout: (&String, Option<&String>)) -> u64 {
+    /// Obtiene el tiempo de expiración a partir de un offset.
+    ///
+    /// Admite los siguientes parámetros:
+    /// * EX: Tiempo de expiración en segundos.
+    /// * PX: Tiempo de expiración en milisegundos.
+    /// * EXAT: Tiempo UNIX en que va a expirar la clave, en segundos.
+    /// * PXAT: Tiempo UNIX en que va a expirar la clave, en milisegundos.
+    ///
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    ///
+    /// let mut db = Database::new("dummy_db_getexpire.csv".to_string());
+    ///
+    /// db.get_expire_at((&"ex".to_string(), Some(&"10".to_string())));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_getexpire.csv");
+    /// ```
+    pub fn get_expire_at(&mut self, timeout: (&String, Option<&String>)) -> u64 {
         let mut expire_at = 0;
         match timeout.0.as_str() {
             "ex" => {
                 if let Some(ex) = timeout.1 {
-                    expire_at = ex.parse::<u64>().unwrap();
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = ex.parse::<u64>().unwrap_or(0) + now.as_secs();
                 }
             }
             "px" => {
                 if let Some(px) = timeout.1 {
-                    expire_at = px.parse::<u64>().unwrap() / 1000;
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = px.parse::<u64>().unwrap_or(0) / 1000 + now.as_millis() as u64;
                 }
             }
             "exat" => {
                 if let Some(exat) = timeout.1 {
                     let now = SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap();
-                    expire_at = exat.parse::<u64>().unwrap() + now.as_secs();
+                        .expect("SystemTime clock failure");
+                    expire_at = exat.parse::<u64>().unwrap_or(0) + now.as_secs();
                 }
             }
             "pxat" => {
                 if let Some(pxat) = timeout.1 {
                     let now = SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap();
-                    expire_at = pxat.parse::<u64>().unwrap() / 1000 + now.as_secs();
+                        .expect("SystemTime clock failure");
+                    expire_at = pxat.parse::<u64>().unwrap_or(0) / 1000 + now.as_secs();
                 }
             }
             _ => {}
@@ -1344,7 +1462,28 @@ impl Database {
         Some(popped_elements)
     }
 
-    //faltan tests unitarios
+    /// Agrega un elemento al set almacenado en `key`.
+    ///
+    /// Si la clave no existe, la crea.
+    /// Si el valor almacenado en `key` no es de tipo Set, devuelve None.
+    /// Devuelve la cantidad de elementos añadidos.
+    /// # Example
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_sadd.csv".to_string());
+    /// let mut set = HashSet::new();
+    /// set.insert("25".to_string());
+    /// set.insert("40".to_string());
+    /// let vt = ValueTimeItemBuilder::new(ValueType::SetType(set)).build();
+    /// db.add("edades".to_string(), vt);
+    ///
+    /// assert_eq!(2, db.add_element_to_set("edades", vec![&"45".to_string(), &"15".to_string()]).unwrap());
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_sadd.csv");
+    /// ```
     pub fn add_element_to_set(&mut self, key: &str, values_to_add: Vec<&String>) -> Option<usize> {
         let mut added = 0;
         if let Some(item) = self.get_mut_live_item(key) {
@@ -1368,8 +1507,18 @@ impl Database {
         }
     }
 
-    /////////////////////////////////////////////////////////
-    /* Si el servidor se reinicia se deben cargar los items del file */
+    /// Lee los datos del archivo de base de datos.
+    ///
+    /// Lee las lineas del archivo y las transforma a un KeyValueItem. Almacena estos datos en el HashMap `items`.
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_load.csv".to_string());
+    /// db.load_items();
+    /// ```
     pub fn load_items(&mut self) {
         if let Ok(lines) = Database::read_lines(self.dbfilename.to_string()) {
             for line in lines {
@@ -1386,6 +1535,9 @@ impl Database {
         }
     }
 
+    /// Lee las lineas del archivo `filename`.
+    ///
+    /// Devuelve un iterador con las lineas leidas del archivo.
     fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     where
         P: AsRef<Path>,
@@ -1398,15 +1550,15 @@ impl Database {
             Err(_) => {
                 let mut _file = File::create(&path)?; //Lo crea en write-only mode.
                 let path = Path::new(filename.as_ref());
-                let file_op = File::open(&path);
-                Ok(io::BufReader::new(file_op.unwrap()).lines())
+                let file_op = File::open(&path).expect("Could not open new database file");
+                Ok(io::BufReader::new(file_op).lines())
             }
         }
     }
-    /*
-      Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
-      Formato: key;last_access_time;timeout;type;value1,value,2
-    */
+
+    /// Guarda cada item que tiene en memoria, en el formato adecuado para la serialización.
+    ///
+    /// El formato es: key;last_access_time;timeout;type;value
     pub fn save_items_to_file(&self) {
         let mut file = OpenOptions::new()
             .write(true)
@@ -1414,7 +1566,7 @@ impl Database {
             .create(true)
             .truncate(true)
             .open(self.dbfilename.to_string())
-            .unwrap();
+            .expect("Could not open database file");
 
         for kvi in &self.items {
             let kvi_type = match kvi.1.get_value() {
@@ -1431,30 +1583,104 @@ impl Database {
                 kvi_type,
                 kvi.1.get_value().to_string()
             )
-            .unwrap();
+            .unwrap_or_else(|_| println!("Could not write to database file"));
         }
     }
 
-    /// devuelve la cantidad de claves almacenadas en la base de datos
+    /// Devuelve la cantidad de claves almacenadas en la base de datos
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_size.csv".to_string());
+    /// db.add("mascota".to_string(),  ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).build());
+    /// db.add("animal".to_string(),  ValueTimeItemBuilder::new(ValueType::StringType("leon".to_string())).build());
+    ///
+    /// assert_eq!(2, db.get_size());
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_size.csv");
+    /// ```
     pub fn get_size(&self) -> usize {
         self.items.len()
     }
 
-    /// permite eliminar una clave y su valor asociado
+    /// Elimina una clave y su valor asociado.
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_del.csv".to_string());
+    /// db.add("mascota".to_string(),  ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).build());
+    /// db.add("animal".to_string(),  ValueTimeItemBuilder::new(ValueType::StringType("leon".to_string())).build());
+    ///
+    /// assert_eq!(true, db.delete_key("animal".to_string()));
+    /// assert_eq!(1, db.get_size());
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_del.csv");
+    /// ```
     pub fn delete_key(&mut self, key: String) -> bool {
         matches!(self.items.remove(&key), Some(_key))
     }
 
-    /// le setea un timestamp de expiración a una determinada key
-    /// Si la key no existe, devuelve false. Si el update fue correctamente generado devuelve true.
+    /// Asigna un timestamp de expiración a una determinada key.
+    ///
+    /// Si la clave no existe, devuelve false. Si el update fue correctamente generado devuelve true.
+    /// # Ejemplo
+    /// ```
+    /// # use proyecto_taller_1::domain::implementations::database::Database;
+    /// # use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    /// # use std::collections::HashSet;
+    ///
+    /// let mut db = Database::new("dummy_db_expire.csv".to_string());
+    /// db.add("mascota".to_string(),  ValueTimeItemBuilder::new(ValueType::StringType("perro".to_string())).build());
+    ///
+    /// assert_eq!(true, db.expire_key("mascota", "1623433677"));
+    ///
+    /// # let _ = std::fs::remove_file("dummy_db_expire.csv");
+    /// ```
     pub fn expire_key(&mut self, key: &str, timeout: &str) -> bool {
         let kvi = self.get_mut_live_item(key);
         match kvi {
-            Some(k) => k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap())),
+            Some(k) => k.set_timeout(KeyAccessTime::Volatile(u64::from_str(timeout).unwrap_or(0))),
             None => false,
         }
     }
-    /// elimina valores de listas ---------- revisar documentacion
+
+    /// Elimina la primer `cantidad_maxima` de ocurrencias de elementos de la lista almacenada en `key`.
+    ///
+    /// Si la cantidad es mayor al largo de la lista, elimina elementos iguales al indicado comenzando desde el inicio de la lista.
+    ///
+    /// Si la cantidad es menor al largo de la lista, elimina elementos iguales al indicado comenzando desde el final de la lista.
+    ///
+    /// Si la cantidad es igual al largo de la lista, elimina todos los elementos iguales al indicado.
+    ///
+    /// Devuelve la cantidad de elementos eliminados.
+    /// # Ejemplo
+    /// ```
+    /// use proyecto_taller_1::domain::implementations::database::Database;
+    /// use proyecto_taller_1::domain::entities::key_value_item::{ValueTimeItem, ValueType, KeyAccessTime, ValueTimeItemBuilder};
+    ///
+    /// let mut db = Database::new("dummy_db_ldel.csv".to_string());
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("argentina"), String::from("uruguay")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises".to_string(), vt);
+    ///
+    /// let removed = db.delete_elements_of_value_list("paises", "4".to_string(), "argentina".to_string());
+    /// assert_eq!(removed, 2);
+    ///
+    /// let mut list = vec![String::from("argentina"), String::from("brasil"), String::from("argentina"), String::from("uruguay")];
+    /// let vt = ValueTimeItemBuilder::new(ValueType::ListType(list)).build();
+    /// db.add("paises2".to_string(), vt);
+    ///
+    /// let removed = db.delete_elements_of_value_list("paises2", "1".to_string(), "argentina".to_string());
+    /// assert_eq!(removed, 1);
+    ///
+    /// let _ = std::fs::remove_file("dummy_db_ldel.csv");
+    /// ```
     pub fn delete_elements_of_value_list(
         &mut self,
         key: &str,
@@ -1462,10 +1688,10 @@ impl Database {
         element: String,
     ) -> usize {
         let mut cant_elementos_eliminados = 0;
-        let cant_max = cantidad_maxima.parse::<isize>().unwrap();
+        let cant_max = cantidad_maxima.parse::<isize>().unwrap_or(1);
         if self.key_exists(key.to_string()) {
-            let old_value = self.get_mut_live_item(&key.to_string()).unwrap();
-            let item_optional = old_value.get_value();
+            let old_item = self.get_mut_live_item(&key.to_string()).unwrap();
+            let item_optional = old_item.get_value();
             if let ValueType::ListType(mut items) = item_optional.to_owned() {
                 let len_value_list = items.len();
                 match cant_max.cmp(&0) {
@@ -1507,7 +1733,7 @@ impl Database {
                             (len_value_list as isize) - (items.len() as isize);
                     }
                 }
-                old_value.set_value(ValueType::ListType(items));
+                old_item.set_value(ValueType::ListType(items));
             }
         }
         cant_elementos_eliminados as usize
@@ -1886,30 +2112,14 @@ fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_l
 fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
     let mut db = Database::new("file021".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("pablo".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -1921,10 +2131,9 @@ fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() 
 
     let pat = "m?riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("miriana")));
     let _removed = std::fs::remove_file("file021".to_string());
 }
 
@@ -1932,33 +2141,17 @@ fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() 
 fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
     let mut db = Database::new("file022".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
 
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
 
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
@@ -1972,9 +2165,9 @@ fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes
     let pat = "m[ae]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
 
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+
     let _removed = std::fs::remove_file("file022".to_string());
 }
 
@@ -1982,30 +2175,14 @@ fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes
 fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
     let mut db = Database::new("file023".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2017,10 +2194,10 @@ fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 
     let pat = "m[^a]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+
+    assert!(matching_keys.contains(&"mariana".to_string()));
+    assert!(matching_keys.len() == 1);
+
     let _removed = std::fs::remove_file("file023".to_string());
 }
 
@@ -2028,31 +2205,15 @@ fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
     let mut db = Database::new("file024".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2065,9 +2226,10 @@ fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
     let pat = "m[a-o]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
 
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("miriana")));
+    assert!(matching_keys.contains(&String::from("moriana")));
     let _ = std::fs::remove_file("file024".to_string());
 }
 
@@ -2075,32 +2237,17 @@ fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 fn test_025_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
     let mut db = Database::new("file025".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
 
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("jose".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2112,10 +2259,14 @@ fn test_025_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
 
     let pat = "m*a";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+
+    assert!(matching_keys.contains(&String::from("miriana")));
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("moriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("malala")));
+    assert!(matching_keys.contains(&String::from("mia")));
+
     let _ = std::fs::remove_file("file025".to_string());
 }
 
@@ -2249,9 +2400,9 @@ fn test_031_se_obtienen_las_claves_que_contienen_solo_string_values() {
     let aux = db.get_string_value_by_key("despido").unwrap();
     assert_eq!(aux, String::from("chau"));
     let aux = db.get_string_value_by_key("saludo_despido");
-    assert!(aux.is_none());
+    assert!(aux.is_err());
     let aux = db.get_string_value_by_key("valores");
-    assert!(aux.is_none());
+    assert!(aux.is_err());
     let _ = std::fs::remove_file("file031".to_string());
 }
 
@@ -2887,4 +3038,92 @@ fn test_062_se_pisan_valores_en_value_de_tipo_list_type_con_indice_negativo_inbo
     }
     assert_eq!(true, vec_actualizado);
     std::fs::remove_file("file062".to_string()).unwrap();
+}
+
+#[test]
+fn test_063_set_string_con_expire_returns_true() {
+    let mut db = Database::new("file063".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    db.items.insert("mia".to_string(), vt_1);
+
+    assert!(db.set_string(
+        "mia",
+        "2",
+        (&"ex".to_string(), Some(&"10".to_string())),
+        None
+    ));
+
+    std::fs::remove_file("file063".to_string()).unwrap();
+}
+
+#[test]
+fn test_064_set_string_con_expire_and_set_only_returns_true() {
+    let mut db = Database::new("file064".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    db.items.insert("mia".to_string(), vt_1);
+
+    assert!(db.set_string(
+        "mia",
+        "2",
+        (&"ex".to_string(), Some(&"10".to_string())),
+        Some(&"xx".to_string())
+    ));
+
+    std::fs::remove_file("file064".to_string()).unwrap();
+}
+
+#[test]
+fn test_065_set_string_con_expire_and_set_only_returns_false() {
+    let mut db = Database::new("file065".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    db.items.insert("mia".to_string(), vt_1);
+
+    assert!(!db.set_string(
+        "another",
+        "2",
+        (&"ex".to_string(), Some(&"10".to_string())),
+        Some(&"xx".to_string())
+    ));
+
+    std::fs::remove_file("file065".to_string()).unwrap();
+}
+
+#[test]
+fn test_066_add_to_list_adds_elements_from_beginning() {
+    let mut db = Database::new("file066".to_string());
+
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::ListType(vec![
+        "1".to_string(),
+        "2".to_string(),
+        "3".to_string(),
+    ]))
+    .build();
+    db.items.insert("numbers".to_string(), vt_1);
+
+    assert_eq!(
+        db.add_to_list_type(
+            vec!["primero".to_string(), "segundo".to_string()],
+            "numbers",
+            false
+        )
+        .unwrap(),
+        5
+    );
+    let item = db.get_live_item("numbers").unwrap().get_value();
+    if let ValueType::ListType(list) = item {
+        assert_eq!(
+            list,
+            &vec![
+                "primero".to_string(),
+                "segundo".to_string(),
+                "1".to_string(),
+                "2".to_string(),
+                "3".to_string()
+            ]
+        )
+    }
+    std::fs::remove_file("file066".to_string()).unwrap();
 }

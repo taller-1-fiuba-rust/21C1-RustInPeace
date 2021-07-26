@@ -7,8 +7,6 @@ use crate::services::parser_service;
 use crate::services::utils::glob_pattern;
 use crate::services::utils::resp_type::RespType;
 use std::collections::HashMap;
-use std::io::Write;
-use std::net::TcpStream;
 use std::process;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -43,7 +41,7 @@ pub struct Server {
     clients: Vec<Client>,
     total_connections: usize,
     total_commands: usize,
-    channels: HashMap<String, HashMap<String, (Sender<usize>, TcpStream)>>,
+    channels: HashMap<String, Vec<String>>,
     receiver: Arc<Mutex<mpsc::Receiver<WorkerMessage>>>,
     init_time: SystemTime,
     config_path: String,
@@ -140,13 +138,10 @@ impl Server {
         loop {
             let msg = self.receiver.lock().unwrap().recv().unwrap();
             match msg {
-                WorkerMessage::Log(log_msg) => match self.log(log_msg) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        println!("Logging error: {}", e);
-                    }
-                },
+                WorkerMessage::Log(log_msg) => self.log(log_msg),
                 WorkerMessage::SetMonitor(addrs) => {
+                    self.log("Setting client to monitor state".to_string());
+                    self.verbose("Setting client to monitor state".to_string());
                     self.set_client_to_monitor_state(addrs);
                 }
                 WorkerMessage::AddClient(client) => {
@@ -156,43 +151,100 @@ impl Server {
                 WorkerMessage::CloseClient(addrs) => {
                     self.remove_client(addrs);
                 }
-                WorkerMessage::NewOperation(operation, addrs) => {
+                WorkerMessage::NewOperation(operation, addrs, ps_sender) => {
                     self.check_monitor(operation, addrs);
+                    self.check_pubsub(addrs, ps_sender);
                     self.total_commands += 1;
                 }
                 WorkerMessage::InfoServer(sender) => {
+                    self.log("Retrieving server info".to_string());
+                    self.verbose("Retrieving server info".to_string());
                     sender.send(self.get_server_info()).unwrap();
                 }
                 WorkerMessage::InfoClients(sender) => {
+                    self.log("Retrieving clients info".to_string());
+                    self.verbose("Retrieving clients info".to_string());
                     sender.send(self.get_clients_info()).unwrap();
                 }
                 WorkerMessage::InfoStats(sender) => {
+                    self.log("Retrieving stats info".to_string());
+                    self.verbose("Retrieving stats info".to_string());
                     sender.send(self.get_stats_info()).unwrap();
                 }
                 WorkerMessage::Verb(verbose_txt) => {
                     self.verbose(verbose_txt);
                 }
-                WorkerMessage::Subscribe(channel, addrs, message_sender, stream) => {
-                    self.subscribe_to_channel(channel, addrs, message_sender, stream);
+                WorkerMessage::Subscribe(channel, addrs, message_sender) => {
+                    self.log(format!(
+                        "Subscribing client {} to channel {}",
+                        &addrs.to_string(),
+                        &channel
+                    ));
+                    self.verbose(format!(
+                        "Subscribing client {} to channel {}",
+                        &addrs.to_string(),
+                        &channel
+                    ));
+                    self.subscribe_to_channel(channel, addrs, message_sender);
                 }
                 WorkerMessage::Unsubscribe(channel, addrs, message_sender) => {
+                    self.log(format!(
+                        "Subscribing client {} from channel {}",
+                        &addrs.to_string(),
+                        &channel
+                    ));
+                    self.verbose(format!(
+                        "Subscribing client {} from channel {}",
+                        &addrs.to_string(),
+                        &channel
+                    ));
                     self.unsubscribe(channel, addrs, message_sender);
                 }
                 WorkerMessage::UnsubscribeAll(addrs, message_sender) => {
+                    self.log(format!(
+                        "Subscribing client {} from all channels",
+                        &addrs.to_string()
+                    ));
+                    self.verbose(format!(
+                        "Subscribing client {} from all channels",
+                        &addrs.to_string()
+                    ));
                     self.unsubscribe_to_all_channels(addrs, message_sender);
                 }
                 WorkerMessage::Publish(channel, response_sender, message) => {
+                    self.log(format!(
+                        "Publishing message \"{}\" to channel {}",
+                        &message.to_string(),
+                        &channel
+                    ));
+                    self.verbose(format!(
+                        "Publishing message \"{}\" to channel {}",
+                        &message.to_string(),
+                        &channel
+                    ));
                     let messages_sent = self.send_message_to_channel(channel, message);
                     response_sender.send(messages_sent).unwrap();
                 }
                 WorkerMessage::Channels(response_sender, pattern) => {
                     if let Some(pattern) = pattern {
+                        self.log(format!(
+                            "Searching channels with pattern {}",
+                            &pattern.to_string()
+                        ));
+                        self.verbose(format!(
+                            "Searching channels with pattern {}",
+                            &pattern.to_string()
+                        ));
                         self.list_active_channels_by_pattern(response_sender, pattern);
                     } else {
+                        self.log(String::from("Listing all channels"));
+                        self.verbose(String::from("Listing all channels"));
                         self.list_active_channels(response_sender);
                     }
                 }
                 WorkerMessage::Numsub(channels, sender) => {
+                    self.log("Searching number of subscribers".to_string());
+                    self.verbose("Searching number of subscribers".to_string());
                     self.list_number_of_subscribers(channels, sender);
                 }
             }
@@ -279,12 +331,13 @@ impl Server {
     /// # let configfile = "./src/dummy_configfile.txt".to_string();
     ///
     /// let mut server = Server::new(port, logfile, verbose, recv, configfile).unwrap();
-    /// assert!(server.log(String::from("random log message")).is_ok());
+    /// server.log(String::from("random log message"));
     /// # let _ = std::fs::remove_file("./src/dummy_logfile.out");
     /// ```
-    pub fn log(&mut self, msg: String) -> Result<(), Error> {
-        self.logger.log(msg.as_bytes())?;
-        Ok(())
+    pub fn log(&mut self, msg: String) {
+        self.logger
+            .log(msg.as_bytes())
+            .unwrap_or_else(|_| println!("Could not log message."));
     }
 
     /// Imprime un mensaje por consola.
@@ -448,7 +501,7 @@ impl Server {
         let verb_aux = string.parse::<usize>();
         match verb_aux {
             Ok(verb) => verbose = verb,
-            Err(_) => println!("parsing error"),
+            Err(_) => println!("Error parsing verbose"),
         }
         verbose
     }
@@ -463,13 +516,34 @@ impl Server {
     /// Verifica si hay algun cliente monitoreando los comandos enviados al servidor.
     /// Si lo hay, le envia el ultimo comando ejecutado.
     pub fn check_monitor(&mut self, operation: RespType, addrs: SocketAddr) {
+        let mut error = false;
         self.clients.iter_mut().for_each(|client| {
             if *client.is_monitoring() {
                 let msg = parser_service::parse_response(RespType::RBulkString(format!(
                     "[{}] {}",
                     addrs, operation
                 )));
-                client.write_to_stream(msg.as_bytes());
+                if client.write_to_stream(msg.as_bytes()).is_err() {
+                    error = true;
+                }
+            }
+        });
+        if error {
+            self.log("Monitor error. Some messages could not be delivered".to_string());
+            self.verbose("Monitor error. Some messages could not be delivered".to_string());
+        }
+    }
+
+    /// Chequea si el cliente está en estado "subscribed".
+    ///
+    /// Verifica si el cliente que está escuchando en la dirección `addrs` está suscrito a algún canal.
+    /// Envia al cliente True si lo está, False si no.
+    pub fn check_pubsub(&mut self, addrs: SocketAddr, sender: Sender<bool>) {
+        self.clients.iter_mut().for_each(|client| {
+            if client.get_address() == &addrs {
+                sender
+                    .send(client.is_subscriber().to_owned())
+                    .expect("Check pubsub error. Some subscriptions could not be sent");
             }
         });
     }
@@ -479,11 +553,14 @@ impl Server {
     /// El cliente pasa a un estado de "debug" donde solo puede recibir los comandos que se ejecutan en el servidor.
     fn set_client_to_monitor_state(&mut self, addrs: SocketAddr) {
         self.clients.iter_mut().for_each(|client| {
-            if client.get_address() == &addrs {
-                client.write_to_stream(
-                    parser_service::parse_response(RespType::RBulkString(String::from("Ok")))
-                        .as_bytes(),
-                );
+            if client.get_address() == &addrs
+                && client
+                    .write_to_stream(
+                        parser_service::parse_response(RespType::RBulkString(String::from("Ok")))
+                            .as_bytes(),
+                    )
+                    .is_ok()
+            {
                 client.set_monitoring(true);
             }
         });
@@ -498,20 +575,18 @@ impl Server {
         channel: String,
         addrs: SocketAddr,
         sender: Sender<usize>,
-        stream: TcpStream,
     ) {
-        let tx = sender.clone();
-
         if let Some(subscribers) = self.channels.get_mut(&channel) {
-            subscribers.insert(addrs.to_string(), (sender, stream));
+            subscribers.push(addrs.to_string());
         } else {
-            let mut inner_map = HashMap::new();
-            inner_map.insert(addrs.to_string(), (sender, stream));
-            self.channels.entry(channel).or_insert(inner_map);
+            let subs = vec![addrs.to_string()];
+            self.channels.entry(channel).or_insert(subs);
         }
         let listening_channels = &self.get_listening_channels(addrs);
 
-        tx.send(*listening_channels).unwrap();
+        sender
+            .send(*listening_channels)
+            .expect("Error subscribing. Could not send listening channels to client.");
         self.update_client_subscribe_status(addrs, true);
     }
 
@@ -530,7 +605,7 @@ impl Server {
     fn get_listening_channels(&self, addrs: SocketAddr) -> usize {
         let mut listening_channels = 0;
         self.channels.iter().for_each(|channel| {
-            if channel.1.get(&addrs.to_string()).is_some() {
+            if channel.1.contains(&addrs.to_string()) {
                 listening_channels += 1;
             }
         });
@@ -543,17 +618,17 @@ impl Server {
     /// Luego, actualiza el estado de suscripción del cliente.
     pub fn unsubscribe_to_all_channels(&mut self, addrs: SocketAddr, sender: Sender<usize>) {
         let mut removed = false;
-        for subscriber in self.channels.values_mut() {
-            match subscriber.get(&addrs.to_string()) {
-                Some(_) => {
-                    subscriber.remove(&addrs.to_string());
-                    removed = true;
-                }
-                None => break,
+        for channel in self.channels.values_mut() {
+            if channel.contains(&addrs.to_string()) {
+                let idx = channel.binary_search(&addrs.to_string()).unwrap();
+                channel.remove(idx);
+                removed = true;
             }
         }
         let listening_channels = self.get_listening_channels(addrs);
-        sender.send(listening_channels).unwrap();
+        sender.send(listening_channels).expect(
+            "Error unsubscribing from all channels. Could not send listening channels to client.",
+        );
         if removed {
             self.update_client_subscribe_status(addrs, false);
         }
@@ -565,33 +640,50 @@ impl Server {
     /// Luego, actualiza el estado de suscripción del cliente.
     pub fn unsubscribe(&mut self, channel: String, addrs: SocketAddr, tx: Sender<usize>) {
         let subscribers = self.channels.get_mut(&channel).unwrap();
-        if subscribers.get(&addrs.to_string()).is_some() {
-            subscribers.remove(&addrs.to_string());
+        if subscribers.contains(&addrs.to_string()) {
+            let idx = subscribers.binary_search(&addrs.to_string()).unwrap();
+            subscribers.remove(idx);
             let listening_channels = self.get_listening_channels(addrs);
-            tx.send(listening_channels).unwrap();
+            tx.send(listening_channels)
+                .expect("Error unsubscribing. Could not send listening channels to client");
             self.update_client_subscribe_status(addrs, false);
         }
     }
 
     /// Envia un mensaje a todas los clientes suscritos al canal especificado.
+    ///
+    /// Devuelve la cantidad de clientes a los que les envió el mensaje.
     pub fn send_message_to_channel(&mut self, channel: String, msg: String) -> usize {
-        let mut sent = 0;
-        let subscribers = self.channels.get_mut(&channel).unwrap();
-        for sender in subscribers.values_mut() {
-            sender
-                .1
-                .write_all(
+        match self.channels.get(&channel) {
+            Some(subscribers) => {
+                let addresses = subscribers.iter().map(|addrs| addrs.to_owned()).collect();
+                self.write_to_client_with_address(
+                    addresses,
                     parser_service::parse_response(RespType::RArray(vec![
                         RespType::RBulkString(String::from("message")),
                         RespType::RBulkString(channel.clone()),
-                        RespType::RBulkString(msg.clone()),
+                        RespType::RBulkString(msg),
                     ]))
                     .as_bytes(),
                 )
-                .unwrap();
-            sender.1.flush().unwrap();
-            sent += 1
+            }
+            None => 0,
         }
+    }
+
+    /// Escribe sobre el stream clientes.
+    ///
+    /// Escribe un arreglo de bytes sobre el stream de todos los clientes cuya dirección este incluida en las direcciones pedidas.
+    /// Devuelve la cantidad de clientes a los que les escribió un mensaje.
+    pub fn write_to_client_with_address(&mut self, addrs: Vec<String>, msg: &[u8]) -> usize {
+        let mut sent = 0;
+        self.clients.iter_mut().for_each(|client| {
+            if addrs.contains(&&client.get_address().to_string())
+                && client.write_to_stream(msg).is_ok()
+            {
+                sent += 1;
+            }
+        });
         sent
     }
 
@@ -603,7 +695,9 @@ impl Server {
                 channels.push(RespType::RBulkString(channel.0.to_string()));
             }
         });
-        sender.send(channels).unwrap();
+        sender
+            .send(channels)
+            .expect("Error listing active channels.");
     }
 
     /// Envia al cliente una lista de todos los canales activos que sigan el patrón especificado
@@ -617,7 +711,9 @@ impl Server {
                 channels.push(RespType::RBulkString(channel.0.to_string()));
             }
         });
-        sender.send(channels).unwrap();
+        sender
+            .send(channels)
+            .expect("Error listing active channels by pattern");
     }
 
     /// Envia al cliente una lista con la cantidad de suscriptores por canal
@@ -631,6 +727,8 @@ impl Server {
             list.push(RespType::RBulkString(channel.to_string()));
             list.push(RespType::RBulkString(counter.to_string()));
         });
-        sender.send(list).unwrap();
+        sender
+            .send(list)
+            .expect("Error listing number of subscribers");
     }
 }

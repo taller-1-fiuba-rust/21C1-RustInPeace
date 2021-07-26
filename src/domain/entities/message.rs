@@ -2,10 +2,7 @@
 
 use super::client::Client;
 use crate::services::utils::resp_type::RespType;
-use std::{
-    net::{SocketAddr, TcpStream},
-    sync::mpsc::Sender,
-};
+use std::{net::SocketAddr, sync::mpsc::Sender};
 
 /// Tipo de mensaje para comunicar al threadpool con sus workers.
 /// El threadpool puede enviar dos tipos de mensajes:
@@ -39,14 +36,14 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 pub enum WorkerMessage {
     Log(String),
     Verb(String),
-    NewOperation(RespType, SocketAddr),
+    NewOperation(RespType, SocketAddr, Sender<bool>),
     SetMonitor(SocketAddr),
     InfoServer(Sender<String>),
     InfoClients(Sender<String>),
     InfoStats(Sender<String>),
     AddClient(Client),
     CloseClient(SocketAddr),
-    Subscribe(String, SocketAddr, Sender<usize>, TcpStream),
+    Subscribe(String, SocketAddr, Sender<usize>),
     Unsubscribe(String, SocketAddr, Sender<usize>),
     UnsubscribeAll(SocketAddr, Sender<usize>),
     Publish(String, Sender<usize>, String),

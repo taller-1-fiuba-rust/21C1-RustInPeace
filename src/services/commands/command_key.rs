@@ -52,7 +52,9 @@ pub fn del(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut n_key_deleted = 0;
     for n in cmd.iter().skip(1) {
         if let RespType::RBulkString(current_key) = n {
-            let mut new_database = database.write().unwrap();
+            let mut new_database = database
+                .write()
+                .expect("Could not get database lock on del");
             if new_database.delete_key(current_key.to_string()) {
                 n_key_deleted += 1;
             }
@@ -120,16 +122,16 @@ pub fn copy(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(source) = &cmd[1] {
             if let RespType::RBulkString(destination) = &cmd[2] {
-                if let Ok(write_guard) = database.write() {
-                    let mut db = write_guard;
-                    let replace = copy_should_replace(cmd);
-                    match db.copy(source.to_string(), destination.to_string(), replace) {
-                        Some(_) => {
-                            return RespType::RInteger(1);
-                        }
-                        None => {
-                            return RespType::RInteger(0);
-                        }
+                let mut db = database
+                    .write()
+                    .expect("Could not get database lock on copy");
+                let replace = copy_should_replace(cmd);
+                match db.copy(source.to_string(), destination.to_string(), replace) {
+                    Some(_) => {
+                        return RespType::RInteger(1);
+                    }
+                    None => {
+                        return RespType::RInteger(0);
                     }
                 }
             }
@@ -211,13 +213,16 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             if let RespType::RBulkString(current_key) = n {
                 let (exist, expired) = database
                     .read()
-                    .unwrap()
+                    .expect("Could not get database read lock on exists")
                     .key_exists_expired(current_key.to_string());
                 if exist {
                     if !expired {
                         key_found += 1;
                     } else {
-                        database.write().unwrap().remove_expired_key(current_key)
+                        database
+                            .write()
+                            .expect("Could not get database write lock on exists")
+                            .remove_expired_key(current_key)
                     }
                 }
             }
@@ -261,7 +266,11 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(key) = &cmd[1] {
-        if database.write().unwrap().persist(key.to_string()) {
+        if database
+            .write()
+            .expect("Could not get database write lock on persist")
+            .persist(key.to_string())
+        {
             return RespType::RInteger(1);
         } else {
             return RespType::RInteger(0);
@@ -308,22 +317,19 @@ pub fn persist(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(current_key) = &cmd[1] {
-            let mut new_database = database.write().unwrap();
+            let mut new_database = database
+                .write()
+                .expect("Could not get database write lock on rename");
             if let RespType::RBulkString(new_key) = &cmd[2] {
                 if new_database.rename_key(current_key.to_string(), new_key.to_string()) {
-                    RespType::RBulkString("OK".to_string())
+                    return RespType::RBulkString("OK".to_string());
                 } else {
-                    RespType::RError("key not found".to_string())
+                    return RespType::RError("key not found".to_string());
                 }
-            } else {
-                RespType::RBulkString("missing parameters".to_string())
             }
-        } else {
-            RespType::RBulkString("missing parameters".to_string())
         }
-    } else {
-        RespType::RBulkString("missing parameters".to_string())
     }
+    RespType::RBulkString("missing parameters".to_string())
 }
 
 /// Configura un tiempo de expiracion sobre una clave a partir del momento en que se envia el comando.
@@ -365,18 +371,18 @@ pub fn rename(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database write lock on expire");
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let now = SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap();
             let new_time = u64::from_str(timeout).unwrap() + now.as_secs();
             let result = db.expire_key(key, &new_time.to_string());
-            return if result {
-                RespType::RInteger(1)
-            } else {
-                RespType::RInteger(0)
-            };
+            if result {
+                return RespType::RInteger(1);
+            }
         }
     }
     RespType::RInteger(0)
@@ -420,14 +426,14 @@ pub fn expire(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() != 3 {
     } else if let RespType::RBulkString(key) = &cmd[1] {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database write lock on expireat");
         if let RespType::RBulkString(timeout) = &cmd[2] {
             let result = db.expire_key(key, timeout);
-            return if result {
-                RespType::RInteger(1)
-            } else {
-                RespType::RInteger(0)
-            };
+            if result {
+                return RespType::RInteger(1);
+            }
         }
     }
     RespType::RInteger(0)
@@ -478,14 +484,22 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let parameters = generate_hashmap(cmd);
     if let RespType::RBulkString(key) = &cmd[1] {
-        let db = database.read().unwrap();
+        let db = database
+            .read()
+            .expect("Could not get database read lock on sort");
         let mut sorted: Vec<String> = Vec::new();
         if parameters.contains_key("by") {
             if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
                 let (mut elements_to_sort, expired) =
                     db.get_values_of_keys_matching_pattern(pattern.to_string(), key.to_string());
-                for v in &expired {
-                    database.write().unwrap().remove_expired_key(v)
+                if !expired.is_empty() {
+                    drop(db);
+                    for v in &expired {
+                        database
+                            .write()
+                            .expect("Could not get database write lock on sort")
+                            .remove_expired_key(v)
+                    }
                 }
 
                 elements_to_sort.sort_by_key(|k| k.1.to_owned());
@@ -496,6 +510,7 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else if let (Some(item), expired) = db.check_timeout_item(key) {
             if expired {
+                drop(db);
                 database.write().unwrap().remove_expired_key(key)
             } else if parameters.contains_key("desc") {
                 sorted = item.sort_descending();
@@ -666,7 +681,9 @@ pub fn generate_hashmap(cmd: &[RespType]) -> HashMap<String, &RespType> {
 /// ```
 pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if let RespType::RBulkString(pattern) = &cmd[1] {
-        let db = database.read().unwrap();
+        let db = database
+            .read()
+            .expect("Could not get database lock on keys");
         let matching_keys = db.get_keys_that_match_pattern(pattern);
         let vec = matching_keys
             .iter()
@@ -770,7 +787,9 @@ pub fn keys(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut number_of_touched_keys = 0;
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on touch");
     if cmd.len() > 1 {
         for n in cmd.iter().skip(1) {
             if let RespType::RBulkString(current_key) = n {
@@ -816,10 +835,16 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.read().unwrap();
+            let db = database
+                .read()
+                .expect("Could not get database read lock on ttl");
             return if let (Some(item), expire) = db.check_timeout_item(key) {
                 if expire {
-                    database.write().unwrap().remove_expired_key(key);
+                    drop(db);
+                    database
+                        .write()
+                        .expect("Could not get database write lock on ttl")
+                        .remove_expired_key(key);
                     RespType::RSignedNumber(-2)
                 } else {
                     match item.get_timeout() {
@@ -832,7 +857,7 @@ pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             };
         }
     }
-    RespType::RInteger(0)
+    RespType::RError(String::from("Invalid request."))
 }
 
 /// Retorna el tipo de dato almacenado en `key`.
@@ -886,38 +911,4 @@ pub fn get_type(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
         }
     }
     RespType::RBulkString(tipo)
-}
-
-#[test]
-fn test_001_se_genera_un_hashmap_a_partir_de_vector_con_asc() {
-    let operation = vec![RespType::RBulkString("ASC".to_string())];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
-}
-
-#[test]
-fn test_002_se_genera_un_hashmap_a_partir_de_vector_con_by_algun_valor() {
-    let operation = vec![
-        RespType::RBulkString("BY".to_string()),
-        RespType::RBulkString("algun_valor".to_string()),
-    ];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
-}
-
-#[test]
-fn test_003_se_genera_un_hashmap_a_partir_de_vector_con_limit_y_los_extremos() {
-    let operation = vec![
-        RespType::RBulkString("LIMIT".to_string()),
-        RespType::RBulkString("0".to_string()),
-        RespType::RBulkString("10".to_string()),
-    ];
-    let hm = generate_hashmap(&operation);
-    for (key, value) in hm {
-        println!("{:?}: {:?}", key, value)
-    }
 }

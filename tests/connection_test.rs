@@ -73,6 +73,14 @@ fn test_main() {
         .set_attribute(String::from("verbose"), String::from("1"))
         .unwrap();
 
+    config
+        .set_attribute(String::from("port"), String::from("8080"))
+        .unwrap();
+
+    config
+        .set_attribute(String::from("timeout"), String::from("300"))
+        .unwrap();
+
     let mut database = Database::new(db_file);
 
     let added_item_1 =
@@ -523,17 +531,16 @@ fn test_main() {
     let server_receiver = Arc::new(Mutex::new(server_receiver));
     let port = String::from("8080");
     let verbose = String::from("0");
-    let port_2 = port.clone();
     let dir = String::from("127.0.0.1");
 
-    let _handle: thread::JoinHandle<()> = thread::spawn(|| {
+    thread::spawn(|| {
         let h = thread::spawn(|| {
             let mut server =
-                Server::new(port_2, log_file, verbose, server_receiver, config_path).unwrap();
+                Server::new(port, log_file, verbose, server_receiver, config_path).unwrap();
             server.listen();
         });
 
-        server_service::init(database, config, port, dir, server_sender);
+        server_service::init(database, config, dir, server_sender);
         h.join().unwrap();
     });
 
@@ -542,7 +549,6 @@ fn test_main() {
 
     for test in TESTS.iter().cloned() {
         let tx = sender.clone();
-
         pool.spawn(move || {
             let res = (test.func)();
 
@@ -550,7 +556,7 @@ fn test_main() {
                 tx.send(format!("\n{}: \n{}\n", test.name, e.to_string()))
                     .unwrap();
             } else {
-                println!("{} .. ok", test.name);
+                println!("Test {} .. ok", test.name);
             }
         });
 
@@ -563,11 +569,10 @@ fn test_main() {
         panic!("{}", err);
     }
 
-    // pool.spawn(shutdown);
-    // println!("join test");
-    // let _ = handle.join().expect("Couldnt join");
+    println!("TOTAL TESTED: {}", TESTS.len());
+
     std::fs::remove_file("./src/dummy_config.txt").unwrap();
-    // std::fs::remove_file("./src/dummy_log.txt").unwrap();
+    std::fs::remove_file("./src/dummy_log.txt").unwrap();
     std::fs::remove_file("./src/dummy_database.txt").unwrap();
 }
 
@@ -1155,11 +1160,6 @@ fn connect() -> Result<redis::Connection, Box<dyn Error>> {
     let client = redis::Client::open(ADDR)?;
     let con = client.get_connection()?;
     Ok(con)
-}
-
-fn _shutdown() {
-    let mut con = connect().unwrap();
-    let _: redis::RedisResult<()> = redis::cmd("SHUTDOWN").query(&mut con);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -3718,7 +3718,6 @@ fn test_rpush_lista_inexistente() -> TestResult {
 //-------------------------------------------------------------------------------------------------------------------------------
 
 fn test_pubsub() -> TestResult {
-    // Connection for subscriber api
     let mut pubsub_con = connect().unwrap();
 
     // Barrier is used to make test thread wait to publish
@@ -3727,7 +3726,7 @@ fn test_pubsub() -> TestResult {
     let close_barrier = Arc::new(Barrier::new(4));
     let pubsub_barrier = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let _thread = thread::spawn(move || {
+    thread::spawn(move || {
         let mut pubsub = pubsub_con.as_pubsub();
         pubsub.subscribe("foo").unwrap();
 
@@ -3741,7 +3740,7 @@ fn test_pubsub() -> TestResult {
     let mut pubsub_con_2 = connect().unwrap();
     let pubsub_barrier_2 = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let _thread_2 = thread::spawn(move || {
+    thread::spawn(move || {
         let mut pubsub_2 = pubsub_con_2.as_pubsub();
         pubsub_2.subscribe("foo").unwrap();
 
@@ -3752,7 +3751,7 @@ fn test_pubsub() -> TestResult {
     let mut pubsub_con_3 = connect().unwrap();
     let pubsub_barrier_3 = barrier.clone();
     let close_pubsub = close_barrier.clone();
-    let _thread_3 = thread::spawn(move || {
+    thread::spawn(move || {
         let mut pubsub_3 = pubsub_con_3.as_pubsub();
         pubsub_3.subscribe("helloworld").unwrap();
 
@@ -3802,9 +3801,6 @@ fn test_pubsub() -> TestResult {
         pass = false;
     }
 
-    // thread.join().expect("Something went wrong");
-    // thread_2.join().expect("Something went wrong");
-    // thread_3.join().expect("Something went wrong");
     if pass {
         return Ok(());
     } else {
@@ -3823,5 +3819,3 @@ fn test_pubsub() -> TestResult {
         }));
     }
 }
-
-//test unsubscribe -> falta funcionalidad para estado tal que no pueda mandar ningun otro comando que los de pubsub

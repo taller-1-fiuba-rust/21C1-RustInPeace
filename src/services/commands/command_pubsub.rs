@@ -1,7 +1,7 @@
 //! Servicio que implementa todos los comandos Pub/Sub
 
 use std::{
-    net::{SocketAddr, TcpStream},
+    net::SocketAddr,
     sync::mpsc::{self, Sender},
 };
 
@@ -12,12 +12,7 @@ use crate::{domain::entities::message::WorkerMessage, services::utils::resp_type
 /// Una vez que el cliente se suscribe a un canal, no puede ejecutar ningún otro comando.
 /// `Subscribe` es una función bloqueante, sólo recibe mensajes que hayan sido publicados al canal.
 /// Devuelve el nombre del canal y la cantidad de clientes suscritos al canal.
-pub fn subscribe(
-    cmd: &[RespType],
-    tx: &Sender<WorkerMessage>,
-    addrs: SocketAddr,
-    stream: TcpStream,
-) -> RespType {
+pub fn subscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAddr) -> RespType {
     let (messages_sender, messages_receiver) = mpsc::channel();
 
     for channel in &cmd[1..] {
@@ -26,12 +21,10 @@ pub fn subscribe(
                 channel.to_string(),
                 addrs,
                 messages_sender.clone(),
-                stream.try_clone().unwrap(),
             ))
-            .unwrap();
+            .expect("Could not send Subscribe message");
 
             if let Ok(n_channels) = messages_receiver.recv() {
-                //el integer es la cantidad de canales que esta escuchando
                 return RespType::RArray(vec![
                     RespType::RBulkString(String::from("subscribe")),
                     RespType::RBulkString(channel.to_string()),
@@ -57,7 +50,7 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
                     addrs,
                     messages_sender.clone(),
                 ))
-                .unwrap();
+                .expect("Could not send Unsubscribe message");
 
                 if let Ok(n_channels) = messages_receiver.recv() {
                     return RespType::RArray(vec![
@@ -70,11 +63,11 @@ pub fn unsubscribe(cmd: &[RespType], tx: &Sender<WorkerMessage>, addrs: SocketAd
         }
     } else {
         tx.send(WorkerMessage::UnsubscribeAll(addrs, messages_sender))
-            .unwrap();
+            .expect("Could not send UnsubscribeAll message");
         if let Ok(n_channels) = messages_receiver.recv() {
             return RespType::RArray(vec![
                 RespType::RBulkString(String::from("unsubscribe")),
-                RespType::RBulkString("all".to_string()),
+                RespType::RBulkString("bar".to_string()),
                 RespType::RInteger(n_channels),
             ]);
         }
@@ -95,7 +88,7 @@ pub fn publish(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
                 response_sender,
                 message.to_string(),
             ))
-            .unwrap();
+            .expect("Could not send publish message");
 
             if let Ok(res) = response_receiver.recv() {
                 return RespType::RInteger(res);
@@ -137,7 +130,7 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
                 response_sender,
                 Some(pattern.to_string()),
             ))
-            .unwrap();
+            .expect("Could not send Channels message");
 
             if let Ok(res) = response_receiver.recv() {
                 return RespType::RArray(res);
@@ -145,7 +138,7 @@ fn pubsub_channels(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
         }
     } else {
         tx.send(WorkerMessage::Channels(response_sender, None))
-            .unwrap();
+            .expect("Could not send Channels message");
 
         if let Ok(res) = response_receiver.recv() {
             return RespType::RArray(res);
@@ -167,7 +160,7 @@ fn pubsub_numsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
         }
     }
     tx.send(WorkerMessage::Numsub(channels, messages_sender))
-        .unwrap();
+        .expect("Could not send Numsub message");
 
     if let Ok(res) = messages_receiver.recv() {
         return RespType::RArray(res);

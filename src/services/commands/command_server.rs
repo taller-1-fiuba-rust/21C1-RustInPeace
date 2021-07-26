@@ -14,7 +14,8 @@ use std::sync::{Arc, RwLock};
 /// Envía una directiva al server para que el cliente pase a un estado pasivo donde solo reciba una copia en tiempo real de
 /// todos los comandos que se envíen al servidor.
 pub fn monitor(tx: &Sender<WorkerMessage>, addrs: SocketAddr) {
-    tx.send(WorkerMessage::SetMonitor(addrs)).unwrap();
+    tx.send(WorkerMessage::SetMonitor(addrs))
+        .expect("Could not send monitor message");
 }
 
 /// Devuelve información y estadísticas sobre el servidor.
@@ -105,7 +106,8 @@ fn get_all_info(tx: &Sender<WorkerMessage>) -> String {
 /// Devuelve información general del servidor.
 fn get_server_info(tx: &Sender<WorkerMessage>) -> String {
     let (info_tx, info_rx) = mpsc::channel();
-    tx.send(WorkerMessage::InfoServer(info_tx)).unwrap();
+    tx.send(WorkerMessage::InfoServer(info_tx))
+        .expect("Could not send InfoServer message");
     if let Ok(info) = info_rx.recv() {
         return info;
     }
@@ -115,7 +117,8 @@ fn get_server_info(tx: &Sender<WorkerMessage>) -> String {
 /// Devuelve información sobre los clientes conectados al servidor.
 fn get_clients_info(tx: &Sender<WorkerMessage>) -> String {
     let (info_tx, info_rx) = mpsc::channel();
-    tx.send(WorkerMessage::InfoClients(info_tx)).unwrap();
+    tx.send(WorkerMessage::InfoClients(info_tx))
+        .expect("Could not send InfoClients message");
     if let Ok(info) = info_rx.recv() {
         return info;
     }
@@ -125,7 +128,8 @@ fn get_clients_info(tx: &Sender<WorkerMessage>) -> String {
 /// Devuelve estadísticas sobre el uso del servidor.
 fn get_stats_info(tx: &Sender<WorkerMessage>) -> String {
     let (info_tx, info_rx) = mpsc::channel();
-    tx.send(WorkerMessage::InfoStats(info_tx)).unwrap();
+    tx.send(WorkerMessage::InfoStats(info_tx))
+        .expect("Could not send InfoStats message");
     if let Ok(info) = info_rx.recv() {
         return info;
     }
@@ -201,7 +205,12 @@ fn get_errorstats_info() -> String {
 /// # std::fs::remove_file("dummy_db_dbsize.csv").unwrap();
 /// ```
 pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
-    RespType::RInteger(database.read().unwrap().get_size())
+    RespType::RInteger(
+        database
+            .read()
+            .expect("Could not get read lock of database in dbsize")
+            .get_size(),
+    )
 }
 
 /// Elimina todas claves y valores almacenados.
@@ -231,7 +240,9 @@ pub fn dbsize(database: &Arc<RwLock<Database>>) -> RespType {
 /// # std::fs::remove_file("dummy_db_flushdb.csv").unwrap();
 /// ```
 pub fn flushdb(database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get write of database on flushdb");
     new_database.clean_items();
     RespType::RBulkString("Erased database".to_string())
 }

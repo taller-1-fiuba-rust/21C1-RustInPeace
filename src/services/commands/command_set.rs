@@ -52,7 +52,9 @@ use std::sync::{Arc, RwLock};
 pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on add");
             let mut values_to_add = Vec::new();
             for n in cmd.iter().skip(2) {
                 if let RespType::RBulkString(value) = n {
@@ -105,11 +107,20 @@ pub fn add(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.read().unwrap();
+            let db = database
+                .read()
+                .expect("Could not get database read lock on scard");
             let (item, expired) = db.check_timeout_item(key);
             if item.is_some() && expired {
-                database.write().unwrap().remove_expired_key(key)
+                drop(db);
+                database
+                    .write()
+                    .expect("Could not get database write lock on scard")
+                    .remove_expired_key(key)
             }
+            let db = database
+                .read()
+                .expect("Could not get database read lock on scard");
             return RespType::RInteger(db.get_len_of_set(key));
         }
     }
@@ -152,12 +163,21 @@ pub fn scard(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 2 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.read().unwrap();
+            let db = database
+                .read()
+                .expect("Could not get database read lock on smembers");
             let (item, expired) = db.check_timeout_item(key);
             if item.is_some() && expired {
-                database.write().unwrap().remove_expired_key(key)
+                drop(db);
+                database
+                    .write()
+                    .expect("Could not get database write lock on smembers")
+                    .remove_expired_key(key)
             }
             if let RespType::RBulkString(member) = &cmd[2] {
+                let db = database
+                    .read()
+                    .expect("Could not get database read lock on smembers");
                 return RespType::RInteger(db.is_member_of_set(key, member));
             }
         }
@@ -207,17 +227,27 @@ pub fn sismember(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType
 pub fn smembers(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut final_members = Vec::new();
-            let db = database.read().unwrap();
+            let db = database
+                .read()
+                .expect("Could not get database read lock on smembers");
             let (item, expired) = db.check_timeout_item(key);
             if item.is_some() && expired {
-                database.write().unwrap().remove_expired_key(key)
+                drop(db);
+                database
+                    .write()
+                    .expect("Could not get database write lock on smembers")
+                    .remove_expired_key(key)
             }
+            let db = database
+                .read()
+                .expect("Could not get database read lock on smembers");
             let members = db.get_members_of_set(key);
-            members
-                .iter()
-                .for_each(|member| final_members.push(RespType::RBulkString(member.to_string())));
-            return RespType::RArray(final_members);
+            return RespType::RArray(
+                members
+                    .iter()
+                    .map(|member| RespType::RBulkString(member.to_string()))
+                    .collect(),
+            );
         }
     }
     RespType::RNullArray()
@@ -263,7 +293,9 @@ pub fn srem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let mut deleted = 0;
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let mut db = database.write().unwrap();
+            let mut db = database
+                .write()
+                .expect("Could not get database lock on srem");
             for n in cmd.iter().skip(2) {
                 if let RespType::RBulkString(member) = n {
                     let removed = db.remove_member_from_set(key, member);

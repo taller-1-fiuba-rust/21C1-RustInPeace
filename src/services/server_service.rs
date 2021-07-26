@@ -8,33 +8,38 @@ use crate::domain::entities::message::WorkerMessage;
 use crate::domain::implementations::database::Database;
 use crate::services::commander::handle_command;
 use crate::services::database_service::dump_to_file;
+use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, RwLock};
-use std::thread;
+use std::time::Duration;
+use std::{thread, u64};
 
 /// Inicia la conexion TCP
 ///
-/// Crea un Threadpool con X workers (definir) y en un hilo de ejecución distinto crea una conexión TCP
+/// Crea un Threadpool con 10 workers y en un hilo de ejecución distinto crea una conexión TCP
 /// que va a quedar pendiente de recibir clientes y mensajes nuevos.
 /// Establece un channel entre la entidad `Server` y el cliente para que cada cliente pueda recibir y enviar información
 /// al servidor de manera concurrente.
-pub fn init(
-    db: Database,
-    config: Config,
-    port: String,
-    dir: String,
-    server_sender: Sender<WorkerMessage>,
-) {
-    let pool = ThreadPool::new(4);
+/// En un tercer hilo de ejecución se hace una bajada periódica de los datos almacenados en Database al archivo `dump.rdb`.
+/// Si la configuración no tiene especificado un timeout válido, se asigna 300 segundos por defecto.
+pub fn init(db: Database, config: Config, dir: String, server_sender: Sender<WorkerMessage>) {
+    let port = config
+        .get_attribute(String::from("port"))
+        .expect("Error: Port config not set.");
+    let timeout = config
+        .get_attribute("timeout".to_string())
+        .expect("Error: Timeout config not set.")
+        .parse::<u64>()
+        .unwrap_or(300);
+    let pool = ThreadPool::new(10);
     let database = Arc::new(RwLock::new(db));
     let conf = Arc::new(RwLock::new(config));
     let cloned_db = database.clone();
 
     match TcpListener::bind(format!("{}:{}", dir, port)) {
         Ok(listener) => {
-            // Creo un thread para que vaya iterando mientras el server esté up
             thread::spawn(move || {
                 dump_to_file(cloned_db);
             });
@@ -44,8 +49,12 @@ pub fn init(
                         let tx = server_sender.clone();
                         let conf_lock = conf.clone();
                         let cloned_database = database.clone();
+                        stream
+                            .set_read_timeout(Some(Duration::from_secs(timeout)))
+                            .expect("Could not set a read timeout");
+
                         pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock);
+                            handle_connection(stream, tx, cloned_database, conf_lock).unwrap_or(());
                         });
                     }
                     Err(_) => {
@@ -55,11 +64,11 @@ pub fn init(
                 }
             }
         }
-        Err(_) => {
-            println!("Listener couldn't be created");
+        Err(e) => {
+            panic!("Listener couldn't be created. Error: {}", e.to_string());
         }
     }
-    println!("Shutting down.");
+    println!("Shutting down...");
 }
 
 /// Lee e interpreta mensajes del cliente.
@@ -74,10 +83,11 @@ pub fn handle_connection(
     tx: Sender<WorkerMessage>,
     database: Arc<RwLock<Database>>,
     config: Arc<RwLock<Config>>,
-) {
-    let client_addrs = stream.peer_addr().unwrap();
-    let client = Client::new(client_addrs, stream.try_clone().unwrap());
-    tx.send(WorkerMessage::AddClient(client)).unwrap();
+) -> Result<(), Box<dyn Error>> {
+    let client_addrs = stream.peer_addr()?;
+    let client = Client::new(client_addrs, stream.try_clone()?);
+    tx.send(WorkerMessage::AddClient(client))
+        .expect("Could not send client to server");
 
     log(
         format!("Connection to address {} established\r\n", client_addrs),
@@ -88,7 +98,6 @@ pub fn handle_connection(
         &tx,
     );
 
-    // stream.set_read_timeout(Some(Duration::from_millis(100))).unwrap();
     loop {
         let mut buf = [0u8; 512];
         match stream.read(&mut buf) {
@@ -117,43 +126,48 @@ pub fn handle_connection(
                     Ok(parsed_request) => {
                         log(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
                         verbose(format!("Parsed request: {:?}\r\n", parsed_request), &tx);
-
+                        let mut subscribed = false;
+                        let (ps_sender, ps_recv) = mpsc::channel();
                         tx.send(WorkerMessage::NewOperation(
                             parsed_request.clone(),
                             client_addrs,
+                            ps_sender,
                         ))
                         .unwrap();
 
-                        if let Some(res) = handle_command(
+                        if let Ok(pubsub_state) = ps_recv.recv() {
+                            subscribed = pubsub_state;
+                        }
+
+                        let res = handle_command(
                             parsed_request,
                             &tx,
                             client_addrs,
                             &database,
                             &config,
-                            stream.try_clone().unwrap(),
-                        ) {
-                            let response = parse_response(res);
-                            log(
-                                format!(
-                                    "Response for {}. Message: {:?}. Response: {}\r\n",
-                                    client_addrs,
-                                    String::from_utf8_lossy(&buf[..size]),
-                                    response
-                                ),
-                                &tx,
-                            );
-                            verbose(
-                                format!(
-                                    "Response for {}. Message: {:?}. Response: {}\r\n",
-                                    client_addrs,
-                                    String::from_utf8_lossy(&buf[..size]),
-                                    response
-                                ),
-                                &tx,
-                            );
-                            stream.write_all(response.as_bytes()).unwrap();
-                            stream.flush().unwrap();
-                        }
+                            subscribed,
+                        )?;
+                        let response = parse_response(res);
+                        log(
+                            format!(
+                                "Response for {}. Message: {:?}. Response: {}\r\n",
+                                client_addrs,
+                                String::from_utf8_lossy(&buf[..size]),
+                                response
+                            ),
+                            &tx,
+                        );
+                        verbose(
+                            format!(
+                                "Response for {}. Message: {:?}. Response: {}\r\n",
+                                client_addrs,
+                                String::from_utf8_lossy(&buf[..size]),
+                                response
+                            ),
+                            &tx,
+                        );
+                        stream.write_all(response.as_bytes())?;
+                        stream.flush()?;
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);
@@ -168,7 +182,8 @@ pub fn handle_connection(
         }
     }
 
-    tx.send(WorkerMessage::CloseClient(client_addrs)).unwrap();
+    tx.send(WorkerMessage::CloseClient(client_addrs))
+        .expect("Could not close client");
     log(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
@@ -177,16 +192,21 @@ pub fn handle_connection(
         format!("Connection to address {} closed\r\n", client_addrs),
         &tx,
     );
+    Ok(())
 }
 
-/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-/// El sender envia el mensaje Log
+/// Envia un mensaje al Logger.
+///
+/// El sender envia el mensaje al servidor para que lo escriba en el archivo de logs.
 fn log(msg: String, tx: &Sender<WorkerMessage>) {
-    tx.send(WorkerMessage::Log(msg)).unwrap();
+    tx.send(WorkerMessage::Log(msg))
+        .expect("Could not send log.");
 }
 
-/// Recibe un mensaje msg de tipo String y un sender tx de mensajes de tipo WorkerMessage
-/// El sender envia el mensaje Verbose
+/// Imprime un mensaje por consola.
+///
+/// El sender envia el mensaje al servidor para que lo imprima.
 fn verbose(msg: String, tx: &Sender<WorkerMessage>) {
-    tx.send(WorkerMessage::Verb(msg)).unwrap();
+    tx.send(WorkerMessage::Verb(msg))
+        .expect("Could not send verbose");
 }

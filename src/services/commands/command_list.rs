@@ -2,6 +2,7 @@
 
 use crate::domain::entities::key_value_item::ValueType;
 use crate::domain::implementations::database::Database;
+use crate::errors::database_error::DatabaseError;
 use crate::services::utils::resp_type::RespType;
 use std::sync::{Arc, RwLock};
 use std::usize;
@@ -38,7 +39,9 @@ use std::usize;
 /// # let _ = std::fs::remove_file("dummy_db_llen.csv");
 /// ```
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let new_database = database.read().unwrap();
+    let new_database = database
+        .read()
+        .expect("Could not get database lock on llen");
     if let RespType::RBulkString(key) = &cmd[1] {
         if let (Some(item), false) = new_database.check_timeout_item(key) {
             if let ValueType::ListType(current_value) = item.get_value().to_owned() {
@@ -49,12 +52,13 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else {
             if let (Some(_), true) = new_database.check_timeout_item(key) {
+                drop(new_database);
                 database.write().unwrap().remove_expired_key(key)
             }
             RespType::RInteger(0)
         }
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
@@ -62,6 +66,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Por defecto, elimina el primer elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
 /// los primeros `count` elementos.
+/// Si `count` no puede representarse como un numero entero sin signo, se considera 1 por defecto.
 /// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
 /// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del primer elemento.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
@@ -97,62 +102,34 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_lpop.csv");
 /// ```
 pub fn lpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on lpop");
     if let RespType::RBulkString(key) = &cmd[1] {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
                 let popped_elements =
-                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                    db.pop_elements_from_list(key, cantidad.parse::<usize>().unwrap_or(1));
                 if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
+                    return RespType::RArray(
+                        popped
+                            .iter()
+                            .map(|element| RespType::RBulkString(element.to_string()))
+                            .collect(),
+                    );
                 } else {
                     return RespType::RNullBulkString();
                 }
             }
         } else {
             let popped_elements = db.pop_elements_from_list(key, 1);
-            if popped_elements == None {
+            if popped_elements.is_none() {
                 return RespType::RBulkString("()".to_string());
             }
             if let Some(popped_element) = popped_elements {
                 if !popped_element.is_empty() {
                     return RespType::RBulkString(popped_element[0].to_owned());
                 }
-            }
-        }
-    }
-    RespType::RError("Invalid request".to_string())
-}
-
-pub fn rpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
-    if let RespType::RBulkString(key) = &cmd[1] {
-        if cmd.len() == 3 {
-            if let RespType::RBulkString(cantidad) = &cmd[2] {
-                let popped_elements =
-                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
-                if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
-                } else {
-                    return RespType::RNullBulkString();
-                }
-            }
-        } else {
-            let popped_elements = db.rpop_elements_from_list(key, 1);
-            if let Some(popped_element) = popped_elements {
-                if !popped_element.is_empty() {
-                    return RespType::RBulkString(popped_element[0].to_owned());
-                }
-            } else {
-                return RespType::RNullBulkString();
             }
         }
     }
@@ -197,7 +174,9 @@ pub fn rpop_modelo(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespTy
 /// # let _ = std::fs::remove_file("dummy_db_push.csv");
 /// ```
 pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on push");
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         if is_reverse {
@@ -220,7 +199,7 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
             RespType::RError("error - not list type".to_string())
         }
     } else {
-        RespType::RError("empty request".to_string())
+        RespType::RError("Invalid request".to_string())
     }
 }
 
@@ -263,7 +242,9 @@ pub fn push(cmd: &[RespType], database: &Arc<RwLock<Database>>, is_reverse: bool
 /// # let _ = std::fs::remove_file("dummy_db_lpushx.csv");
 /// ```
 pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on lpushx");
     let mut vec_aux = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         for n in cmd.iter().skip(2).rev() {
@@ -321,30 +302,30 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_lrange.csv");
 /// ```
 pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let new_database = database.read().unwrap();
-    if let RespType::RBulkString(key) = &cmd[1] {
-        if let RespType::RBulkString(lower_bound) = &cmd[2] {
-            if let RespType::RBulkString(upper_bound) = &cmd[3] {
-                if let Some(value_vec) =
-                    new_database.get_values_in_range(key, lower_bound, upper_bound)
-                {
-                    let mut value_vec_resptype = vec![];
-                    for elemento in value_vec {
-                        value_vec_resptype.push(RespType::RBulkString(elemento));
+    let new_database = database
+        .read()
+        .expect("Could not get database lock on lrange");
+    if cmd.len() > 3 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(lower_bound) = &cmd[2] {
+                if let RespType::RBulkString(upper_bound) = &cmd[3] {
+                    if let Some(value_vec) =
+                        new_database.get_values_in_range(key, lower_bound, upper_bound)
+                    {
+                        let mut value_vec_resptype = vec![];
+                        for elemento in value_vec {
+                            value_vec_resptype.push(RespType::RBulkString(elemento));
+                        }
+                        return RespType::RArray(value_vec_resptype);
                     }
-                    RespType::RArray(value_vec_resptype)
-                } else {
-                    RespType::RBulkString("error".to_string())
+                    return RespType::RBulkString(
+                        "error - Expected list. Got another value type".to_string(),
+                    );
                 }
-            } else {
-                RespType::RBulkString("No upper_bound_specified".to_string())
             }
-        } else {
-            RespType::RBulkString("No lower_bound_specified".to_string())
         }
-    } else {
-        RespType::RError("Invalid request".to_string())
     }
+    RespType::RError("Invalid request".to_string())
 }
 
 /// Devuelve el valor en la posición `index` de la lista asociada a una `key`.
@@ -426,19 +407,44 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 3 {
-        let db = database.read().unwrap();
+        let db = database
+            .read()
+            .expect("Could not get database read lock on lindex");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
                 let (item, expire) = db.check_timeout_item(key);
                 if item.is_some() && expire {
-                    database.write().unwrap().remove_expired_key(key)
+                    drop(db);
+                    database
+                        .write()
+                        .expect("Could not get database write lock on lindex")
+                        .remove_expired_key(key)
                 }
+                let db = database
+                    .read()
+                    .expect("Could not get database read lock on lindex");
                 let current_value_in_list_by_index = db.get_value_by_index(key, index);
-                return if let Some(value) = current_value_in_list_by_index {
-                    RespType::RBulkString(value)
-                } else {
-                    RespType::RError("value is not list type".to_string())
-                };
+
+                match current_value_in_list_by_index {
+                    Ok(value) => {
+                        return RespType::RBulkString(value);
+                    }
+                    Err(e) => match e {
+                        DatabaseError::InvalidParameter(err) => {
+                            return RespType::RError(err);
+                        }
+                        DatabaseError::InvalidValueType(err) => {
+                            return RespType::RError(err);
+                        }
+                        DatabaseError::MissingKey() => {
+                            return RespType::RNullBulkString();
+                        }
+                    },
+                }
+                //return if let Ok(value) = current_value_in_list_by_index {
+                //    RespType::RBulkString(value)
+                //} else {
+                //};
             }
         }
     }
@@ -450,6 +456,7 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// Si `count` es mayor a 0, elimina aquellos elementos leyendo la lista de izquierda a derecha.
 /// Si `count` es menor a 0, elimina aquellos elementos leyendo la lista de derecha a izquierda.
 /// Si `count` es igual a 0, elimina todos los elementos que coincidan con el especificado.
+/// Si `count` no puede representarse como un número entero, se asigna 1.
 /// Si `key` no existe, retorna 0.
 /// Retorna la cantidad de elementos eliminados de la lista.
 ///
@@ -486,7 +493,9 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 4 {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database lock on lrem");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(count) = &cmd[2] {
                 if let RespType::RBulkString(element) = &cmd[3] {
@@ -547,7 +556,9 @@ pub fn lrem(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 4 {
-        let mut db = database.write().unwrap();
+        let mut db = database
+            .write()
+            .expect("Could not get database lock on lset");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
                 if let RespType::RBulkString(value) = &cmd[3] {
@@ -568,6 +579,7 @@ pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 ///
 /// Por defecto, elimina el último elemento de la lista. Si se le pasa el parámetro opcional `count`, elimina
 /// los últimos `count` elementos.
+/// Si `count` no puede representarse como un numero entero sin signo, se considera 1 por defecto.
 /// Si la clave no existe, retorna `nil`. Si existe y `count` es mayor a 1 retorna un array con los elementos eliminados.
 /// Si existe y no recibe el parámetro `count`, devuelve un bulkstring con el valor del último elemento.
 /// Ante un error inesperado, devuelve Error `Invalid request`.
@@ -603,18 +615,21 @@ pub fn lset(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_rpop_command.csv");
 /// ```
 pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut db = database.write().unwrap();
+    let mut db = database
+        .write()
+        .expect("Could not get database lock on rpop");
     if let RespType::RBulkString(key) = &cmd[1] {
         if cmd.len() == 3 {
             if let RespType::RBulkString(cantidad) = &cmd[2] {
                 let popped_elements =
-                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap());
+                    db.rpop_elements_from_list(key, cantidad.parse::<usize>().unwrap_or(1));
                 if let Some(popped) = popped_elements {
-                    let mut p = Vec::new();
-                    popped.iter().for_each(|element| {
-                        p.push(RespType::RBulkString(element.to_string()));
-                    });
-                    return RespType::RArray(p);
+                    return RespType::RArray(
+                        popped
+                            .iter()
+                            .map(|element| RespType::RBulkString(element.to_string()))
+                            .collect(),
+                    );
                 } else {
                     return RespType::RNullBulkString();
                 }
@@ -671,7 +686,9 @@ pub fn rpop(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_rpushx_command.csv");
 /// ```
 pub fn rpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let mut new_database = database.write().unwrap();
+    let mut new_database = database
+        .write()
+        .expect("Could not get database lock on rpushx");
     let mut new_elements = vec![];
     if let RespType::RBulkString(key) = &cmd[1] {
         for n in cmd.iter().skip(2) {

@@ -89,7 +89,9 @@ impl KeyValueItemSerialized {
         let last_access_time_r = u64::from_str(line[1]);
         match last_access_time_r {
             Ok(last_access_time) => {
-                let timeout = line[2].parse::<KeyAccessTime>().unwrap();
+                let timeout = line[2]
+                    .parse::<KeyAccessTime>()
+                    .unwrap_or(KeyAccessTime::Volatile(0));
                 (
                     line[0].to_string(),
                     ValueTimeItemBuilder::new(value)
