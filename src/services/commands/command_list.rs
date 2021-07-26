@@ -38,7 +38,9 @@ use std::usize;
 /// # let _ = std::fs::remove_file("dummy_db_llen.csv");
 /// ```
 pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let new_database = database.read().expect("Could not get database lock on llen");
+    let new_database = database
+        .read()
+        .expect("Could not get database lock on llen");
     if let RespType::RBulkString(key) = &cmd[1] {
         if let (Some(item), false) = new_database.check_timeout_item(key) {
             if let ValueType::ListType(current_value) = item.get_value().to_owned() {
@@ -49,6 +51,7 @@ pub fn llen(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else {
             if let (Some(_), true) = new_database.check_timeout_item(key) {
+                drop(new_database);
                 database.write().unwrap().remove_expired_key(key)
             }
             RespType::RInteger(0)
@@ -298,7 +301,9 @@ pub fn lpushx(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// # let _ = std::fs::remove_file("dummy_db_lrange.csv");
 /// ```
 pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
-    let new_database = database.read().expect("Could not get database lock on lrange");
+    let new_database = database
+        .read()
+        .expect("Could not get database lock on lrange");
     if let RespType::RBulkString(key) = &cmd[1] {
         if let RespType::RBulkString(lower_bound) = &cmd[2] {
             if let RespType::RBulkString(upper_bound) = &cmd[3] {
@@ -403,13 +408,22 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 /// ```
 pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() == 3 {
-        let db = database.read().expect("Could not get database read lock on lindex");
+        let db = database
+            .read()
+            .expect("Could not get database read lock on lindex");
         if let RespType::RBulkString(key) = &cmd[1] {
             if let RespType::RBulkString(index) = &cmd[2] {
                 let (item, expire) = db.check_timeout_item(key);
                 if item.is_some() && expire {
-                    database.write().expect("Could not get database write lock on lindex").remove_expired_key(key)
+                    drop(db);
+                    database
+                        .write()
+                        .expect("Could not get database write lock on lindex")
+                        .remove_expired_key(key)
                 }
+                let db = database
+                    .read()
+                    .expect("Could not get database read lock on lindex");
                 let current_value_in_list_by_index = db.get_value_by_index(key, index);
                 return if let Some(value) = current_value_in_list_by_index {
                     RespType::RBulkString(value)

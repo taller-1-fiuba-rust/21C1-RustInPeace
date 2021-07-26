@@ -775,6 +775,7 @@ impl Database {
         if let Some(item) = item {
             let item_value = item.get_copy_of_value();
             let item_time = item.get_copy_of_timeout();
+            self.delete_key(current_key);
             self.add(
                 new_key,
                 ValueTimeItemBuilder::new(item_value)

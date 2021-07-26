@@ -219,7 +219,10 @@ pub fn exists(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     if !expired {
                         key_found += 1;
                     } else {
-                        database.write().expect("Could not get database write lock on exists").remove_expired_key(current_key)
+                        database
+                            .write()
+                            .expect("Could not get database write lock on exists")
+                            .remove_expired_key(current_key)
                     }
                 }
             }
@@ -481,14 +484,22 @@ pub fn expireat(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType 
 pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let parameters = generate_hashmap(cmd);
     if let RespType::RBulkString(key) = &cmd[1] {
-        let db = database.read().expect("Could not get database read lock on sort");
+        let db = database
+            .read()
+            .expect("Could not get database read lock on sort");
         let mut sorted: Vec<String> = Vec::new();
         if parameters.contains_key("by") {
             if let RespType::RBulkString(pattern) = parameters.get("by").unwrap() {
                 let (mut elements_to_sort, expired) =
                     db.get_values_of_keys_matching_pattern(pattern.to_string(), key.to_string());
-                for v in &expired {
-                    database.write().expect("Could not get database write lock on sort").remove_expired_key(v)
+                if !expired.is_empty() {
+                    drop(db);
+                    for v in &expired {
+                        database
+                            .write()
+                            .expect("Could not get database write lock on sort")
+                            .remove_expired_key(v)
+                    }
                 }
 
                 elements_to_sort.sort_by_key(|k| k.1.to_owned());
@@ -499,6 +510,7 @@ pub fn sort(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
             }
         } else if let (Some(item), expired) = db.check_timeout_item(key) {
             if expired {
+                drop(db);
                 database.write().unwrap().remove_expired_key(key)
             } else if parameters.contains_key("desc") {
                 sorted = item.sort_descending();
@@ -823,10 +835,16 @@ pub fn touch(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
 pub fn get_ttl(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     if cmd.len() > 1 {
         if let RespType::RBulkString(key) = &cmd[1] {
-            let db = database.read().expect("Could not get database read lock on ttl");
+            let db = database
+                .read()
+                .expect("Could not get database read lock on ttl");
             return if let (Some(item), expire) = db.check_timeout_item(key) {
                 if expire {
-                    database.write().expect("Could not get database write lock on ttl").remove_expired_key(key);
+                    drop(db);
+                    database
+                        .write()
+                        .expect("Could not get database write lock on ttl")
+                        .remove_expired_key(key);
                     RespType::RSignedNumber(-2)
                 } else {
                     match item.get_timeout() {
