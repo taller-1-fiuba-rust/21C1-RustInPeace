@@ -2,6 +2,7 @@
 
 use crate::domain::entities::key_value_item::ValueType;
 use crate::domain::implementations::database::Database;
+use crate::errors::database_error::DatabaseError;
 use crate::services::utils::resp_type::RespType;
 use std::sync::{Arc, RwLock};
 use std::usize;
@@ -304,29 +305,27 @@ pub fn lrange(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
     let new_database = database
         .read()
         .expect("Could not get database lock on lrange");
-    if let RespType::RBulkString(key) = &cmd[1] {
-        if let RespType::RBulkString(lower_bound) = &cmd[2] {
-            if let RespType::RBulkString(upper_bound) = &cmd[3] {
-                if let Some(value_vec) =
-                    new_database.get_values_in_range(key, lower_bound, upper_bound)
-                {
-                    let mut value_vec_resptype = vec![];
-                    for elemento in value_vec {
-                        value_vec_resptype.push(RespType::RBulkString(elemento));
+    if cmd.len() > 3 {
+        if let RespType::RBulkString(key) = &cmd[1] {
+            if let RespType::RBulkString(lower_bound) = &cmd[2] {
+                if let RespType::RBulkString(upper_bound) = &cmd[3] {
+                    if let Some(value_vec) =
+                        new_database.get_values_in_range(key, lower_bound, upper_bound)
+                    {
+                        let mut value_vec_resptype = vec![];
+                        for elemento in value_vec {
+                            value_vec_resptype.push(RespType::RBulkString(elemento));
+                        }
+                        return RespType::RArray(value_vec_resptype);
                     }
-                    RespType::RArray(value_vec_resptype)
-                } else {
-                    RespType::RBulkString("error".to_string())
+                    return RespType::RBulkString(
+                        "error - Expected list. Got another value type".to_string(),
+                    );
                 }
-            } else {
-                RespType::RBulkString("No upper_bound_specified".to_string())
             }
-        } else {
-            RespType::RBulkString("No lower_bound_specified".to_string())
         }
-    } else {
-        RespType::RError("Invalid request".to_string())
     }
+    RespType::RError("Invalid request".to_string())
 }
 
 /// Devuelve el valor en la posición `index` de la lista asociada a una `key`.
@@ -425,11 +424,27 @@ pub fn lindex(cmd: &[RespType], database: &Arc<RwLock<Database>>) -> RespType {
                     .read()
                     .expect("Could not get database read lock on lindex");
                 let current_value_in_list_by_index = db.get_value_by_index(key, index);
-                return if let Some(value) = current_value_in_list_by_index {
-                    RespType::RBulkString(value)
-                } else {
-                    RespType::RError("value is not list type".to_string())
-                };
+
+                match current_value_in_list_by_index {
+                    Ok(value) => {
+                        return RespType::RBulkString(value);
+                    }
+                    Err(e) => match e {
+                        DatabaseError::InvalidParameter(err) => {
+                            return RespType::RError(err);
+                        }
+                        DatabaseError::InvalidValueType(err) => {
+                            return RespType::RError(err);
+                        }
+                        DatabaseError::MissingKey() => {
+                            return RespType::RNullBulkString();
+                        }
+                    },
+                }
+                //return if let Ok(value) = current_value_in_list_by_index {
+                //    RespType::RBulkString(value)
+                //} else {
+                //};
             }
         }
     }

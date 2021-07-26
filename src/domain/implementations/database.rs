@@ -552,20 +552,25 @@ impl Database {
     ///
     /// # std::fs::remove_file("dummy_db_index.csv");
     /// ```
-    pub fn get_value_by_index(&self, key: &str, index: &str) -> Option<String> {
+    pub fn get_value_by_index(&self, key: &str, index: &str) -> Result<String, DatabaseError> {
         if let (Some(item), false) = self.check_timeout_item(key) {
             let mut index_aux = index.parse::<isize>().unwrap();
             if let ValueType::ListType(current_value) = item.get_value().to_owned() {
                 let current_value_len = current_value.len() as isize;
+                if index_aux >= current_value_len {
+                    return Err(DatabaseError::InvalidValueType(
+                        "index out of bounds".to_string(),
+                    ));
+                }
                 if index_aux < 0 {
                     index_aux += current_value_len;
                 };
-                Some(current_value[index_aux as usize].to_owned())
+                Ok(current_value[index_aux as usize].to_owned())
             } else {
-                None
+                Err(DatabaseError::InvalidValueType("Not list type".to_string()))
             }
         } else {
-            Some("".to_string())
+            Ok("".to_string())
         }
     }
 
@@ -865,12 +870,12 @@ impl Database {
                         Ok(str_as_number - decr)
                     } else {
                         Err(DatabaseError::InvalidParameter(String::from(
-                            "Decrement value can't be represented as integer",
+                            "Value at key can't be represented as integer",
                         )))
                     }
                 } else {
                     Err(DatabaseError::InvalidValueType(format!(
-                        "Invalid value type. Expected: String. Got: {}",
+                        "Invalid value type. Expected: string. Got: {}",
                         item.get_value_type()
                     )))
                 }
@@ -918,12 +923,12 @@ impl Database {
                     Ok(str_as_number + incr)
                 } else {
                     Err(DatabaseError::InvalidParameter(String::from(
-                        "Increment value can't be represented as integer",
+                        "Value at key can't be represented as integer",
                     )))
                 }
             } else {
                 return Err(DatabaseError::InvalidValueType(format!(
-                    "Invalid value type. Expected: String. Got: {}",
+                    "Invalid value type. Expected: string. Got: {}",
                     item.get_value_type()
                 )));
             }
@@ -939,7 +944,7 @@ impl Database {
 
     /// Devuelve el valor almacenado en `key` si dicho valor es de tipo String.
     ///
-    /// Retorna `None` si la clave no existe o si el valor almacenado no es de tipo String.
+    /// Retorna Error si la clave no existe o si el valor almacenado no es de tipo String.
     ///
     /// # Example
     /// ```
@@ -958,18 +963,22 @@ impl Database {
     /// let aux = db.get_string_value_by_key("saludo").unwrap();
     /// assert_eq!(aux, String::from("hola"));
     /// let aux = db.get_string_value_by_key("saludo_despido");
-    /// assert!(aux.is_none());
+    /// assert!(aux.is_err());
     ///
     /// let _ = std::fs::remove_file("dummy_db_get_string");
     /// ```
-    pub fn get_string_value_by_key(&self, key: &str) -> Option<String> {
+    pub fn get_string_value_by_key(&self, key: &str) -> Result<String, DatabaseError> {
         if let (Some(item), false) = self.check_timeout_item(&key.to_string()) {
             let value = item.get_copy_of_value();
             if let ValueType::StringType(str) = value {
-                return Some(str);
+                return Ok(str);
+            } else {
+                return Err(DatabaseError::InvalidValueType(
+                    "Expected string, got another value type.".to_string(),
+                ));
             }
         }
-        None
+        Err(DatabaseError::MissingKey())
     }
 
     /// Retorna la longitud del string almacenado en `key`.
@@ -1198,6 +1207,7 @@ impl Database {
             Some(item) => {
                 if set_if_existing || !set_if_non_existing {
                     item.set_value(ValueType::StringType(value.to_string()));
+
                     if expire_at != 0 {
                         item.set_timeout(KeyAccessTime::Volatile(expire_at));
                     }
@@ -1227,12 +1237,18 @@ impl Database {
         match timeout.0.as_str() {
             "ex" => {
                 if let Some(ex) = timeout.1 {
-                    expire_at = ex.parse::<u64>().unwrap();
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = ex.parse::<u64>().unwrap() + now.as_secs();
                 }
             }
             "px" => {
                 if let Some(px) = timeout.1 {
-                    expire_at = px.parse::<u64>().unwrap() / 1000;
+                    let now = SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap();
+                    expire_at = px.parse::<u64>().unwrap() / 1000 + now.as_millis() as u64;
                 }
             }
             "exat" => {
@@ -1886,30 +1902,14 @@ fn test_020_se_obtienen_valores_de_claves_externas_a_partir_de_un_patron_y_una_l
 fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() {
     let mut db = Database::new("file021".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("pablo".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -1921,10 +1921,9 @@ fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() 
 
     let pat = "m?riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("miriana")));
     let _removed = std::fs::remove_file("file021".to_string());
 }
 
@@ -1932,33 +1931,17 @@ fn test_021_se_obtienen_keys_que_contienen_patron_regex_con_signo_de_pregunta() 
 fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes() {
     let mut db = Database::new("file022".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
 
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
 
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
 
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
@@ -1972,9 +1955,9 @@ fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes
     let pat = "m[ae]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
 
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+
     let _removed = std::fs::remove_file("file022".to_string());
 }
 
@@ -1982,30 +1965,14 @@ fn test_022_se_obtienen_keys_que_contienen_patron_regex_solo_exp_entre_corchetes
 fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_1() {
     let mut db = Database::new("file023".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2017,10 +1984,10 @@ fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 
     let pat = "m[^a]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+
+    assert!(matching_keys.contains(&"mariana".to_string()));
+    assert!(matching_keys.len() == 1);
+
     let _removed = std::fs::remove_file("file023".to_string());
 }
 
@@ -2028,31 +1995,15 @@ fn test_023_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corchetes_tipo_2_rango() {
     let mut db = Database::new("file024".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("juan".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2065,9 +2016,10 @@ fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
     let pat = "m[a-o]riana";
     let matching_keys = db.get_keys_that_match_pattern(pat);
 
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("miriana")));
+    assert!(matching_keys.contains(&String::from("moriana")));
     let _ = std::fs::remove_file("file024".to_string());
 }
 
@@ -2075,32 +2027,17 @@ fn test_024_se_obtienen_keys_que_contienen_patron_regex_excepto_exp_entre_corche
 fn test_025_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
     let mut db = Database::new("file025".to_string());
 
-    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_1 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_2 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
 
-    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_3 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_4 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
 
-    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string()))
-        .with_timeout(0)
-        .build();
-    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string()))
-        .with_timeout(0)
-        .build();
+    let vt_5 = ValueTimeItemBuilder::new(ValueType::StringType("1".to_string())).build();
+    let vt_6 = ValueTimeItemBuilder::new(ValueType::StringType("2".to_string())).build();
+    let vt_7 = ValueTimeItemBuilder::new(ValueType::StringType("11".to_string())).build();
+    let vt_8 = ValueTimeItemBuilder::new(ValueType::StringType("5".to_string())).build();
+
     db.items.insert("mia".to_string(), vt_1);
     db.items.insert("jose".to_string(), vt_2);
     db.items.insert("mariana".to_string(), vt_3);
@@ -2112,10 +2049,14 @@ fn test_025_se_obtienen_keys_que_contienen_patron_regex_asterisco() {
 
     let pat = "m*a";
     let matching_keys = db.get_keys_that_match_pattern(pat);
-    //let algo = tuplas.unwrap();
-    for key in matching_keys {
-        println!("{:?}", key)
-    }
+
+    assert!(matching_keys.contains(&String::from("miriana")));
+    assert!(matching_keys.contains(&String::from("meriana")));
+    assert!(matching_keys.contains(&String::from("moriana")));
+    assert!(matching_keys.contains(&String::from("mariana")));
+    assert!(matching_keys.contains(&String::from("malala")));
+    assert!(matching_keys.contains(&String::from("mia")));
+
     let _ = std::fs::remove_file("file025".to_string());
 }
 
@@ -2249,9 +2190,9 @@ fn test_031_se_obtienen_las_claves_que_contienen_solo_string_values() {
     let aux = db.get_string_value_by_key("despido").unwrap();
     assert_eq!(aux, String::from("chau"));
     let aux = db.get_string_value_by_key("saludo_despido");
-    assert!(aux.is_none());
+    assert!(aux.is_err());
     let aux = db.get_string_value_by_key("valores");
-    assert!(aux.is_none());
+    assert!(aux.is_err());
     let _ = std::fs::remove_file("file031".to_string());
 }
 
