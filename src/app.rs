@@ -4,6 +4,9 @@ use crate::domain::entities::config::Config;
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services;
+use crate::services::parser_service;
+use crate::services::utils::resp_type::RespType;
+use crate::services::web_server_parser_service;
 
 use std::env::args;
 use std::fs;
@@ -66,22 +69,34 @@ pub fn run_redis_server() {
 pub fn run_web_server() {
     let t = thread::spawn(|| {
         let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-
+        let red_stream = TcpStream::connect("127.0.0.1:7001").unwrap();
         for stream in listener.incoming() {
             let stream = stream.unwrap();
-
-            handle_connection(stream);
+            let redis_stream = red_stream.try_clone().unwrap();
+            handle_connection(stream, redis_stream);
         }
     });
+
+
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
     let mut buffer = [0; 1024];
-
+    let mut buffer_redis = [0; 1024];
     stream.read(&mut buffer).unwrap();
-    let contents = fs::read_to_string("redis.html").unwrap();
 
-    println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
+    let contents = fs::read_to_string("redis.html").unwrap();
+    let post = b"POST / HTTP/1.1\r\n";
+    if buffer.starts_with(post) {
+        let redis_cmd = web_server_parser_service::parse_request(&buffer[..]).iter().map(|e| RespType::RBulkString(e.to_string())).collect();
+        let parsed_cmd = parser_service::parse_response(RespType::RArray(redis_cmd));
+        println!("parsed: {}", parsed_cmd);
+        
+        redis_stream.write(parsed_cmd.as_bytes()).unwrap();
+        redis_stream.read(&mut buffer_redis).unwrap();
+        println!("respuesta: {:?}", &buffer_redis[..]);
+    }
+
     let response = format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
         contents.len(),
