@@ -77,7 +77,9 @@ pub fn run_web_server() {
         }
     });
 
-
+    // tendria que pasar lo siguiente cuando se cierra la pestaña para que borre el log
+    let default_contents = fs::read_to_string("redis_default.html").unwrap();
+    fs::write("./redis.html", default_contents).unwrap();
 }
 
 fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
@@ -85,16 +87,28 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
     let mut buffer_redis = [0; 1024];
     stream.read(&mut buffer).unwrap();
 
-    let contents = fs::read_to_string("redis.html").unwrap();
+    let mut contents = fs::read_to_string("redis.html").unwrap();
     let post = b"POST / HTTP/1.1\r\n";
+    let commands_pos = contents.find("id=\"command-input\"").unwrap();
+    let start_pos = commands_pos - 17;
     if buffer.starts_with(post) {
-        let redis_cmd = web_server_parser_service::parse_request(&buffer[..]).iter().map(|e| RespType::RBulkString(e.to_string())).collect();
+        let parsed_cmd = web_server_parser_service::parse_request(&buffer[..]);
+        let tmp = format!("{:?}", parsed_cmd); //HACERLO BIEN implementando display
+        let redis_cmd = parsed_cmd.iter().map(|e| RespType::RBulkString(e.to_string())).collect();
+        let html_cmd = format!("\r\n<div class=\"command-input\">\r\n<span>></span>\r\n<span>{}</span>\r\n</div>\r\n", tmp);
+        contents.insert_str(start_pos, &html_cmd);
+        fs::write("./redis.html", &contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores (otra opcion es guardarlo en memoria)
         let parsed_cmd = parser_service::parse_response(RespType::RArray(redis_cmd));
         println!("parsed: {}", parsed_cmd);
         
         redis_stream.write(parsed_cmd.as_bytes()).unwrap();
-        redis_stream.read(&mut buffer_redis).unwrap();
-        println!("respuesta: {:?}", &buffer_redis[..]);
+        let size = redis_stream.read(&mut buffer_redis).unwrap();
+        println!("respuesta: {:?}", &buffer_redis[..size]);
+        let commands_pos = contents.find("id=\"command-input\"").unwrap();
+        let start_pos = commands_pos - 17;
+        let html_res = format!("\r\n<div class=\"command-response\">\r\n<p>{}</p>\r\n</div>\r\n", String::from_utf8_lossy(&buffer_redis[..size]));
+        contents.insert_str(start_pos, &html_res);
+        fs::write("./redis.html", &contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores
     }
 
     let response = format!(
