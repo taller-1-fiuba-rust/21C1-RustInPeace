@@ -1230,11 +1230,15 @@ impl Database {
     /// # let _ = std::fs::remove_file("dummy_db_rmember.csv");
     /// ```
     pub fn remove_member_from_set(&mut self, key: &str, member: &str) -> Option<bool> {
-        let item = self.get_live_item(key);
+        let item = self.get_mut_live_item(key);
         match item {
             Some(item) => {
-                if let ValueType::SetType(mut item) = item.get_copy_of_value() {
-                    return Some(item.remove(member));
+                if let ValueType::SetType(mut value) = item.get_copy_of_value() {
+                    let removed = value.remove(member);
+                    if removed {
+                        item.set_value(ValueType::SetType(value));
+                        return Some(true);
+                    }
                 }
             }
             None => {
