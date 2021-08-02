@@ -106,10 +106,10 @@ pub fn pubsub(cmd: &[RespType], tx: &Sender<WorkerMessage>) -> RespType {
     if let RespType::RBulkString(command) = &cmd[1] {
         match command.as_str() {
             "channels" => {
-                return pubsub_channels(&cmd, tx);
+                return pubsub_channels(cmd, tx);
             }
             "numsub" => {
-                return pubsub_numsub(&cmd, tx);
+                return pubsub_numsub(cmd, tx);
             }
             _ => {}
         }

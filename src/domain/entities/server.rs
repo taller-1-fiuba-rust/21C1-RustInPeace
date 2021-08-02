@@ -678,7 +678,7 @@ impl Server {
     pub fn write_to_client_with_address(&mut self, addrs: Vec<String>, msg: &[u8]) -> usize {
         let mut sent = 0;
         self.clients.iter_mut().for_each(|client| {
-            if addrs.contains(&&client.get_address().to_string())
+            if addrs.contains(&client.get_address().to_string())
                 && client.write_to_stream(msg).is_ok()
             {
                 sent += 1;

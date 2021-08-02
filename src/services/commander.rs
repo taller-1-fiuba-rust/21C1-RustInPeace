@@ -97,7 +97,7 @@ pub fn handle_command(
                 );
             }
             match actual_command.as_str() {
-                "monitor" => command_server::monitor(&tx, addrs),
+                "monitor" => command_server::monitor(tx, addrs),
                 "info" => return Ok(command_server::info(&array, tx)),
                 "config" => {
                     if let RespType::RBulkString(instruction) = &array[1] {
@@ -112,7 +112,7 @@ pub fn handle_command(
                         }
                     }
                 }
-                "dbsize" => return Ok(command_server::dbsize(&database)),
+                "dbsize" => return Ok(command_server::dbsize(database)),
                 "flushdb" => return Ok(command_server::flushdb(database)),
                 "copy" => return Ok(command_key::copy(&array, database)),
                 "del" => return Ok(command_key::del(&array, database)),
