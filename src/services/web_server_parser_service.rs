@@ -1,39 +1,49 @@
-use crate::services::parser_service;
 use super::utils::resp_type::RespType;
+use crate::services::parser_service;
 
 /// Obtiene el body de una solicitud HTTP.
 pub fn parse_request(req: &[u8]) -> String {
-    println!("Request: {}", String::from_utf8_lossy(&req[..]));
+    println!("Request: {}", String::from_utf8_lossy(req));
 
     let mut parameters = Vec::new();
     let mut pos = 0;
     while pos < req.len() {
         let crlf_pos = parser_service::search_crlf(&req[pos..]);
-        if crlf_pos.is_err() {
-            parameters.push(String::from_utf8_lossy(&req[pos..]));
-            pos = req.len();
-        } else {
-            let c = crlf_pos.unwrap();
-            parameters.push(String::from_utf8_lossy(&req[pos..c+pos]));
-            pos += c;
-            pos += 2;
+        match crlf_pos {
+            Ok(crlf_pos) => {
+                parameters.push(String::from_utf8_lossy(&req[pos..crlf_pos + pos]));
+                pos += crlf_pos;
+                pos += 2;
+            }
+            Err(_) => {
+                parameters.push(String::from_utf8_lossy(&req[pos..]));
+                pos = req.len();
+            }
         }
     }
 
-    let cmd = parameters.last().unwrap()[4..].to_string().replace("\u{0}", "");
-    return cmd;
+    let cmd = parameters.last().unwrap()[4..]
+        .to_string()
+        .replace("\u{0}", "");
+    cmd
 }
 
 /// Transforma el body de una solicitud en un string separado por espacios en blanco.
-pub fn get_body_as_string(string: &String) -> String {
-    return string.to_string().replace("+", " ");
+pub fn get_body_as_string(string: &str) -> String {
+    string.to_string().replace("+", " ")
 }
 
 /// Transforma el body de una solicitud en un vector de strings.
 pub fn get_body_as_resp(string: String) -> RespType {
-    return RespType::RArray(string.split('+').collect::<Vec<&str>>().iter().map(|e| RespType::RBulkString(e.to_string())).collect());
+    RespType::RArray(
+        string
+            .split('+')
+            .collect::<Vec<&str>>()
+            .iter()
+            .map(|e| RespType::RBulkString(e.to_string()))
+            .collect(),
+    )
 }
-
 
 #[test]
 fn test_parse_request() {
@@ -41,6 +51,3 @@ fn test_parse_request() {
     let cmd = parse_request(req);
     assert_eq!(cmd, "set+nombre+juan".to_string());
 }
-
-
-
