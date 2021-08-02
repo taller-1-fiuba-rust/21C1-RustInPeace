@@ -21,7 +21,7 @@
                 <path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h12z"/>
             </svg>
             <input id="input" type="text" name="cmd" spellcheck="false">
-            <input type="submit" value="ENVIAR">
+            <div><input id="sendButton" type="submit" value="ENVIAR"></div>
         </form>
     </div>
   </body>
@@ -45,7 +45,7 @@
     }
     .consola {
         width: 90%;
-        height: 475px;
+        height: 440px;
         background-color: #EADAA2;
         border: 3px solid #960200;
         overflow: auto;
@@ -66,5 +66,13 @@
         font-size: x-large;
         padding-left: 70px;
         outline: none;
+    }
+    #sendButton {
+        margin-top: 5px;
+        background-color: #f3eb60;
+        border: 3px solid #efef3e;
+        font-size: large;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
     }
 </style>

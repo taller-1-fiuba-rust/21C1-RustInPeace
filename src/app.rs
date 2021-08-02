@@ -5,7 +5,6 @@ use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
 use crate::services;
 use crate::services::parser_service;
-use crate::services::utils::resp_type::RespType;
 use crate::services::web_server_parser_service;
 
 use std::env::args;
@@ -63,60 +62,68 @@ pub fn run_redis_server() {
         .unwrap_or_else(|_| println!("Couldn't join server thread"));
 }
 
-/// Inicia el servidor web
+/// Inicia el servidor web.
 ///
-///
+/// Inicia el servidor web en la dirección "127.0.0.1:8080" y
+/// se conecta al servidor Redis en el puerto 7001.
 pub fn run_web_server() {
-    let t = thread::spawn(|| {
+    thread::spawn(|| {
         let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-        let red_stream = TcpStream::connect("127.0.0.1:7001").unwrap();
+        let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
+        fs::write("./redis.html", default_contents).unwrap();
         for stream in listener.incoming() {
             let stream = stream.unwrap();
-            let redis_stream = red_stream.try_clone().unwrap();
+            let redis_stream = TcpStream::connect("127.0.0.1:7001").unwrap(); // asi o clonado?
             handle_connection(stream, redis_stream);
         }
     });
-
-    // tendria que pasar lo siguiente cuando se cierra la pestaña para que borre el log
-    let default_contents = fs::read_to_string("redis_default.html").unwrap();
-    fs::write("./redis.html", default_contents).unwrap();
 }
 
+/// Resuelve peticiones del servidor web.
+///
+/// Si la solicitud es de tipo POST, obtiene el comando Redis enviado en la solicitud, se la envía al servidor Redis e imprime el comando en el archivo HTML asociado al servidor web.
+/// Luego, recibe del servidor Redis una respuesta que también imprime sobre el archivo HTML para poder mostrarle al cliente del servidor web.
 fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
     let mut buffer = [0; 1024];
     let mut buffer_redis = [0; 1024];
     stream.read(&mut buffer).unwrap();
 
-    let mut contents = fs::read_to_string("redis.html").unwrap();
+    let mut contents = fs::read_to_string("redis.html").expect("Could not read HTML file.");
     let post = b"POST / HTTP/1.1\r\n";
-    let commands_pos = contents.find("id=\"command-input\"").unwrap();
-    let start_pos = commands_pos - 17;
+
     if buffer.starts_with(post) {
         let parsed_cmd = web_server_parser_service::parse_request(&buffer[..]);
-        let tmp = format!("{:?}", parsed_cmd); //HACERLO BIEN implementando display
-        let redis_cmd = parsed_cmd.iter().map(|e| RespType::RBulkString(e.to_string())).collect();
-        let html_cmd = format!("\r\n<div class=\"command-input\">\r\n<span>></span>\r\n<span>{}</span>\r\n</div>\r\n", tmp);
-        contents.insert_str(start_pos, &html_cmd);
-        fs::write("./redis.html", &contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores (otra opcion es guardarlo en memoria)
-        let parsed_cmd = parser_service::parse_response(RespType::RArray(redis_cmd));
-        println!("parsed: {}", parsed_cmd);
+        let html_cmd = format!("\r\n<div class=\"command-input\">\r\n<span>></span>\r\n<span>{}</span>\r\n</div>\r\n", web_server_parser_service::get_body_as_string(&parsed_cmd));
+        overwrite_file("redis.html", html_cmd, &mut contents, 17, "id=\"command-input\"");
         
+        let redis_cmd = web_server_parser_service::get_body_as_resp(parsed_cmd);
+        let parsed_cmd = parser_service::parse_response(redis_cmd);
+        // envio comando redis al servidor
         redis_stream.write(parsed_cmd.as_bytes()).unwrap();
+        // leo respuesta del servidor redis
         let size = redis_stream.read(&mut buffer_redis).unwrap();
-        println!("respuesta: {:?}", &buffer_redis[..size]);
-        let commands_pos = contents.find("id=\"command-input\"").unwrap();
-        let start_pos = commands_pos - 17;
+
         let html_res = format!("\r\n<div class=\"command-response\">\r\n<p>{}</p>\r\n</div>\r\n", String::from_utf8_lossy(&buffer_redis[..size]));
-        contents.insert_str(start_pos, &html_res);
-        fs::write("./redis.html", &contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores
+        overwrite_file("redis.html", html_res, &mut contents, 17, "id=\"command-input\"");
     }
 
     let response = format!(
-        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", //revisar
         contents.len(),
         contents
     );
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
+}
+
+/// Sobreescribe un archivo con su contenido modificado.
+///
+/// Busca el substring `search` dentro de `contents` y a la posición de inicio del substring le resta `offset`. La posición resultante es
+/// la posición donde se va a insertar el substring `new_contents`. 
+/// Actualiza el archivo `filename` con el contenido final.
+pub fn overwrite_file(filename: &str, new_contents: String, contents: &mut String, offset: usize, search: &str) {
+    let pos = contents.find(search).unwrap() - offset;
+    contents.insert_str(pos, &new_contents);
+    fs::write(filename, contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores (otra opcion es guardarlo en memoria)
 }
