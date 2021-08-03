@@ -7,6 +7,7 @@ use crate::services;
 use crate::services::parser_service;
 use crate::services::web_server_parser_service;
 
+use crate::services::worker_service::ThreadPool;
 use std::env::args;
 use std::fs;
 use std::io::Read;
@@ -78,6 +79,23 @@ pub fn run_web_server() {
         }
     });
 }
+
+pub fn run_web_server_version_2() {
+    thread::spawn(|| {
+        let pool = ThreadPool::new(10);
+        let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+        let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
+        fs::write("./redis.html", default_contents).unwrap();
+        for stream in listener.incoming() {
+            let stream = stream.unwrap();
+            let redis_stream = TcpStream::connect("127.0.0.1:7001").unwrap(); // asi o clonado?
+            pool.spawn(|| {
+                handle_connection(stream, redis_stream);
+            });
+        }
+    });
+}
+
 
 /// Resuelve peticiones del servidor web.
 ///
