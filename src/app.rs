@@ -96,7 +96,6 @@ pub fn run_web_server_version_2() {
     });
 }
 
-
 /// Resuelve peticiones del servidor web.
 ///
 /// Si la solicitud es de tipo POST, obtiene el comando Redis enviado en la solicitud, se la envía al servidor Redis e imprime el comando en el archivo HTML asociado al servidor web.
