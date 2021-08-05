@@ -8,7 +8,6 @@ use crate::services::parser_service;
 use crate::services::web_server_parser_service;
 use crate::services::worker_service::ThreadPool;
 
-use crate::services::worker_service::ThreadPool;
 use std::env::args;
 use std::fs;
 use std::io::Read;
@@ -76,14 +75,14 @@ pub fn run_web_server() {
         fs::write("./redis.html", default_contents).unwrap();
         let redis_stream = TcpStream::connect("127.0.0.1:7001").unwrap(); //clonado, verificar que no se haya cerrado
         for stream in listener.incoming() {
-            let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
-            fs::write("./redis.html", default_contents).unwrap();
             let stream = stream.unwrap();
             let redis = redis_stream.try_clone().unwrap();
             pool.spawn(|| {
                 handle_connection(stream, redis);
                 println!("cerro la conexion");
-            })
+                let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
+                fs::write("./redis.html", default_contents).unwrap();
+            });
         }
     });
 }
@@ -153,30 +152,30 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                         }
                     }
                 }
-                println!("writing http response");
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", //revisar
-                    contents.len(),
-                    contents
-                );
+                // println!("writing http response");
+                // let response = format!(
+                //     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", //revisar
+                //     contents.len(),
+                //     contents
+                // );
 
-                stream.write_all(response.as_bytes()).unwrap();
-                stream.flush().unwrap();
+                // stream.write_all(response.as_bytes()).unwrap();
+                // stream.flush().unwrap();
             }
             Err(_) => {
                 println!("Could not read web server stream");
                 break;
             }
         }
-        // println!("writing http response");
-        // let response = format!(
-        //     "HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\nKeep-Alive: timeout=5, max=1000\r\nContent-Length: {}\r\n\r\n{}", //revisar
-        //     contents.len(),
-        //     contents
-        // );
+        println!("writing http response");
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}\r\n", //revisar
+            contents.len(),
+            contents
+        );
 
-        // stream.write_all(response.as_bytes()).unwrap();
-        // stream.flush().unwrap();
+        stream.write_all(response.as_bytes()).unwrap();
+        stream.flush().unwrap();
     }
 }
 
