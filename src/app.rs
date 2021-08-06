@@ -71,8 +71,8 @@ pub fn run_web_server() {
     thread::spawn(|| {
         let pool = ThreadPool::new(10);
         let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-        let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
-        fs::write("./redis.html", default_contents).unwrap();
+        // let default_contents = fs::read_to_string("redis_default.html").unwrap(); //esto deberia pasar al final o al abrir pestaña nueva
+        // fs::write("./redis.html", default_contents).unwrap();
         let redis_stream = TcpStream::connect("127.0.0.1:7001").unwrap(); //clonado, verificar que no se haya cerrado
         for stream in listener.incoming() {
             let stream = stream.unwrap();
@@ -92,7 +92,7 @@ pub fn run_web_server() {
 /// Si la solicitud es de tipo POST, obtiene el comando Redis enviado en la solicitud, se la envía al servidor Redis e imprime el comando en el archivo HTML asociado al servidor web.
 /// Luego, recibe del servidor Redis una respuesta que también imprime sobre el archivo HTML para poder mostrarle al cliente del servidor web.
 fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
-    let mut contents = fs::read_to_string("redis.html").expect("Could not read HTML file.");
+    let contents = fs::read_to_string("redis.html").expect("Could not read HTML file.");
     let mut buffer = [0; 1024];
     let mut buffer_redis = [0; 1024];
     loop {
@@ -109,10 +109,10 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                 let post = b"POST / HTTP/1.1\r\n";
                 if buffer.starts_with(post) {
                     let parsed_cmd = web_server_parser_service::parse_request(&buffer[..size]);
-                    let html_cmd = format!(
-                        "\r\n<div class=\"command-input\">\r\n<span>></span>\r\n<span>{}</span>\r\n</div>\r\n",
-                        web_server_parser_service::get_body_as_string(&parsed_cmd)
-                    );
+                    // let html_cmd = format!(
+                    //     "\r\n<div class=\"command-input\">\r\n<span>></span>\r\n<span>{}</span>\r\n</div>\r\n",
+                    //     web_server_parser_service::get_body_as_string(&parsed_cmd)
+                    // );
                     // overwrite_file(
                     //     "redis.html",
                     //     html_cmd,
@@ -120,8 +120,8 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                     //     17,
                     //     "id=\"command-input\"",
                     // );
-                    let pos = contents.find("id=\"command-input\"").unwrap() - 17;
-                    contents.insert_str(pos, &html_cmd);
+                    // let pos = contents.find("id=\"command-input\"").unwrap() - 17;
+                    // contents.insert_str(pos, &html_cmd);
 
                     let redis_cmd = web_server_parser_service::get_body_as_resp(parsed_cmd);
                     let parsed_cmd = parser_service::parse_response(redis_cmd);
@@ -133,12 +133,20 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                             println!("Redis Server - Closed connection");
                         }
                         Ok(size) => {
-                            let html_res = format!(
-                                "\r\n<div class=\"command-response\">\r\n<p>{}</p>\r\n</div>\r\n",
+                            // let html_res = format!(
+                            //     "\r\n<div class=\"command-response\">\r\n<p>{}</p>\r\n</div>\r\n",
+                            //     String::from_utf8_lossy(&buffer_redis[..size])
+                            // );
+                            let response = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                                String::from_utf8_lossy(&buffer_redis[..size]).len(),
                                 String::from_utf8_lossy(&buffer_redis[..size])
                             );
-                            let pos = contents.find("id=\"command-input\"").unwrap() - 17;
-                            contents.insert_str(pos, &html_res);
+
+                            stream.write_all(response.as_bytes()).unwrap();
+                            stream.flush().unwrap();
+                            // let pos = contents.find("id=\"command-input\"").unwrap() - 17;
+                            // contents.insert_str(pos, &html_res);
                             // overwrite_file(
                             //     "redis.html",
                             //     html_res,
@@ -151,31 +159,31 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                             println!("Could not read redis response.");
                         }
                     }
-                }
-                println!("writing http response");
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", //revisar
-                    contents.len(),
-                    contents
-                );
+                } else {
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                        contents.len(),
+                        contents
+                    );
 
-                stream.write_all(response.as_bytes()).unwrap();
-                stream.flush().unwrap();
+                    stream.write_all(response.as_bytes()).unwrap();
+                    stream.flush().unwrap();
+                }
+                // println!("writing http response");
+                // let response = format!(
+                //     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}", //revisar
+                //     contents.len(),
+                //     contents
+                // );
+
+                // stream.write_all(response.as_bytes()).unwrap();
+                // stream.flush().unwrap();
             }
             Err(_) => {
                 println!("Could not read web server stream");
                 break;
             }
         }
-        // println!("writing http response");
-        // let response = format!(
-        //     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}\r\n", //revisar
-        //     contents.len(),
-        //     contents
-        // );
-
-        // stream.write_all(response.as_bytes()).unwrap();
-        // stream.flush().unwrap();
     }
 }
 

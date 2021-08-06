@@ -22,9 +22,7 @@ pub fn parse_request(req: &[u8]) -> String {
         }
     }
 
-    let cmd = parameters.last().unwrap()[4..]
-        .to_string()
-        .replace("\u{0}", "");
+    let cmd = parameters.last().unwrap().to_string().replace("\u{0}", "");
     cmd
 }
 
@@ -37,7 +35,7 @@ pub fn get_body_as_string(string: &str) -> String {
 pub fn get_body_as_resp(string: String) -> RespType {
     RespType::RArray(
         string
-            .split('+')
+            .split(' ')
             .collect::<Vec<&str>>()
             .iter()
             .map(|e| RespType::RBulkString(e.to_string()))
@@ -47,7 +45,7 @@ pub fn get_body_as_resp(string: String) -> RespType {
 
 #[test]
 fn test_parse_request() {
-    let req = b"POST / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nConnection: keep-alive\r\nContent-Length: 11\r\nCache-Control: max-age=0\r\nsec-ch-ua: \" Not;A Brand\";v=\"99\", \"Google Chrome\";v=\"91\", \"Chromium\";v=\"91\"\r\nsec-ch-ua-mobile: ?0\r\nUpgrade-Insecure-Requests: 1\r\nOrigin: http://127.0.0.1:8080\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nSec-Fetch-Site: same-origin\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-User: ?1\r\nSec-Fetch-Dest: document\r\nReferer: http://127.0.0.1:8080/\r\nAccept-Encoding: gzip, deflate, br\r\nAccept-Language: es-ES,es;q=0.9,en;q=0.8\r\n\r\ncmd=set+nombre+juan\r\n";
+    let req = b"POST / HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nConnection: keep-alive\r\nContent-Length: 11\r\nCache-Control: max-age=0\r\nsec-ch-ua: \" Not;A Brand\";v=\"99\", \"Google Chrome\";v=\"91\", \"Chromium\";v=\"91\"\r\nsec-ch-ua-mobile: ?0\r\nUpgrade-Insecure-Requests: 1\r\nOrigin: http://127.0.0.1:8080\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nSec-Fetch-Site: same-origin\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-User: ?1\r\nSec-Fetch-Dest: document\r\nReferer: http://127.0.0.1:8080/\r\nAccept-Encoding: gzip, deflate, br\r\nAccept-Language: es-ES,es;q=0.9,en;q=0.8\r\n\r\nset nombre juan\r\n";
     let cmd = parse_request(req);
-    assert_eq!(cmd, "set+nombre+juan".to_string());
+    assert_eq!(cmd, "set nombre juan".to_string());
 }
