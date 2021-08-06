@@ -3,8 +3,17 @@
 use crate::domain::entities::config::Config;
 use crate::domain::entities::server::Server;
 use crate::domain::implementations::database::Database;
+//use crate::errors::parse_error::ParseError;
 use crate::services;
 use crate::services::parser_service;
+//use crate::services::parser_service::{parse_array, parse_error, parse_integer, parse_bulkstring,parse_simple_string};
+
+// parse_simple_string(request)?),
+//         b'-' => Ok(parse_error(request)?),
+//         b':' => Ok(parse_integer(request)?),
+//         b'$' => Ok(parse_bulkstring
+
+use crate::services::utils::resp_type::RespType;
 use crate::services::web_server_parser_service;
 use crate::services::worker_service::ThreadPool;
 
@@ -137,11 +146,32 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                             //     "\r\n<div class=\"command-response\">\r\n<p>{}</p>\r\n</div>\r\n",
                             //     String::from_utf8_lossy(&buffer_redis[..size])
                             // );
-                            let response = format!(
-                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                                String::from_utf8_lossy(&buffer_redis[..size]).len(),
+
+                            //
+                            //&buffer_redis[..size]
+                            println!(
+                                "la req es: {:?}",
                                 String::from_utf8_lossy(&buffer_redis[..size])
                             );
+                            let respuesta_parseada_resptype =
+                                parser_service::parse(&buffer_redis[..size]).unwrap();
+                            println!(
+                                "La respuesta parseada es: {:?}",
+                                respuesta_parseada_resptype
+                            );
+                            let respuesta_parseada = resp_to_string(respuesta_parseada_resptype);
+
+                            let response = format!(
+                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                                respuesta_parseada.len(),
+                                respuesta_parseada
+                            );
+
+                            // let response = format!(
+                            //     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                            //     String::from_utf8_lossy(&buffer_redis[..size]).len(),
+                            //     String::from_utf8_lossy(&buffer_redis[..size])
+                            // );
 
                             stream.write_all(response.as_bytes()).unwrap();
                             stream.flush().unwrap();
@@ -202,4 +232,26 @@ pub fn overwrite_file(
     let pos = contents.find(search).unwrap() - offset;
     contents.insert_str(pos, &new_contents);
     fs::write(filename, contents).unwrap(); //sobreescribo el html asi no pierdo los comandos anteriores (otra opcion es guardarlo en memoria)
+}
+
+pub fn resp_to_string(response: RespType) -> String {
+    match response {
+        RespType::RBulkString(string) => string,
+        RespType::RInteger(integer) => integer.to_string(),
+        RespType::RSignedNumber(negative) => negative.to_string(),
+        RespType::RSimpleString(string) => string,
+        RespType::RArray(array) => {
+            let mut final_string = String::from("");
+            for (pos, element) in array.iter().enumerate() {
+                final_string += (pos + 1).to_string().as_str();
+                final_string += ") ";
+                final_string += &resp_to_string(element.to_owned());
+                final_string += "\r\n";
+            }
+            final_string
+        }
+        RespType::RError(message) => message,
+        RespType::RNullBulkString() => "(nil)".to_string(),
+        RespType::RNullArray() => "(nil)".to_string(),
+    }
 }
