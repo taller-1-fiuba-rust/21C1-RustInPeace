@@ -177,35 +177,6 @@ pub fn handle_connection(
                                 stream.flush()?;
                             }
                         }
-                        // let res = handle_command(
-                        //     parsed_request,
-                        //     &tx,
-                        //     client_addrs,
-                        //     &database,
-                        //     &config,
-                        //     subscribed,
-                        // )?;
-                        // let response = parse_response(res);
-                        // log(
-                        //     format!(
-                        //         "Response for {}. Message: {:?}. Response: {}\r\n",
-                        //         client_addrs,
-                        //         String::from_utf8_lossy(&buf[..size]),
-                        //         response
-                        //     ),
-                        //     &tx,
-                        // );
-                        // verbose(
-                        //     format!(
-                        //         "Response for {}. Message: {:?}. Response: {}\r\n",
-                        //         client_addrs,
-                        //         String::from_utf8_lossy(&buf[..size]),
-                        //         response
-                        //     ),
-                        //     &tx,
-                        // );
-                        // stream.write_all(response.as_bytes())?;
-                        // stream.flush()?;
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);
