@@ -9,7 +9,6 @@ use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
 use crate::services::web_server_parser_service;
 use crate::services::worker_service::ThreadPool;
-//use std::error::Error;
 use std::env::args;
 use std::fs;
 use std::io::Read;
@@ -118,19 +117,11 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                                     println!("Redis Server - Closed connection");
                                 }
                                 Ok(size) => {
-                                    println!(
-                                        "la req es: {:?}",
-                                        String::from_utf8_lossy(&buffer_redis[..size])
-                                    );
-                                    if buffer_redis.starts_with(b"Error:") {
-                                        let response = format!("HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\n\r\n{}",
+                                    let response = if buffer_redis.starts_with(b"Error:") {
+                                        format!("HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\n\r\n{}",
                                             String::from_utf8_lossy(&buffer_redis[..size]).len(),
                                             String::from_utf8_lossy(&buffer_redis[..size])
-                                        );
-                                        stream
-                                            .write_all(response.as_bytes())
-                                            .expect("Response could not be written");
-                                        stream.flush().expect("response failed");
+                                        )
                                     } else {
                                         let respuesta_parseada_resptype =
                                             parser_service::parse(&buffer_redis[..size])
@@ -143,16 +134,17 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                                         let respuesta_parseada =
                                             resp_to_string(respuesta_parseada_resptype);
 
-                                        let response = format!(
+                                        format!(
                                             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
                                             respuesta_parseada.len(),
                                             respuesta_parseada
-                                        );
-                                        stream
-                                            .write_all(response.as_bytes())
-                                            .expect("Response could not be written");
-                                        stream.flush().expect("response failed");
-                                    }
+                                        )
+                                    };
+                                    println!("res {:?}", response);
+                                    stream
+                                        .write_all(response.as_bytes())
+                                        .expect("Response could not be written");
+                                    stream.flush().expect("response failed");
                                 }
                                 Err(e) => {
                                     println!("falla 1");
