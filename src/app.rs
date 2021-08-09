@@ -9,7 +9,6 @@ use crate::services::parser_service;
 use crate::services::utils::resp_type::RespType;
 use crate::services::web_server_parser_service;
 use crate::services::worker_service::ThreadPool;
-
 use std::env::args;
 use std::fs;
 use std::io::Read;
@@ -72,14 +71,15 @@ pub fn run_redis_server() {
 pub fn run_web_server() {
     thread::spawn(|| {
         let pool = ThreadPool::new(10);
-        let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-        let redis_stream = TcpStream::connect("127.0.0.1:7001").unwrap();
+        let listener =
+            TcpListener::bind("127.0.0.1:8080").expect("Could not connect to HTTP listener");
+        let redis_stream =
+            TcpStream::connect("127.0.0.1:7001").expect("Could not connect to Redis Server");
         for stream in listener.incoming() {
-            let stream = stream.unwrap();
-            let redis = redis_stream.try_clone().unwrap();
+            let stream = stream.expect("Could not get TCP stream");
+            let redis = redis_stream.try_clone().expect("Could not clone redis");
             pool.spawn(|| {
                 handle_connection(stream, redis);
-                println!("cerro la conexion");
             });
         }
     });
@@ -98,47 +98,84 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
             Ok(0) => {
                 println!(
                     "{} Web Server - Closed connection",
-                    stream.peer_addr().unwrap()
+                    stream.peer_addr().expect("Could not get client's address.")
                 );
                 break;
             }
             Ok(size) => {
-                println!("{} Llega mensaje", stream.peer_addr().unwrap());
                 let post = b"POST / HTTP/1.1\r\n";
                 if buffer.starts_with(post) {
                     let parsed_cmd = web_server_parser_service::parse_request(&buffer[..size]);
                     let redis_cmd = web_server_parser_service::get_body_as_resp(parsed_cmd);
                     let parsed_cmd = parser_service::parse_response(redis_cmd);
                     // envio comando redis al servidor
-                    redis_stream.write_all(parsed_cmd.as_bytes()).unwrap();
-                    // leo respuesta del servidor redis
-                    match redis_stream.read(&mut buffer_redis) {
-                        Ok(0) => {
-                            println!("Redis Server - Closed connection");
-                        }
-                        Ok(size) => {
-                            println!(
-                                "la req es: {:?}",
-                                String::from_utf8_lossy(&buffer_redis[..size])
-                            );
-                            let respuesta_parseada_resptype =
-                                parser_service::parse(&buffer_redis[..size]).unwrap();
-                            println!(
-                                "La respuesta parseada es: {:?}",
-                                respuesta_parseada_resptype
-                            );
-                            let respuesta_parseada = resp_to_string(respuesta_parseada_resptype);
+                    match redis_stream.write_all(parsed_cmd.as_bytes()) {
+                        Ok(_) => {
+                            // leo respuesta del servidor redis
+                            match redis_stream.read(&mut buffer_redis) {
+                                Ok(0) => {
+                                    println!("Redis Server - Closed connection");
+                                }
+                                Ok(size) => {
+                                    let response = if buffer_redis.starts_with(b"Error:") {
+                                        format!("HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\n\r\n{}",
+                                            String::from_utf8_lossy(&buffer_redis[..size]).len(),
+                                            String::from_utf8_lossy(&buffer_redis[..size])
+                                        )
+                                    } else {
+                                        let respuesta_parseada_resptype =
+                                            parser_service::parse(&buffer_redis[..size])
+                                                .expect("Request could not be parsed");
+                                        println!(
+                                            "La respuesta parseada es: {:?}",
+                                            respuesta_parseada_resptype
+                                        );
 
-                            let response = format!(
-                                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                                respuesta_parseada.len(),
-                                respuesta_parseada
-                            );
-                            stream.write_all(response.as_bytes()).unwrap();
-                            stream.flush().unwrap();
+                                        let respuesta_parseada =
+                                            resp_to_string(respuesta_parseada_resptype);
+
+                                        format!(
+                                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                                            respuesta_parseada.len(),
+                                            respuesta_parseada
+                                        )
+                                    };
+                                    println!("res {:?}", response);
+                                    stream
+                                        .write_all(response.as_bytes())
+                                        .expect("Response could not be written");
+                                    stream.flush().expect("response failed");
+                                }
+                                Err(e) => {
+                                    println!("falla 1");
+                                    let error_msg = e.to_string();
+                                    let response = format!("HTTP/1.1 500 Internal Error\r\nContent-Length: {}\r\n\r\n{}",
+                                        error_msg.len(),
+                                        error_msg
+                                    );
+                                    stream
+                                        .write_all(response.as_bytes())
+                                        .expect("Response could not be written");
+                                    stream.flush().expect("response failed");
+                                    let redis_stream_2 = TcpStream::connect("127.0.0.1:7001")
+                                        .expect("Could not connect to Redis Server");
+                                    let stream_2 = stream.try_clone().unwrap();
+                                    handle_connection(stream_2, redis_stream_2);
+                                }
+                            }
                         }
-                        Err(_) => {
-                            println!("Could not read redis response.");
+                        Err(e) => {
+                            println!("falla 2");
+                            let error_msg = e.to_string();
+                            let response = format!(
+                                "HTTP/1.1 500 Internal Error\r\nContent-Length: {}\r\n\r\n{}",
+                                error_msg.len(),
+                                error_msg
+                            );
+                            stream
+                                .write_all(response.as_bytes())
+                                .expect("Response could not be written");
+                            stream.flush().expect("response failed");
                         }
                     }
                 } else {
@@ -148,8 +185,10 @@ fn handle_connection(mut stream: TcpStream, mut redis_stream: TcpStream) {
                         contents
                     );
 
-                    stream.write_all(response.as_bytes()).unwrap();
-                    stream.flush().unwrap();
+                    stream
+                        .write_all(response.as_bytes())
+                        .expect("Response could not be written");
+                    stream.flush().expect("response failed");
                 }
             }
             Err(_) => {

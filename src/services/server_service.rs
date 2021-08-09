@@ -54,7 +54,8 @@ pub fn init(db: Database, config: Config, dir: String, server_sender: Sender<Wor
                             .expect("Could not set a read timeout");
 
                         pool.spawn(|| {
-                            handle_connection(stream, tx, cloned_database, conf_lock).unwrap_or(());
+                            handle_connection(stream, tx, cloned_database, conf_lock)
+                                .expect("Unexpected Redis Server error");
                         });
                     }
                     Err(_) => {
@@ -139,35 +140,43 @@ pub fn handle_connection(
                             subscribed = pubsub_state;
                         }
 
-                        let res = handle_command(
+                        match handle_command(
                             parsed_request,
                             &tx,
                             client_addrs,
                             &database,
                             &config,
                             subscribed,
-                        )?;
-                        let response = parse_response(res);
-                        log(
-                            format!(
-                                "Response for {}. Message: {:?}. Response: {}\r\n",
-                                client_addrs,
-                                String::from_utf8_lossy(&buf[..size]),
-                                response
-                            ),
-                            &tx,
-                        );
-                        verbose(
-                            format!(
-                                "Response for {}. Message: {:?}. Response: {}\r\n",
-                                client_addrs,
-                                String::from_utf8_lossy(&buf[..size]),
-                                response
-                            ),
-                            &tx,
-                        );
-                        stream.write_all(response.as_bytes())?;
-                        stream.flush()?;
+                        ) {
+                            Ok(res) => {
+                                let response = parse_response(res);
+                                log(
+                                    format!(
+                                        "Response for {}. Message: {:?}. Response: {}\r\n",
+                                        client_addrs,
+                                        String::from_utf8_lossy(&buf[..size]),
+                                        response
+                                    ),
+                                    &tx,
+                                );
+                                verbose(
+                                    format!(
+                                        "Response for {}. Message: {:?}. Response: {}\r\n",
+                                        client_addrs,
+                                        String::from_utf8_lossy(&buf[..size]),
+                                        response
+                                    ),
+                                    &tx,
+                                );
+                                stream.write_all(response.as_bytes())?;
+                                stream.flush()?;
+                            }
+                            Err(e) => {
+                                let response = format!("Error: {}", e.to_string());
+                                stream.write_all(response.as_bytes())?;
+                                stream.flush()?;
+                            }
+                        }
                     }
                     Err(e) => {
                         println!("Error trying to parse request: {:?}", e);

@@ -29,17 +29,25 @@
 
 <script>
     function sendCommand() {
-        // const url = "127.0.0.1:8080";
         fetch("/", {
             method : "POST",
-            // body: "cmd="+document.getElementById("input").value.replaceAll(" ", "+"),
             body: document.getElementById("input").value,
         }).then(function(response) {
-            var cmd = document.getElementById("input").value
-            document.getElementById("commands").innerHTML += `<div class="command-input"><span style="margin-right: 5px">></span><span>${cmd}</span></div>`
-            document.getElementById("input").value = ""
-            return response.text();
+            if (response.status == 200) {
+                var cmd = document.getElementById("input").value
+                document.getElementById("commands").innerHTML += `<div class="command-input"><span style="margin-right: 5px">></span><span>${cmd}</span></div>`
+                document.getElementById("input").value = ""
+                console.log(response)
+            } else {
+                var cmd = document.getElementById("input").value
+                document.getElementById("commands").innerHTML += `<div class="command-input"><span style="margin-right: 5px">></span><span>${cmd}</span></div>`
+                document.getElementById("input").value = ""
+            }
+            let t = response.text()
+            console.log(t)
+            return t
         }).then(function(res) {
+            console.log(res)
             document.getElementById("commands").innerHTML += `<div class="command-response"><p>${res}</p></div>`
         });
         return false
