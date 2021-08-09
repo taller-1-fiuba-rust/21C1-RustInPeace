@@ -237,7 +237,7 @@ pub fn read_int(from: usize, to: usize, request: &[u8]) -> Result<usize, ParseEr
 /// assert_eq!(parser_service::parse_request(request).unwrap(), RespType::RArray(vec![RespType::RBulkString("first".to_string()), RespType::RBulkString("second".to_string())]));
 ///
 /// ```
-fn parse(request: &[u8]) -> Result<RespType, ParseError> {
+pub fn parse(request: &[u8]) -> Result<RespType, ParseError> {
     if String::from_utf8_lossy(&request[request.len() - 2..]) != "\r\n" {
         return Err(ParseError::InvalidProtocol(
             "CRFL missing at the end of command".to_string(),
